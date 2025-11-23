@@ -1,30 +1,31 @@
 # BetterAuth Bundle for Symfony
 
-[![Tests](https://github.com/betterauth/betterauth-symfony/workflows/Tests/badge.svg)](https://github.com/betterauth/betterauth-symfony/actions)
-[![Latest Stable Version](https://poser.pugx.org/betterauth/symfony-bundle/v/stable)](https://packagist.org/packages/betterauth/symfony-bundle)
-[![Total Downloads](https://poser.pugx.org/betterauth/symfony-bundle/downloads)](https://packagist.org/packages/betterauth/symfony-bundle)
-[![License](https://poser.pugx.org/betterauth/symfony-bundle/license)](https://packagist.org/packages/betterauth/symfony-bundle)
+[![CI](https://github.com/MakFly/betterauth-symfony/actions/workflows/tests.yml/badge.svg?label=CI)](https://github.com/MakFly/betterauth-symfony/actions)
+[![Latest Stable Version](https://img.shields.io/packagist/v/betterauth/symfony-bundle?label=stable)](https://packagist.org/packages/betterauth/symfony-bundle)
+[![Total Downloads](https://img.shields.io/packagist/dt/betterauth/symfony-bundle?label=downloads)](https://packagist.org/packages/betterauth/symfony-bundle)
+[![License](https://img.shields.io/packagist/l/betterauth/symfony-bundle?label=license)](https://github.com/MakFly/betterauth-symfony/blob/main/LICENSE)
+[![PHP Version](https://img.shields.io/packagist/php-v/betterauth/symfony-bundle?label=php)](https://packagist.org/packages/betterauth/symfony-bundle)
 
 Modern, secure authentication for Symfony 6/7 applications with automatic setup.
 
-## Features
+## ✨ Features
 
-- Email/Password authentication
-- Magic Link passwordless auth
-- OAuth 2.0 (Google, GitHub, Facebook, Apple, Discord, Microsoft, Twitter/X)
-- Passkeys/WebAuthn
-- TOTP (Two-Factor Authentication)
-- SSO/OIDC Provider
-- Multi-Tenant (Organizations, Teams, Members, Invitations)
-- **Fully automated installation** with `better-auth:install`
-- **UUID v7 or INT ID strategies**
-- Symfony Flex auto-configuration
-- DependencyInjection integration
-- Console commands
-- API Platform OpenAPI integration
-- Symfony Security integration
+- 🔐 **Email/Password authentication**
+- 🔗 **Magic Link** passwordless auth
+- 🌍 **OAuth 2.0**: Google, GitHub, Facebook, Apple, Discord, Microsoft, Twitter/X
+- 🔑 **Passkeys/WebAuthn**
+- 📱 **TOTP** (Two-Factor Authentication)
+- 🔄 **SSO/OIDC Provider**
+- 👥 **Multi-Tenant**: Organizations, Teams, Members, Invitations
+- ⚡ **Fully automated installation** with `better-auth:install`
+- 🆔 **UUID v7 or INT ID strategies**
+- 🎯 **Symfony Flex auto-configuration**
+- 🔌 **DependencyInjection integration**
+- 💻 **Console commands**
+- 📚 **API Platform OpenAPI integration**
+- 🔒 **Symfony Security integration**
 
-## Installation
+## 📦 Installation
 
 ### Automatic Installation (Recommended)
 
@@ -32,22 +33,20 @@ Modern, secure authentication for Symfony 6/7 applications with automatic setup.
 # 1. Install the bundle
 composer require betterauth/symfony-bundle
 
-# Bundle is automatically registered by Symfony Flex!
-
 # 2. Run the installation wizard
 php bin/console better-auth:install
 ```
 
 The installation wizard will:
-- Ask for your preferred ID strategy (UUID v7 or INT)
-- Ask for authentication mode (api, session, or hybrid)
-- Ask for OAuth providers (Google, GitHub, etc.)
-- Generate User, Session, and RefreshToken entities
-- Generate AuthController with 8 endpoints
-- Create configuration file (`config/packages/better_auth.yaml`)
-- Generate and run database migrations
-- Update .env with secrets
-- Everything ready to use!
+- ✅ Ask for your preferred ID strategy (UUID v7 or INT)
+- ✅ Ask for authentication mode (api, session, or hybrid)
+- ✅ Ask for OAuth providers (Google, GitHub, etc.)
+- ✅ Generate User, Session, and RefreshToken entities
+- ✅ Generate AuthController with 8 endpoints
+- ✅ Create configuration file (`config/packages/better_auth.yaml`)
+- ✅ Generate and run database migrations
+- ✅ Update .env with secrets
+- ✅ Everything ready to use!
 
 ### Non-Interactive Installation
 
@@ -67,7 +66,7 @@ php bin/console better-auth:install \
 - `--skip-controller` - Skip controller generation
 - `--no-interaction` - Run without prompts
 
-## Quick Start
+## 🚀 Quick Start
 
 After installation, start your development server:
 
@@ -104,9 +103,10 @@ curl -X POST http://localhost:8000/auth/login \
 
 # Response:
 # {
-#   "accessToken": "v4.public.eyJ...",  # Paseto V4 token
-#   "refreshToken": "...",
-#   "expiresIn": 7200,
+#   "access_token": "v4.local.eyJ...",  # Paseto V4 token
+#   "refresh_token": "...",
+#   "expires_in": 7200,
+#   "token_type": "Bearer",
 #   "user": { ... }
 # }
 
@@ -120,7 +120,7 @@ curl -X POST http://localhost:8000/auth/refresh \
   -d '{"refreshToken":"YOUR_REFRESH_TOKEN"}'
 ```
 
-## Generated Endpoints
+## 🛣️ Generated Endpoints
 
 The `better-auth:install` command generates an `AuthController` with **8 endpoints**:
 
@@ -135,7 +135,7 @@ The `better-auth:install` command generates an `AuthController` with **8 endpoin
 | GET | `/auth/oauth/{provider}` | Get OAuth authorization URL |
 | GET | `/auth/oauth/{provider}/callback` | OAuth callback handler |
 
-## Configuration
+## ⚙️ Configuration
 
 Generated configuration file (`config/packages/better_auth.yaml`):
 
@@ -154,13 +154,13 @@ better_auth:
                 enabled: true
                 client_id: '%env(GOOGLE_CLIENT_ID)%'
                 client_secret: '%env(GOOGLE_CLIENT_SECRET)%'
-                redirect_uri: '%env(GOOGLE_REDIRECT_URI)%'
+                redirect_uri: '%env(APP_URL)%/auth/oauth/google/callback'
 
             github:
                 enabled: true
                 client_id: '%env(GITHUB_CLIENT_ID)%'
                 client_secret: '%env(GITHUB_CLIENT_SECRET)%'
-                redirect_uri: '%env(GITHUB_REDIRECT_URI)%'
+                redirect_uri: '%env(APP_URL)%/auth/oauth/github/callback'
 
     multi_tenant:
         enabled: false
@@ -177,14 +177,12 @@ APP_URL=http://localhost:8000
 # OAuth providers (if enabled)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-GOOGLE_REDIRECT_URI=http://localhost:8000/auth/oauth/google/callback
 
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
-GITHUB_REDIRECT_URI=http://localhost:8000/auth/oauth/github/callback
 ```
 
-## UUID v7 vs INT ID Strategy
+## 🆔 UUID v7 vs INT ID Strategy
 
 ### UUID v7 (Recommended)
 
@@ -196,10 +194,10 @@ $user->id; // "019ab13e-40f1-7b21-a672-f403d5277ec7"
 ```
 
 **Advantages:**
-- Chronologically sortable
-- Non-guessable (secure)
-- No index fragmentation (fast DB queries)
-- Compatible with distributed systems
+- ✅ Chronologically sortable
+- ✅ Non-guessable (secure)
+- ✅ No index fragmentation (fast DB queries)
+- ✅ Compatible with distributed systems
 
 ### INT (Classic)
 
@@ -210,13 +208,13 @@ $user->id; // 1, 2, 3, ...
 ```
 
 **Advantages:**
-- Smaller storage size (4-8 bytes vs 36 bytes)
-- Human-readable
-- Standard Symfony approach
+- ✅ Smaller storage size (4-8 bytes vs 36 bytes)
+- ✅ Human-readable
+- ✅ Standard Symfony approach
 
 **Choose during installation or use `--id-strategy=uuid|int`**
 
-## Authentication Modes
+## 🔑 Authentication Modes
 
 ### API Mode (Stateless)
 
@@ -253,7 +251,7 @@ better_auth:
     mode: 'hybrid'
 ```
 
-## API Platform Integration
+## 📚 API Platform Integration
 
 **Automatic OpenAPI Documentation** for all authentication endpoints!
 
@@ -274,70 +272,17 @@ You'll see all BetterAuth endpoints documented under the "Authentication" tag wi
 - Complete request/response schemas
 - OAuth provider documentation
 
-## Console Commands
+## 💻 Console Commands
 
 ```bash
 # Install/setup BetterAuth
 bin/console better-auth:install
 
-# Generate entities
-bin/console better-auth:make:entities
-
-# Generate controller
-bin/console better-auth:make:controller
-
 # List available commands
 bin/console list better-auth
 ```
 
-## Usage in Controllers
-
-```php
-<?php
-
-use BetterAuth\Providers\AuthManager\AuthManager;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Routing\Attribute\Route;
-
-class CustomAuthController
-{
-    public function __construct(
-        private readonly AuthManager $auth
-    ) {}
-
-    #[Route('/custom/register', methods: ['POST'])]
-    public function register(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-
-        $user = $this->auth->register(
-            email: $data['email'],
-            password: $data['password'],
-            name: $data['name'] ?? null
-        );
-
-        return $this->json(['user' => $user]);
-    }
-
-    #[Route('/custom/login', methods: ['POST'])]
-    public function login(Request $request): JsonResponse
-    {
-        $data = json_decode($request->getContent(), true);
-
-        $tokens = $this->auth->login(
-            email: $data['email'],
-            password: $data['password'],
-            ipAddress: $request->getClientIp(),
-            userAgent: $request->headers->get('User-Agent')
-        );
-
-        return $this->json($tokens);
-    }
-}
-```
-
-## Customizing Entities
+## 🎨 Customizing Entities
 
 After running `better-auth:install`, you can customize the generated entities:
 
@@ -347,7 +292,7 @@ After running `better-auth:install`, you can customize the generated entities:
 
 namespace App\Entity;
 
-use BetterAuth\Symfony\Model\BaseUser;
+use BetterAuth\Symfony\Model\User as BaseUser;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
@@ -376,9 +321,7 @@ php bin/console doctrine:migrations:diff
 php bin/console doctrine:migrations:migrate
 ```
 
-See [Entity Customization Guide](docs/ENTITY_CUSTOMIZATION.md) for more examples.
-
-## OAuth Providers
+## 🌍 OAuth Providers
 
 Enable OAuth providers during installation or manually:
 
@@ -390,18 +333,18 @@ better_auth:
                 enabled: true
                 client_id: '%env(GOOGLE_CLIENT_ID)%'
                 client_secret: '%env(GOOGLE_CLIENT_SECRET)%'
-                redirect_uri: '%env(GOOGLE_REDIRECT_URI)%'
+                redirect_uri: '%env(APP_URL)%/auth/oauth/google/callback'
 
             github:
                 enabled: true
                 client_id: '%env(GITHUB_CLIENT_ID)%'
                 client_secret: '%env(GITHUB_CLIENT_SECRET)%'
-                redirect_uri: '%env(GITHUB_REDIRECT_URI)%'
+                redirect_uri: '%env(APP_URL)%/auth/oauth/github/callback'
 
             # Also supported: facebook, apple, discord, microsoft, twitter
 ```
 
-## Multi-Tenancy
+## 👥 Multi-Tenancy
 
 Enable organizations, teams, and member management:
 
@@ -412,35 +355,16 @@ better_auth:
         default_role: 'member'
 ```
 
-```php
-use BetterAuth\Providers\AccountLinkProvider\OrganizationManager;
+## 🔒 Security
 
-$orgManager = new OrganizationManager($userRepo);
+- 🔐 **Paseto V4** tokens (encrypted, authenticated)
+- 🔑 **Argon2id** password hashing (memory-hard, GPU-resistant)
+- 🔄 **Refresh token rotation** (one-time use)
+- ⚡ **Rate limiting** support
+- 🛡️ **CSRF protection** (session mode)
+- 🆔 **UUID v7** IDs (non-guessable)
 
-// Create organization
-$org = $orgManager->createOrganization(
-    name: 'Acme Inc',
-    ownerId: $userId
-);
-
-// Invite members
-$orgManager->inviteMember(
-    organizationId: $org->id,
-    email: 'member@example.com',
-    role: 'admin'
-);
-```
-
-## Security
-
-- **Paseto V4** tokens (encrypted, authenticated)
-- **Argon2id** password hashing (memory-hard, GPU-resistant)
-- **Refresh token rotation** (one-time use)
-- **Rate limiting** support
-- **CSRF protection** (session mode)
-- **UUID v7** IDs (non-guessable)
-
-## Testing
+## 🧪 Testing
 
 ```bash
 # Run tests
@@ -451,36 +375,56 @@ composer require "symfony/framework-bundle:7.0.*" --no-update
 composer test
 ```
 
-## Requirements
+## 🔧 Requirements
 
 - PHP 8.2 or higher
 - Symfony 6.4 or 7.0+
 - Doctrine ORM 3.0+
 - API Platform 4.0+ (optional, for OpenAPI integration)
 
-## Documentation
+## 📊 CI/CD
 
-- [Installation Guide](https://github.com/betterauth/betterauth-symfony/wiki/Installation)
-- [Configuration](https://github.com/betterauth/betterauth-symfony/wiki/Configuration)
-- [API Reference](https://github.com/betterauth/betterauth-symfony/wiki/API-Reference)
-- [Entity Customization](docs/ENTITY_CUSTOMIZATION.md)
-- [Symfony Security Integration](docs/SYMFONY_SECURITY.md)
-- [Commands Reference](docs/COMMANDS.md)
-- [Integration Guide](docs/INTEGRATION.md)
+BetterAuth Symfony bundle includes comprehensive CI/CD with GitHub Actions:
 
-## Contributing
+- ✅ PHPUnit tests (14 combinations: PHP 8.2/8.3/8.4 × Symfony 6.4/7.0/7.1/7.2/7.3)
+- ✅ PHPStan static analysis
+- ✅ Security checks (Composer audit + Symfony security checker)
+- ✅ Code quality checks
+- ✅ Integration tests
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+All tests run on every push and pull request. View the [latest CI results](https://github.com/MakFly/betterauth-symfony/actions).
 
-## Security
+## 🤝 Contributing
 
-If you discover any security-related issues, please email security@betterauth.com instead of using the issue tracker.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-The MIT License (MIT). Please see [License File](LICENSE) for more information.
+## 🔒 Security
 
-## Credits
+If you discover any security-related issues, please create an issue on [GitHub](https://github.com/MakFly/betterauth-symfony/issues) with the `security` label.
 
-- [BetterAuth Team](https://github.com/betterauth)
-- [All Contributors](https://github.com/betterauth/betterauth-symfony/contributors)
+## 📄 License
+
+The MIT License (MIT). Please see [LICENSE](LICENSE) file for details.
+
+## 🔗 Links
+
+- **Packagist**: https://packagist.org/packages/betterauth/symfony-bundle
+- **GitHub**: https://github.com/MakFly/betterauth-symfony
+- **Issues**: https://github.com/MakFly/betterauth-symfony/issues
+- **Core Package**: https://github.com/MakFly/betterauth-core
+- **Laravel Package**: https://github.com/MakFly/betterauth-laravel
+
+## 🙏 Credits
+
+- [BackToTheFutur Team](https://github.com/MakFly/betterauth-symfony/contributors)
+- All the amazing people who contribute to open source
+
+---
+
+Made with ❤️ by the BackToTheFutur Team

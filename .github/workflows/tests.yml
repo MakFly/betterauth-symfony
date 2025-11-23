@@ -51,16 +51,7 @@ jobs:
           composer install --prefer-dist --no-progress --no-interaction
 
       - name: Run PHPUnit tests
-        run: |
-          if [ ! -f phpunit.xml ] && [ ! -f phpunit.xml.dist ]; then
-            echo "No phpunit.xml found, skipping tests (bundle has no tests yet)"
-            exit 0
-          fi
-          if [ -f vendor/bin/phpunit ]; then
-            vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
-          else
-            echo "PHPUnit not installed, skipping tests"
-          fi
+        run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
 
       - name: Upload coverage to Codecov
         if: matrix.php == '8.3' && matrix.symfony == '7.0.*'

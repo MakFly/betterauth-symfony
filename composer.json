@@ -1,92 +1,92 @@
 {
-    "name": "betterauth/symfony-bundle",
-    "description": "Symfony bundle for BetterAuth - Modern authentication library",
-    "type": "symfony-bundle",
-    "license": "MIT",
-    "keywords": [
-        "symfony",
-        "bundle",
-        "auth",
-        "authentication",
-        "oauth",
-        "sso",
-        "multi-tenant",
-        "organizations",
-        "betterauth",
-        "uuid-v7",
-        "api-platform"
-    ],
-    "authors": [
-        {
-            "name": "BackToTheFutur Team"
-        }
-    ],
-    "homepage": "https://github.com/betterauth/betterauth-symfony",
-    "support": {
-        "issues": "https://github.com/betterauth/betterauth-symfony/issues",
-        "source": "https://github.com/betterauth/betterauth-symfony"
-    },
-    "require": {
-        "php": "^8.2",
-        "betterauth/core": "^1.0",
-        "symfony/framework-bundle": "^6.0|^7.0",
-        "symfony/config": "^6.0|^7.0",
-        "symfony/dependency-injection": "^6.0|^7.0",
-        "symfony/http-kernel": "^6.0|^7.0",
-        "symfony/console": "^6.0|^7.0",
-        "symfony/yaml": "^6.0|^7.0",
-        "symfony/security-bundle": "^6.0|^7.0",
-        "symfony/filesystem": "^6.0|^7.0",
-        "symfony/twig-bundle": "^6.0|^7.0",
-        "symfony/asset": "^6.0|^7.0",
-        "symfony/uid": "^6.0|^7.0",
-        "symfony/validator": "^6.0|^7.0",
-        "symfony/serializer": "^6.0|^7.0",
-        "symfony/property-access": "^6.0|^7.0",
-        "symfony/property-info": "^6.0|^7.0",
-        "monolog/monolog": "^3.0",
-        "api-platform/core": "^4.0",
-        "nelmio/cors-bundle": "^2.0",
-        "doctrine/orm": "^3.0",
-        "doctrine/doctrine-bundle": "^2.0|^3.0",
-        "doctrine/doctrine-migrations-bundle": "^3.0"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^10.5",
-        "phpstan/phpstan": "^1.10",
-        "symfony/phpunit-bridge": "^6.0|^7.0",
-        "symfony/web-profiler-bundle": "^6.0|^7.0",
-        "symfony/maker-bundle": "^1.0",
-        "symfony/debug-bundle": "^6.0|^7.0",
-        "symfony/monolog-bundle": "^3.0",
-        "symfony/stopwatch": "^6.0|^7.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "BetterAuth\\Symfony\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "BetterAuth\\Symfony\\Tests\\": "tests/"
-        }
-    },
-    "scripts": {
-        "test": "phpunit",
-        "phpstan": "phpstan analyse"
-    },
-    "minimum-stability": "stable",
-    "prefer-stable": true,
-    "config": {
-        "sort-packages": true
-    },
-    "extra": {
-        "symfony": {
-            "allow-contrib": false,
-            "require": "^6.0|^7.0"
-        },
-        "branch-alias": {
-            "dev-main": "1.0-dev"
-        }
+  "name": "betterauth/symfony-bundle",
+  "description": "Symfony bundle for BetterAuth - Modern authentication library",
+  "type": "symfony-bundle",
+  "license": "MIT",
+  "keywords": [
+    "symfony",
+    "bundle",
+    "auth",
+    "authentication",
+    "oauth",
+    "sso",
+    "multi-tenant",
+    "organizations",
+    "betterauth",
+    "uuid-v7",
+    "api-platform"
+  ],
+  "authors": [
+    {
+      "name": "BackToTheFutur Team"
     }
+  ],
+  "homepage": "https://github.com/betterauth/betterauth-symfony",
+  "support": {
+    "issues": "https://github.com/betterauth/betterauth-symfony/issues",
+    "source": "https://github.com/betterauth/betterauth-symfony"
+  },
+  "require": {
+    "php": "^8.2",
+    "betterauth/core": "^1.0",
+    "symfony/framework-bundle": "^6.0|^7.0",
+    "symfony/config": "^6.0|^7.0",
+    "symfony/dependency-injection": "^6.0|^7.0",
+    "symfony/http-kernel": "^6.0|^7.0",
+    "symfony/console": "^6.0|^7.0",
+    "symfony/yaml": "^6.0|^7.0",
+    "symfony/security-bundle": "^6.0|^7.0",
+    "symfony/filesystem": "^6.0|^7.0",
+    "symfony/twig-bundle": "^6.0|^7.0",
+    "symfony/asset": "^6.0|^7.0",
+    "symfony/uid": "^6.0|^7.0",
+    "symfony/validator": "^6.0|^7.0",
+    "symfony/serializer": "^6.0|^7.0",
+    "symfony/property-access": "^6.0|^7.0",
+    "symfony/property-info": "^6.0|^7.0",
+    "monolog/monolog": "^3.0",
+    "api-platform/core": "^4.0",
+    "nelmio/cors-bundle": "^2.0",
+    "doctrine/orm": "^3.0",
+    "doctrine/doctrine-bundle": "^2.0|^3.0",
+    "doctrine/doctrine-migrations-bundle": "^3.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.5",
+    "phpstan/phpstan": "^1.10",
+    "symfony/phpunit-bridge": "^6.0|^7.0",
+    "symfony/web-profiler-bundle": "^6.0|^7.0",
+    "symfony/maker-bundle": "^1.0",
+    "symfony/debug-bundle": "^6.0|^7.0",
+    "symfony/monolog-bundle": "^3.0",
+    "symfony/stopwatch": "^6.0|^7.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "BetterAuth\\Symfony\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "BetterAuth\\Symfony\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit",
+    "phpstan": "phpstan analyse --memory-limit=256M"
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "config": {
+    "sort-packages": true
+  },
+  "extra": {
+    "symfony": {
+      "allow-contrib": false,
+      "require": "^6.0|^7.0"
+    },
+    "branch-alias": {
+      "dev-main": "1.0-dev"
+    }
+  }
 }

@@ -95,11 +95,10 @@ jobs:
       - name: Run PHPStan static analysis
         run: |
           if [ -f vendor/bin/phpstan ]; then
-            vendor/bin/phpstan analyse --no-progress || true
+            vendor/bin/phpstan analyse --no-progress --memory-limit=256M
           else
             echo "PHPStan not installed, skipping"
           fi
-        continue-on-error: true
 
   security:
     name: Security Checks

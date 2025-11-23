@@ -1,0 +1,14 @@
+parameters:
+    level: 5
+    paths:
+        - src
+    excludePaths:
+        - vendor
+        - tests
+        - src/Installer  # Composer scripts - not runtime code
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # Readonly property assignment in constructor (false positive)
+        - '#Readonly property .* is already assigned#'
+        # Symfony Config Builder false positives
+        - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition::children\(\)#'

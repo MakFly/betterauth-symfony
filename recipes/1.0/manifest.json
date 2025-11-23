@@ -1,0 +1,39 @@
+{
+    "bundles": {
+        "BetterAuth\\Symfony\\BetterAuthBundle": ["all"]
+    },
+    "copy-from-recipe": {
+        "config/": "%CONFIG_DIR%/"
+    },
+    "env": {
+        "BETTER_AUTH_SECRET": "generate-secret-key-here-64-chars",
+        "BETTER_AUTH_ISSUER": "http://localhost:8000"
+    },
+    "gitignore": [],
+    "post-install-output": [
+        "",
+        "  <bg=blue;fg=white> BetterAuth Bundle </> is now installed and ready to use!",
+        "",
+        "  * <fg=blue>Documentation</>: https://better-auth.com/docs/symfony",
+        "",
+        "  * <fg=blue>Generate a secret key</>:",
+        "    <comment>php -r \"echo bin2hex(random_bytes(32)) . PHP_EOL;\"</>",
+        "",
+        "  * <fg=blue>Next steps</>:",
+        "    1. Update BETTER_AUTH_SECRET in .env with a secure 64-character hex string",
+        "    2. The security.yaml has been pre-configured with BetterAuth authentication",
+        "    3. Protected routes under /api/* require Bearer token authentication",
+        "    4. Use POST /auth/api/login to get an access token",
+        "",
+        "  * <fg=blue>Example usage</>:",
+        "    <comment># Login to get token</>",
+        "    <comment>curl -X POST http://localhost:8000/auth/api/login \\</>",
+        "      <comment>-H \"Content-Type: application/json\" \\</>",
+        "      <comment>-d '{\"email\":\"user@example.com\",\"password\":\"password\"}'</>",
+        "",
+        "    <comment># Access protected route</>",
+        "    <comment>curl -X GET http://localhost:8000/api/profile \\</>",
+        "      <comment>-H \"Authorization: Bearer {access_token}\"</>",
+        ""
+    ]
+}

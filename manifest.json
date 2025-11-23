@@ -1,0 +1,18 @@
+{
+    "bundles": {
+        "BetterAuth\\Symfony\\BetterAuthBundle": ["all"]
+    },
+    "env": {
+        "BETTER_AUTH_SECRET": "%generate(secret)%",
+        "APP_URL": "http://localhost:8000"
+    },
+    "post-install-output": [
+        "",
+        "<bg=blue;fg=white>              BetterAuth Bundle Installed              </>",
+        "",
+        "  Next steps:",
+        "    • Run <comment>php bin/console better-auth:install</comment> to generate entities and configuration",
+        "    • Check the documentation at https://github.com/betterauth/betterauth-php",
+        ""
+    ]
+}

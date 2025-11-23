@@ -1,0 +1,239 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    # Core services
+    BetterAuth\Core\PasswordHasher:
+        public: true
+
+    BetterAuth\Core\TokenService:
+        arguments:
+            $secretKey: '%better_auth.secret%'
+        public: true
+
+    BetterAuth\Core\Config\AuthConfig:
+        factory: ['BetterAuth\Core\Config\AuthConfig', 'forMonolith']
+        arguments:
+            $secretKey: '%better_auth.secret%'
+        public: true
+
+    # Plugin System
+    BetterAuth\Core\Plugin\PluginManager:
+        arguments:
+            $config: '@BetterAuth\Core\Config\AuthConfig'
+        public: true
+
+    BetterAuth\Symfony\Plugin\SymfonyPluginLoader:
+        arguments:
+            $pluginManager: '@BetterAuth\Core\Plugin\PluginManager'
+            $eventDispatcher: '@Symfony\Contracts\EventDispatcher\EventDispatcherInterface'
+        public: true
+
+    # Session management
+    BetterAuth\Core\SessionService:
+        arguments:
+            $sessionRepository: '@BetterAuth\Core\Interfaces\SessionRepositoryInterface'
+            $sessionLifetime: 604800 # 7 days
+        public: true
+
+    # Authentication managers
+    BetterAuth\Core\SessionAuthManager:
+        arguments:
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $sessionService: '@BetterAuth\Core\SessionService'
+            $passwordHasher: '@BetterAuth\Core\PasswordHasher'
+        public: true
+
+    BetterAuth\Core\TokenAuthManager:
+        arguments:
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $refreshTokenRepository: '@BetterAuth\Core\Interfaces\RefreshTokenRepositoryInterface'
+            $tokenService: '@BetterAuth\Core\TokenService'
+            $passwordHasher: '@BetterAuth\Core\PasswordHasher'
+            $config: '@BetterAuth\Core\Config\AuthConfig'
+        public: true
+
+    BetterAuth\Core\AuthManager:
+        arguments:
+            $config: '@BetterAuth\Core\Config\AuthConfig'
+            $sessionAuthManager: '@BetterAuth\Core\SessionAuthManager'
+            $tokenAuthManager: '@BetterAuth\Core\TokenAuthManager'
+        public: true
+
+    # TokenService Decorator - Enables token modification events (like Lexik)
+    BetterAuth\Symfony\Service\EventDispatchingTokenService:
+        decorates: BetterAuth\Core\TokenService
+        arguments:
+            $inner: '@.inner'
+            $dispatcher: '@Symfony\Contracts\EventDispatcher\EventDispatcherInterface'
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+
+    # Security integration for Symfony Security component
+    BetterAuth\Symfony\Security\BetterAuthAuthenticator:
+        arguments:
+            $authManager: '@BetterAuth\Core\TokenAuthManager'
+            $dispatcher: '@Symfony\Contracts\EventDispatcher\EventDispatcherInterface'
+        public: true
+        tags:
+            - { name: 'monolog.logger', channel: 'better_auth' }
+
+    BetterAuth\Symfony\Security\BetterAuthUserProvider:
+        arguments:
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+        public: true
+
+    # OAuth Manager - Manages OAuth providers (Google, GitHub, etc.)
+    BetterAuth\Providers\OAuthProvider\OAuthManager:
+        arguments:
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $sessionService: '@BetterAuth\Core\SessionService'
+        public: true
+
+    # ID Converter - Automatic UUID/INT detection and conversion
+    BetterAuth\Symfony\Service\UserIdConverter:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+            $userClass: 'App\Entity\User'
+        public: true
+
+    # Doctrine storage adapters - Auto-configured
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineUserRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineSessionRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineRefreshTokenRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    # Map BetterAuth interfaces to Doctrine implementations
+    BetterAuth\Core\Interfaces\UserRepositoryInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineUserRepository
+
+    BetterAuth\Core\Interfaces\SessionRepositoryInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineSessionRepository
+
+    BetterAuth\Core\Interfaces\RefreshTokenRepositoryInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineRefreshTokenRepository
+
+    # Account Linking
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineAccountLinkRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Core\Interfaces\AccountLinkRepositoryInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineAccountLinkRepository
+
+    BetterAuth\Providers\AccountLinkProvider\AccountLinkProvider:
+        arguments:
+            $accountLinkRepository: '@BetterAuth\Core\Interfaces\AccountLinkRepositoryInterface'
+        public: true
+
+    # Guest Sessions
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineGuestSessionRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Core\Interfaces\GuestSessionRepositoryInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineGuestSessionRepository
+
+    BetterAuth\Providers\GuestSessionProvider\GuestSessionProvider:
+        arguments:
+            $guestSessionRepository: '@BetterAuth\Core\Interfaces\GuestSessionRepositoryInterface'
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $sessionLifetime: 86400
+        public: true
+
+    # Device Management
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineDeviceInfoRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineSessionActivityRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Core\Interfaces\DeviceInfoRepositoryInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineDeviceInfoRepository
+
+    BetterAuth\Core\Interfaces\SessionActivityRepositoryInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineSessionActivityRepository
+
+    BetterAuth\Providers\DeviceManagementProvider\DeviceDetector:
+        public: true
+
+    BetterAuth\Providers\DeviceManagementProvider\GeolocationService:
+        public: true
+
+    BetterAuth\Providers\DeviceManagementProvider\DeviceFingerprintService:
+        public: true
+
+    BetterAuth\Providers\DeviceManagementProvider\SessionManagerProvider:
+        arguments:
+            $deviceInfoRepository: '@BetterAuth\Core\Interfaces\DeviceInfoRepositoryInterface'
+            $sessionActivityRepository: '@BetterAuth\Core\Interfaces\SessionActivityRepositoryInterface'
+            $deviceDetector: '@BetterAuth\Providers\DeviceManagementProvider\DeviceDetector'
+            $geolocationService: '@BetterAuth\Providers\DeviceManagementProvider\GeolocationService'
+            $fingerprintService: '@BetterAuth\Providers\DeviceManagementProvider\DeviceFingerprintService'
+        public: true
+
+    # Security Enhancements
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineSecurityEventRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineSuspiciousActivityRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Core\Interfaces\SecurityEventRepositoryInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineSecurityEventRepository
+
+    BetterAuth\Core\Interfaces\SuspiciousActivityRepositoryInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineSuspiciousActivityRepository
+
+    BetterAuth\Providers\SecurityProvider\SecurityMonitor:
+        arguments:
+            $securityEventRepository: '@BetterAuth\Core\Interfaces\SecurityEventRepositoryInterface'
+            $geolocationService: '@BetterAuth\Providers\DeviceManagementProvider\GeolocationService'
+        public: true
+
+    BetterAuth\Providers\SecurityProvider\ThreatDetector:
+        arguments:
+            $suspiciousActivityRepository: '@BetterAuth\Core\Interfaces\SuspiciousActivityRepositoryInterface'
+            $deviceInfoRepository: '@BetterAuth\Core\Interfaces\DeviceInfoRepositoryInterface'
+            $geolocationService: '@BetterAuth\Providers\DeviceManagementProvider\GeolocationService'
+            $fingerprintService: '@BetterAuth\Providers\DeviceManagementProvider\DeviceFingerprintService'
+        public: true
+
+    BetterAuth\Providers\SecurityProvider\AuditLogger:
+        arguments:
+            $securityMonitor: '@BetterAuth\Providers\SecurityProvider\SecurityMonitor'
+            $logger: '@?logger'
+        public: true
+
+    # OpenAPI decorator for API Platform integration
+    # Automatically adds BetterAuth authentication endpoints to OpenAPI docs
+    BetterAuth\Symfony\OpenApi\AuthenticationDecorator:
+        decorates: 'api_platform.openapi.factory'
+        arguments:
+            $decorated: '@.inner'
+        autoconfigure: true
+
+    # Commands
+    BetterAuth\Symfony\Command\InstallCommand:
+        tags: ['console.command']

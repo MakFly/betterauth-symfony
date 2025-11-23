@@ -1,0 +1,71 @@
+better_auth:
+    # Authentication mode: 'session' (monolith with cookies) or 'api' (stateless with Paseto tokens)
+    mode: 'api'
+
+    # Secret key for cryptographic operations (64 hex characters)
+    # Generate with: php -r "echo bin2hex(random_bytes(32)) . PHP_EOL;"
+    secret: '%env(BETTER_AUTH_SECRET)%'
+
+    # Session configuration (used in 'session' mode)
+    session:
+        lifetime: 604800  # 7 days in seconds
+        cookie_name: 'better_auth_session'
+        cookie_secure: true      # Only send over HTTPS (set to false for local dev)
+        cookie_http_only: true   # Prevent JavaScript access
+        cookie_same_site: 'lax'  # CSRF protection: 'strict', 'lax', or 'none'
+
+    # Token configuration (used in 'api' mode)
+    token:
+        lifetime: 7200           # Access token lifetime: 2 hours
+        refresh_lifetime: 2592000  # Refresh token lifetime: 30 days
+        algorithm: 'paseto_v4'   # Token algorithm: 'paseto_v4' (recommended) or 'jwt'
+
+    # OAuth / Social Login providers
+    # Get credentials from provider developer consoles:
+    # - Google: https://console.cloud.google.com/apis/credentials
+    # - GitHub: https://github.com/settings/developers
+    # - Facebook: https://developers.facebook.com/apps
+    # - Microsoft: https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade
+    oauth:
+        providers:
+            google:
+                enabled: false
+                client_id: '%env(GOOGLE_CLIENT_ID)%'
+                client_secret: '%env(GOOGLE_CLIENT_SECRET)%'
+                redirect_uri: '%env(APP_URL)%/auth/oauth/google/callback'
+                # Optional: restrict to specific domain
+                # hd: 'example.com'
+
+            github:
+                enabled: false
+                client_id: '%env(GITHUB_CLIENT_ID)%'
+                client_secret: '%env(GITHUB_CLIENT_SECRET)%'
+                redirect_uri: '%env(APP_URL)%/auth/oauth/github/callback'
+                # Optional: request additional scopes
+                # scope: ['user:email', 'read:user']
+
+            facebook:
+                enabled: false
+                client_id: '%env(FACEBOOK_CLIENT_ID)%'
+                client_secret: '%env(FACEBOOK_CLIENT_SECRET)%'
+                redirect_uri: '%env(APP_URL)%/auth/oauth/facebook/callback'
+
+            microsoft:
+                enabled: false
+                client_id: '%env(MICROSOFT_CLIENT_ID)%'
+                client_secret: '%env(MICROSOFT_CLIENT_SECRET)%'
+                redirect_uri: '%env(APP_URL)%/auth/oauth/microsoft/callback'
+                # Optional: specify tenant
+                # tenant: 'common'  # or 'organizations', 'consumers', or tenant ID
+
+            discord:
+                enabled: false
+                client_id: '%env(DISCORD_CLIENT_ID)%'
+                client_secret: '%env(DISCORD_CLIENT_SECRET)%'
+                redirect_uri: '%env(APP_URL)%/auth/oauth/discord/callback'
+
+    # Multi-tenant configuration (Organizations, Teams, Members with RBAC)
+    multi_tenant:
+        enabled: false           # Enable multi-tenant features
+        default_role: 'member'   # Default role for new organization members
+        # Available roles: 'owner', 'admin', 'moderator', 'member'

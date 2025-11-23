@@ -1,0 +1,31 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+
+    # Setup Commands
+    BetterAuth\Symfony\Command\SetupLoggingCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }
+
+    BetterAuth\Symfony\Command\SetupDependenciesCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }
+
+    BetterAuth\Symfony\Command\UpdateConfigCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }
+
+    # Existing commands
+    BetterAuth\Symfony\Command\InstallCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }

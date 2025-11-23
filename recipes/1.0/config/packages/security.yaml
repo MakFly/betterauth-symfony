@@ -1,0 +1,97 @@
+security:
+    # https://symfony.com/doc/current/security.html#registering-the-user-hashing-passwords
+    password_hashers:
+        # BetterAuth uses Argon2id by default (stronger than bcrypt)
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+        BetterAuth\Symfony\Security\BetterAuthUser:
+            algorithm: auto
+
+    # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
+    providers:
+        # BetterAuth user provider - loads users from BetterAuth storage
+        better_auth_provider:
+            id: BetterAuth\Symfony\Security\BetterAuthUserProvider
+
+    # https://symfony.com/doc/current/security.html#firewalls
+    firewalls:
+        # Firewall for development tools (profiler, web debug toolbar, etc.)
+        # The order of firewalls is IMPORTANT - first match wins!
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        # Public authentication routes - no authentication required
+        auth:
+            pattern: ^/auth
+            stateless: true
+            security: false
+
+        # Protected API routes - requires Bearer token authentication (JWT/Paseto)
+        # This firewall is STATELESS (no sessions) - perfect for REST APIs
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: better_auth_provider
+            custom_authenticators:
+                - BetterAuth\Symfony\Security\BetterAuthAuthenticator
+            # On auth failure, returns 401 JSON response (no redirect)
+
+        # Main fallback firewall - for traditional web routes
+        # This is LAZY - session is only created if needed
+        main:
+            lazy: true
+            provider: better_auth_provider
+
+            # Uncomment to enable form-based login (traditional web app)
+            # form_login:
+            #     login_path: app_login          # Route name for login page
+            #     check_path: app_login           # Route to process login form
+            #     default_target_path: app_dashboard  # Redirect after login
+            #     enable_csrf: true               # CSRF protection (recommended)
+
+            # Uncomment to enable logout
+            # logout:
+            #     path: app_logout                # Route name for logout
+            #     target: app_login               # Redirect after logout
+            #     invalidate_session: true        # Destroy session on logout
+
+            # Uncomment for "remember me" functionality
+            # remember_me:
+            #     secret: '%kernel.secret%'       # Secret for cookie signing
+            #     lifetime: 604800                # 1 week in seconds
+            #     path: /
+            #     always_remember_me: false
+
+    # https://symfony.com/doc/current/security.html#access-control
+    # Easy way to control access for large sections of your site
+    # Note: Only the *first* access control that matches will be used!
+    access_control:
+        # Public routes - no authentication required
+        - { path: ^/auth, roles: PUBLIC_ACCESS }
+
+        # API routes - require valid Bearer token with ROLE_USER
+        - { path: ^/api, roles: ROLE_USER }
+
+        # Add your own access control rules here
+        # - { path: ^/admin, roles: ROLE_ADMIN }
+        # - { path: ^/profile, roles: ROLE_USER }
+        # - { path: ^/moderator, roles: [ROLE_MODERATOR, ROLE_ADMIN] }
+
+    # https://symfony.com/doc/current/security.html#role-hierarchy
+    # Role hierarchy - higher roles inherit permissions from lower roles
+    role_hierarchy:
+        ROLE_ADMIN: ROLE_USER
+        ROLE_SUPER_ADMIN: [ROLE_ADMIN, ROLE_ALLOWED_TO_SWITCH]
+
+when@test:
+    security:
+        password_hashers:
+            # By default, password hashers are resource intensive and take time. This is
+            # important to generate secure password hashes. In tests however, secure hashes
+            # are not important, waste resources and increase test times. The following
+            # reduces the work factor to the lowest possible values.
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4 # Lowest possible value for bcrypt
+                time_cost: 3 # Lowest possible value for argon
+                memory_cost: 10 # Lowest possible value for argon

@@ -1,6 +1,5 @@
 {
     "name": "betterauth/symfony-bundle",
-    "version": "1.0.0",
     "description": "Symfony bundle for BetterAuth - Modern authentication library",
     "type": "symfony-bundle",
     "license": "MIT",

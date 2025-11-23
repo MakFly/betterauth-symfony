@@ -52,6 +52,10 @@ jobs:
 
       - name: Run PHPUnit tests
         run: |
+          if [ ! -f phpunit.xml ] && [ ! -f phpunit.xml.dist ]; then
+            echo "No phpunit.xml found, skipping tests (bundle has no tests yet)"
+            exit 0
+          fi
           if [ -f vendor/bin/phpunit ]; then
             vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
           else

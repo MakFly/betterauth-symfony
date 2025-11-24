@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Service;
 
 use BetterAuth\Core\Interfaces\EmailSenderInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Twig\Environment;
@@ -23,6 +24,7 @@ final class SymfonyMailerEmailSender implements EmailSenderInterface
     public function __construct(
         private readonly MailerInterface $mailer,
         private readonly Environment $twig,
+        private readonly ?LoggerInterface $logger = null,
         private readonly string $fromEmail = 'noreply@example.com',
         private readonly string $fromName = 'BetterAuth'
     ) {
@@ -42,10 +44,15 @@ final class SymfonyMailerEmailSender implements EmailSenderInterface
                 ->html($html);
 
             $this->mailer->send($email);
+            $this->logger?->info('Magic link email sent successfully', ['to' => $to]);
 
             return true;
         } catch (\Exception $e) {
-            error_log("[ERROR] Failed to send magic link email to {$to}: " . $e->getMessage());
+            $this->logger?->error('Failed to send magic link email', [
+                'to' => $to,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             throw $e; // Rethrow to let the caller know
         }
     }
@@ -64,11 +71,18 @@ final class SymfonyMailerEmailSender implements EmailSenderInterface
                 ->html($html);
 
             $this->mailer->send($email);
+            $this->logger?->info('Verification email sent successfully', [
+                'to' => $to,
+                'verificationLink' => $verificationLink,
+            ]);
 
             return true;
         } catch (\Exception $e) {
-            error_log("[ERROR] Failed to send verification email to {$to}: " . $e->getMessage());
-            error_log("[ERROR] Stack trace: " . $e->getTraceAsString());
+            $this->logger?->error('Failed to send verification email', [
+                'to' => $to,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
             throw $e; // Rethrow to let the caller know
         }
     }

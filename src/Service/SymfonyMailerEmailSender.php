@@ -45,7 +45,8 @@ final class SymfonyMailerEmailSender implements EmailSenderInterface
 
             return true;
         } catch (\Exception $e) {
-            return false;
+            error_log("[ERROR] Failed to send magic link email to {$to}: " . $e->getMessage());
+            throw $e; // Rethrow to let the caller know
         }
     }
 

@@ -23,9 +23,14 @@ services:
         tags:
             - { name: 'console.command' }
 
-    # Existing commands
-    BetterAuth\Symfony\Command\InstallCommand:
+    # Feature Setup Command
+    BetterAuth\Symfony\Command\SetupFeaturesCommand:
         arguments:
             $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }
+
+    # Existing commands
+    BetterAuth\Symfony\Command\InstallCommand:
         tags:
             - { name: 'console.command' }

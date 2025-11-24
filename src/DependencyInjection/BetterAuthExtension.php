@@ -104,6 +104,7 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
             new FileLocator(__DIR__ . '/../../config')
         );
         $loader->load('services.yaml');
+        $loader->load('commands.yaml');
 
         // Create AuthConfig service dynamically based on mode
         $authConfigDefinition = $container->getDefinition(\BetterAuth\Core\Config\AuthConfig::class);

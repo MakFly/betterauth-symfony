@@ -61,6 +61,7 @@ final class DoctrineTotpRepository implements TotpStorageInterface
             'secret' => $doctrineTotp->getSecret(),
             'enabled' => $doctrineTotp->isEnabled(),
             'backup_codes' => $doctrineTotp->getBackupCodes(),
+            'last_2fa_verified_at' => $doctrineTotp->getLast2faVerifiedAt()?->format('Y-m-d H:i:s'),
         ];
     }
 
@@ -143,5 +144,23 @@ final class DoctrineTotpRepository implements TotpStorageInterface
         }
 
         return false;
+    }
+
+    /**
+     * Update the last 2FA verification timestamp.
+     */
+    public function updateLast2faVerifiedAt(string $userId): bool
+    {
+        $doctrineTotp = $this->entityManager->getRepository($this->totpClass)
+            ->findOneBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
+
+        if ($doctrineTotp === null) {
+            return false;
+        }
+
+        $doctrineTotp->setLast2faVerifiedAt(new \DateTimeImmutable());
+        $this->entityManager->flush();
+
+        return true;
     }
 }

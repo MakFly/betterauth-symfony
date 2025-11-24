@@ -1,0 +1,42 @@
+<?php
+
+declare(strict_types=1);
+
+namespace BetterAuth\Symfony\Migrations;
+
+use Doctrine\DBAL\Schema\Schema;
+use Doctrine\Migrations\AbstractMigration;
+
+/**
+ * Auto-generated Migration: Please modify to your needs!
+ */
+final class Version20251124102824 extends AbstractMigration
+{
+    public function getDescription(): string
+    {
+        return 'Create BetterAuth core tables (users, sessions, tokens)';
+    }
+
+    public function up(Schema $schema): void
+    {
+        // this up() migration is auto-generated, please modify it to your needs
+        $this->addSql('CREATE TABLE email_verification_tokens (token VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, expires_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, used BOOLEAN NOT NULL, PRIMARY KEY (token))');
+        $this->addSql('CREATE TABLE magic_link_tokens (token VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, expires_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, used BOOLEAN NOT NULL, PRIMARY KEY (token))');
+        $this->addSql('CREATE TABLE password_reset_tokens (token VARCHAR(255) NOT NULL, email VARCHAR(255) NOT NULL, expires_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, used BOOLEAN NOT NULL, PRIMARY KEY (token))');
+        $this->addSql('CREATE TABLE refresh_tokens (token VARCHAR(255) NOT NULL, user_id VARCHAR(36) NOT NULL, expires_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, revoked BOOLEAN NOT NULL, replaced_by VARCHAR(255) DEFAULT NULL, PRIMARY KEY (token))');
+        $this->addSql('CREATE TABLE sessions (token VARCHAR(255) NOT NULL, user_id VARCHAR(36) NOT NULL, expires_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, ip_address VARCHAR(45) NOT NULL, user_agent VARCHAR(500) NOT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, metadata JSON DEFAULT NULL, active_organization_id VARCHAR(36) DEFAULT NULL, active_team_id VARCHAR(36) DEFAULT NULL, PRIMARY KEY (token))');
+        $this->addSql('CREATE TABLE users (id VARCHAR(36) NOT NULL, email VARCHAR(255) NOT NULL, password_hash VARCHAR(255) DEFAULT NULL, name VARCHAR(255) DEFAULT NULL, avatar VARCHAR(500) DEFAULT NULL, email_verified BOOLEAN NOT NULL, email_verified_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, updated_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, metadata JSON DEFAULT NULL, PRIMARY KEY (id))');
+        $this->addSql('CREATE UNIQUE INDEX UNIQ_1483A5E9E7927C74 ON users (email)');
+    }
+
+    public function down(Schema $schema): void
+    {
+        // this down() migration is auto-generated, please modify it to your needs
+        $this->addSql('DROP TABLE email_verification_tokens');
+        $this->addSql('DROP TABLE magic_link_tokens');
+        $this->addSql('DROP TABLE password_reset_tokens');
+        $this->addSql('DROP TABLE refresh_tokens');
+        $this->addSql('DROP TABLE sessions');
+        $this->addSql('DROP TABLE users');
+    }
+}

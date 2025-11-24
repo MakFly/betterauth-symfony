@@ -31,6 +31,22 @@ class InstallCommand extends Command
             'uuid' => 'refresh_token.uuid.php.tpl',
             'int' => 'refresh_token.int.php.tpl',
         ],
+        'MagicLinkToken' => [
+            'uuid' => 'magic_link_token.uuid.php.tpl',
+            'int' => null, // Only UUID version available
+        ],
+        'EmailVerificationToken' => [
+            'uuid' => 'email_verification_token.uuid.php.tpl',
+            'int' => null, // Only UUID version available
+        ],
+        'PasswordResetToken' => [
+            'uuid' => 'password_reset_token.uuid.php.tpl',
+            'int' => null, // Only UUID version available
+        ],
+        'TotpData' => [
+            'uuid' => 'totp_data.uuid.php.tpl',
+            'int' => null, // Only UUID version available
+        ],
     ];
 
     private const OAUTH_PROVIDERS = [
@@ -545,6 +561,11 @@ HELP;
         $generatedFiles = [];
 
         foreach (self::ENTITY_TEMPLATES as $entityName => $templates) {
+            // Skip if template not available for this ID strategy
+            if ($templates[$idStrategy] === null) {
+                continue;
+            }
+
             $templateFile = $templatesDir . '/' . $templates[$idStrategy];
             $targetFile = $entitiesDir . '/' . $entityName . '.php';
 
@@ -691,6 +712,22 @@ HELP;
     BetterAuth\Symfony\Storage\Doctrine\DoctrineRefreshTokenRepository:
         arguments:
             $refreshTokenClass: 'App\Entity\RefreshToken'
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineMagicLinkRepository:
+        arguments:
+            $tokenClass: 'App\Entity\MagicLinkToken'
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineEmailVerificationRepository:
+        arguments:
+            $tokenClass: 'App\Entity\EmailVerificationToken'
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrinePasswordResetRepository:
+        arguments:
+            $tokenClass: 'App\Entity\PasswordResetToken'
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineTotpRepository:
+        arguments:
+            $totpDataClass: 'App\Entity\TotpData'
 
 YAML;
 

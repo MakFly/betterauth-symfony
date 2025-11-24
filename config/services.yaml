@@ -234,6 +234,17 @@ services:
             $decorated: '@.inner'
         autoconfigure: true
 
+    # Email Sender - Symfony Mailer implementation
+    BetterAuth\Symfony\Service\SymfonyMailerEmailSender:
+        arguments:
+            $mailer: '@Symfony\Component\Mailer\MailerInterface'
+            $fromEmail: 'noreply@example.com'
+            $fromName: 'BetterAuth'
+        public: true
+
+    BetterAuth\Core\Interfaces\EmailSenderInterface:
+        alias: BetterAuth\Symfony\Service\SymfonyMailerEmailSender
+
     # Email Verification Provider
     BetterAuth\Symfony\Storage\Doctrine\DoctrineEmailVerificationRepository:
         arguments:

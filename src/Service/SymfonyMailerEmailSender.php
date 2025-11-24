@@ -67,7 +67,9 @@ final class SymfonyMailerEmailSender implements EmailSenderInterface
 
             return true;
         } catch (\Exception $e) {
-            return false;
+            error_log("[ERROR] Failed to send verification email to {$to}: " . $e->getMessage());
+            error_log("[ERROR] Stack trace: " . $e->getTraceAsString());
+            throw $e; // Rethrow to let the caller know
         }
     }
 

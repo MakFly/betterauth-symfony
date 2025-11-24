@@ -55,6 +55,33 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
                 ],
             ],
         ]);
+
+        // Auto-configure Doctrine migrations for BetterAuth
+        if ($container->hasExtension('doctrine_migrations')) {
+            // Try to locate betterauth-symfony package migrations
+            $migrationsPaths = [
+                // Path repository (development)
+                dirname($projectDir) . '/betterauth-symfony/migrations',
+                // Vendor installation
+                $projectDir . '/vendor/betterauth/symfony-bundle/migrations',
+            ];
+
+            $betterAuthMigrationsPath = null;
+            foreach ($migrationsPaths as $path) {
+                if (is_dir($path)) {
+                    $betterAuthMigrationsPath = $path;
+                    break;
+                }
+            }
+
+            if ($betterAuthMigrationsPath !== null) {
+                $container->prependExtensionConfig('doctrine_migrations', [
+                    'migrations_paths' => [
+                        'BetterAuth\\Symfony\\Migrations' => $betterAuthMigrationsPath,
+                    ],
+                ]);
+            }
+        }
     }
 
     public function load(array $configs, ContainerBuilder $container): void

@@ -33,6 +33,10 @@ final class SymfonyMailerEmailSender implements EmailSenderInterface
     public function sendMagicLink(string $to, string $magicLink): bool
     {
         try {
+            // Debug: Log the DSN being used
+            $dsn = $_ENV['MAILER_DSN'] ?? 'NOT SET';
+            $this->logger?->debug('Mailer DSN', ['dsn' => $dsn]);
+            
             $html = $this->renderTemplate('magic_link.html.twig', [
                 'magicLink' => $magicLink,
             ]);

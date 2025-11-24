@@ -7,10 +7,56 @@ namespace BetterAuth\Symfony\DependencyInjection;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
-class BetterAuthExtension extends Extension
+class BetterAuthExtension extends Extension implements PrependExtensionInterface
 {
+    public function prepend(ContainerBuilder $container): void
+    {
+        // Auto-configure Doctrine ORM mappings for BetterAuth entities
+        if (!$container->hasExtension('doctrine')) {
+            return;
+        }
+
+        $projectDir = $container->getParameter('kernel.project_dir');
+
+        // Try to locate betterauth-core package
+        $possiblePaths = [
+            // Path repository (development)
+            dirname($projectDir) . '/betterauth-core/src/core',
+            // Vendor installation
+            $projectDir . '/vendor/betterauth/core/src/core',
+        ];
+
+        $betterAuthCorePath = null;
+        foreach ($possiblePaths as $path) {
+            if (is_dir($path)) {
+                $betterAuthCorePath = $path;
+                break;
+            }
+        }
+
+        if ($betterAuthCorePath === null) {
+            return;
+        }
+
+        // Register BetterAuth entity mappings automatically
+        $container->prependExtensionConfig('doctrine', [
+            'orm' => [
+                'mappings' => [
+                    'BetterAuthDoctrine' => [
+                        'type' => 'attribute',
+                        'is_bundle' => false,
+                        'dir' => $betterAuthCorePath . '/Doctrine',
+                        'prefix' => 'BetterAuth\\Core\\Doctrine',
+                        'alias' => 'BetterAuthDoctrine',
+                    ],
+                ],
+            ],
+        ]);
+    }
+
     public function load(array $configs, ContainerBuilder $container): void
     {
         $configuration = new Configuration();

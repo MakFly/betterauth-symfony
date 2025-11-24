@@ -14,8 +14,10 @@ use Doctrine\ORM\EntityManagerInterface;
  *
  * This allows BetterAuth core (which works with strings) to work transparently
  * with both UUID and INT-based User entities.
+ *
+ * This service is final to ensure consistent ID conversion behavior.
  */
-class UserIdConverter
+final class UserIdConverter
 {
     private string $idType;
     private string $userClass;

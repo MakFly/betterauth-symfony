@@ -7,7 +7,13 @@ namespace BetterAuth\Symfony\Event;
 use BetterAuth\Core\Entities\User;
 use Symfony\Contracts\EventDispatcher\Event;
 
-class TokenCreatedEvent extends Event
+/**
+ * Event dispatched when a token is created.
+ * Allows listeners to modify the token payload before signing.
+ *
+ * This event is final to prevent over-specialization.
+ */
+final class TokenCreatedEvent extends Event
 {
     public function __construct(
         private array $payload,

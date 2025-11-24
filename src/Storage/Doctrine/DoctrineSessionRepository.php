@@ -10,7 +10,12 @@ use BetterAuth\Symfony\Service\UserIdConverter;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 
-class DoctrineSessionRepository implements SessionRepositoryInterface
+/**
+ * Doctrine implementation of SessionRepositoryInterface.
+ *
+ * This repository is final to ensure consistent session persistence behavior.
+ */
+final class DoctrineSessionRepository implements SessionRepositoryInterface
 {
     private string $sessionClass;
 

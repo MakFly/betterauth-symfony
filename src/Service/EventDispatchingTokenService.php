@@ -13,8 +13,10 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 /**
  * Decorator for the Core TokenService.
  * Intercepts token creation to dispatch Symfony events, allowing payload modification.
+ *
+ * This service is final as it's a decorator that should not be extended.
  */
-class EventDispatchingTokenService implements TokenSignerInterface
+final class EventDispatchingTokenService implements TokenSignerInterface
 {
     public function __construct(
         private readonly TokenSignerInterface $inner,

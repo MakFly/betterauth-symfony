@@ -10,7 +10,12 @@ use BetterAuth\Symfony\Service\UserIdConverter;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 
-class DoctrineRefreshTokenRepository implements RefreshTokenRepositoryInterface
+/**
+ * Doctrine implementation of RefreshTokenRepositoryInterface.
+ *
+ * This repository is final to ensure consistent token persistence behavior.
+ */
+final class DoctrineRefreshTokenRepository implements RefreshTokenRepositoryInterface
 {
     private string $refreshTokenClass;
 

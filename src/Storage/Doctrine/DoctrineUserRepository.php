@@ -10,7 +10,12 @@ use BetterAuth\Symfony\Service\UserIdConverter;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 
-class DoctrineUserRepository implements UserRepositoryInterface
+/**
+ * Doctrine implementation of UserRepositoryInterface.
+ *
+ * This repository is final to ensure consistent user persistence behavior.
+ */
+final class DoctrineUserRepository implements UserRepositoryInterface
 {
     private string $userClass;
 

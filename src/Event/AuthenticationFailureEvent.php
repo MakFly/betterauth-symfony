@@ -8,7 +8,13 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Contracts\EventDispatcher\Event;
 
-class AuthenticationFailureEvent extends Event
+/**
+ * Event dispatched when authentication fails.
+ * Allows listeners to customize the failure response.
+ *
+ * This event is final to prevent over-specialization.
+ */
+final class AuthenticationFailureEvent extends Event
 {
     public function __construct(
         private readonly AuthenticationException $exception,

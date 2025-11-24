@@ -1,10 +1,9 @@
 {
     "recipes": {
-        "betterauth/symfony-bundle": [
-            "1.0"
-        ]
+        "betterauth/symfony-bundle": {
+            "1.0": "https://raw.githubusercontent.com/MakFly/betterauth-symfony/main/recipes/1.0/manifest.json"
+        }
     },
-    "branch": "main",
     "_readme": [
         "This file is an index for Symfony Flex private recipes.",
         "It allows automatic bundle registration without submitting to symfony/recipes-contrib."

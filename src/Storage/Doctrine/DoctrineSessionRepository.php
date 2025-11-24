@@ -22,7 +22,7 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserIdConverter $idConverter,
-        string $sessionClass = 'App\\Entity\\Session'
+        string $sessionClass = Session::class
     ) {
         $this->sessionClass = $sessionClass;
     }

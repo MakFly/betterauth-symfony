@@ -20,7 +20,7 @@ final class DoctrineEmailVerificationRepository implements EmailVerificationStor
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        string $tokenClass = 'App\\Entity\\EmailVerificationToken'
+        string $tokenClass = EmailVerificationToken::class
     ) {
         $this->tokenClass = $tokenClass;
     }

@@ -20,7 +20,7 @@ final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        string $tokenClass = 'App\\Entity\\MagicLinkToken'
+        string $tokenClass = MagicLinkToken::class
     ) {
         $this->tokenClass = $tokenClass;
     }

@@ -20,7 +20,7 @@ final class DoctrinePasswordResetRepository implements PasswordResetStorageInter
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        string $tokenClass = 'App\\Entity\\PasswordResetToken'
+        string $tokenClass = PasswordResetToken::class
     ) {
         $this->tokenClass = $tokenClass;
     }

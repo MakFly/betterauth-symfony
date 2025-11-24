@@ -22,7 +22,7 @@ final class DoctrineRefreshTokenRepository implements RefreshTokenRepositoryInte
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserIdConverter $idConverter,
-        string $refreshTokenClass = 'App\\Entity\\RefreshToken'
+        string $refreshTokenClass = RefreshToken::class
     ) {
         $this->refreshTokenClass = $refreshTokenClass;
     }

@@ -22,7 +22,7 @@ final class DoctrineUserRepository implements UserRepositoryInterface
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserIdConverter $idConverter,
-        string $userClass = 'App\\Entity\\User'
+        string $userClass = User::class
     ) {
         $this->userClass = $userClass;
     }

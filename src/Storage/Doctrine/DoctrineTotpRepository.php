@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BetterAuth\Symfony\Storage\Doctrine;
 
+use BetterAuth\Core\Entities\TotpData;
 use BetterAuth\Core\Interfaces\TotpStorageInterface;
 use BetterAuth\Symfony\Service\UserIdConverter;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,7 +21,7 @@ final class DoctrineTotpRepository implements TotpStorageInterface
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserIdConverter $idConverter,
-        string $totpClass = 'App\\Entity\\TotpData'
+        string $totpClass = TotpData::class
     ) {
         $this->totpClass = $totpClass;
     }

@@ -1,0 +1,12 @@
+{
+    "recipes": {
+        "betterauth/symfony-bundle": [
+            "1.0"
+        ]
+    },
+    "branch": "main",
+    "_readme": [
+        "This file is an index for Symfony Flex private recipes.",
+        "It allows automatic bundle registration without submitting to symfony/recipes-contrib."
+    ]
+}

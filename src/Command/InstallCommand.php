@@ -372,6 +372,7 @@ HELP;
         $this->registerBundle($io, $filesystem, $projectDir);
         $this->generateConfiguration($io, $filesystem, $projectDir, $mode, $providers, $state);
         $this->generateController($io, $filesystem, $projectDir, $state, $input);
+        $this->configureServices($io, $filesystem, $projectDir, $idStrategy);
         $this->updateEnvFile($io, $filesystem, $projectDir, $providers);
 
         // Migrations
@@ -592,7 +593,7 @@ HELP;
 
     private function generateConfiguration(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $mode, array $providers, array $state): void
     {
-        $io->section('⚙️  Step 3/5: Generating Configuration');
+        $io->section('⚙️  Step 3/6: Generating Configuration');
 
         $configDir = $projectDir . '/config/packages';
         $configFile = $configDir . '/better_auth.yaml';
@@ -626,12 +627,12 @@ HELP;
     private function generateController(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, array $state, InputInterface $input): void
     {
         if ($input->getOption('skip-controller')) {
-            $io->section('🎮 Step 4/5: Controller (Skipped)');
+            $io->section('🎮 Step 4/6: Controller (Skipped)');
 
             return;
         }
 
-        $io->section('🎮 Step 4/5: Generating AuthController');
+        $io->section('🎮 Step 4/6: Generating AuthController');
 
         $controllerDir = $projectDir . '/src/Controller';
         $controllerFile = $controllerDir . '/AuthController.php';
@@ -656,9 +657,54 @@ HELP;
         $io->writeln('  <fg=green>✓</> Routes automatically configured via attributes');
     }
 
+    private function configureServices(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $idStrategy): void
+    {
+        $io->section('⚙️  Step 5/6: Configuring Services');
+
+        $servicesFile = $projectDir . '/config/services.yaml';
+        if (!$filesystem->exists($servicesFile)) {
+            $io->writeln('  <fg=yellow>⊘</> services.yaml not found, skipping...');
+            return;
+        }
+
+        $servicesContent = file_get_contents($servicesFile);
+
+        // Check if BetterAuth services are already configured
+        if (str_contains($servicesContent, 'DoctrineUserRepository')) {
+            $io->writeln('  <fg=green>✓</> BetterAuth repositories already configured');
+            return;
+        }
+
+        // Only configure for UUID strategy (extends base entities)
+        if ($idStrategy === 'uuid') {
+            $repositoryConfig = <<<'YAML'
+
+    # BetterAuth - Configure repositories to use App entities
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineUserRepository:
+        arguments:
+            $userClass: 'App\Entity\User'
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineSessionRepository:
+        arguments:
+            $sessionClass: 'App\Entity\Session'
+
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineRefreshTokenRepository:
+        arguments:
+            $refreshTokenClass: 'App\Entity\RefreshToken'
+
+YAML;
+
+            $servicesContent .= $repositoryConfig;
+            $filesystem->dumpFile($servicesFile, $servicesContent);
+            $io->writeln('  <fg=green>✓</> Configured repository services in services.yaml');
+        } else {
+            $io->writeln('  <fg=yellow>⊘</> INT strategy: services configuration not needed');
+        }
+    }
+
     private function updateEnvFile(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, array $providers = []): void
     {
-        $io->section('🔑 Step 5/5: Environment Configuration');
+        $io->section('🔑 Step 6/6: Environment Configuration');
 
         $envFile = $projectDir . '/.env';
         if (!$filesystem->exists($envFile)) {

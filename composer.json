@@ -73,7 +73,13 @@
   },
   "scripts": {
     "test": "phpunit",
-    "phpstan": "phpstan analyse --memory-limit=256M"
+    "phpstan": "phpstan analyse --memory-limit=256M",
+    "post-install-cmd": [
+      "BetterAuth\\Symfony\\Installer\\BundleRegistrar::register"
+    ],
+    "post-update-cmd": [
+      "BetterAuth\\Symfony\\Installer\\BundleRegistrar::register"
+    ]
   },
   "minimum-stability": "stable",
   "prefer-stable": true,

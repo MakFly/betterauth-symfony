@@ -96,6 +96,7 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $container->setParameter('better_auth.token', $config['token']);
         $container->setParameter('better_auth.oauth', $config['oauth']);
         $container->setParameter('better_auth.multi_tenant', $config['multi_tenant']);
+        $container->setParameter('better_auth.two_factor', $config['two_factor']);
 
         // Load services
         $loader = new YamlFileLoader(
@@ -107,6 +108,7 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         // Create AuthConfig service dynamically based on mode
         $authConfigDefinition = $container->getDefinition(\BetterAuth\Core\Config\AuthConfig::class);
 
+        // api = pure stateless API, session/hybrid = monolith (supports both)
         $factory = $config['mode'] === 'api'
             ? [\BetterAuth\Core\Config\AuthConfig::class, 'forApi']
             : [\BetterAuth\Core\Config\AuthConfig::class, 'forMonolith'];
@@ -123,6 +125,12 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
 
         // Register OAuth providers
         $this->registerOAuthProviders($container, $config['oauth']['providers']);
+
+        // Configure TOTP provider
+        if ($config['two_factor']['enabled']) {
+            $totpProviderDefinition = $container->getDefinition(\BetterAuth\Providers\TotpProvider\TotpProvider::class);
+            $totpProviderDefinition->setArgument('$issuer', $config['two_factor']['issuer']);
+        }
     }
 
     /**

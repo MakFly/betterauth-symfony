@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony;
 
 use BetterAuth\Symfony\DependencyInjection\BetterAuthExtension;
 use BetterAuth\Symfony\DependencyInjection\BetterAuthSecurityPass;
+use BetterAuth\Symfony\DependencyInjection\Compiler\EntityAutoConfigurationPass;
 use BetterAuth\Symfony\DependencyInjection\Compiler\PluginPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
@@ -47,5 +48,8 @@ class BetterAuthBundle extends Bundle
 
         // Add compiler pass for Plugin System auto-registration
         $container->addCompilerPass(new PluginPass());
+
+        // Add compiler pass for automatic entity discovery and configuration
+        $container->addCompilerPass(new EntityAutoConfigurationPass());
     }
 }

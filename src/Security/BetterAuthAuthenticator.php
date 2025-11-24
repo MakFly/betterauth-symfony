@@ -69,7 +69,7 @@ class BetterAuthAuthenticator extends AbstractAuthenticator
             // Créer le Passport avec l'utilisateur vérifié
             return new SelfValidatingPassport(
                 new UserBadge(
-                    $user->id,
+                    $user->getId(),
                     function (string $userId) use ($user) {
                         // Retourner un BetterAuthUser wrappé
                         return new BetterAuthUser($user);

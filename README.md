@@ -174,6 +174,11 @@ Environment variables (`.env`):
 BETTER_AUTH_SECRET=auto_generated_64_char_secret
 APP_URL=http://localhost:8000
 
+# Mailer configuration
+MAILER_DSN=smtp://127.0.0.1:1025
+MAILER_FROM_EMAIL=noreply@betterauth.local
+MAILER_FROM_NAME=BetterAuth
+
 # OAuth providers (if enabled)
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
@@ -393,6 +398,13 @@ BetterAuth Symfony bundle includes comprehensive CI/CD with GitHub Actions:
 - ✅ Integration tests
 
 All tests run on every push and pull request. View the [latest CI results](https://github.com/MakFly/betterauth-symfony/actions).
+
+## 📚 Documentation
+
+- **[Hybrid Mode (API + Session)](docs/HYBRID_MODE.md)** - Use tokens AND cookies together (recommended!)
+- **[Two-Factor Authentication (TOTP)](docs/TWO_FACTOR.md)** - Setup and use 2FA with Google Authenticator
+- **[Email Templates](docs/EMAIL_TEMPLATES.md)** - Customize email templates
+- **[OAuth Providers](docs/OAUTH.md)** - Configure Google, GitHub, Facebook, etc.
 
 ## 🤝 Contributing
 

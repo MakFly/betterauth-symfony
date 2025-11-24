@@ -74,32 +74,36 @@ final class DoctrineTotpRepository implements TotpStorageInterface
 
     public function enable(string $userId): bool
     {
-        $doctrineTotp = $this->entityManager->getRepository($this->totpClass)
-            ->findOneBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
-
-        if ($doctrineTotp === null) {
-            return false;
-        }
-
-        $doctrineTotp->setEnabled(true);
-        $this->entityManager->flush();
-
-        return true;
+        $dbUserId = $this->idConverter->toDatabaseId($userId);
+        
+        // Use DQL update query to ensure the change is persisted directly in the database
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->update($this->totpClass, 't')
+            ->set('t.enabled', ':enabled')
+            ->where('t.userId = :userId')
+            ->setParameter('enabled', true)
+            ->setParameter('userId', $dbUserId);
+        
+        $result = $qb->getQuery()->execute();
+        
+        return $result > 0;
     }
 
     public function disable(string $userId): bool
     {
-        $doctrineTotp = $this->entityManager->getRepository($this->totpClass)
-            ->findOneBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
-
-        if ($doctrineTotp === null) {
-            return false;
-        }
-
-        $doctrineTotp->setEnabled(false);
-        $this->entityManager->flush();
-
-        return true;
+        $dbUserId = $this->idConverter->toDatabaseId($userId);
+        
+        // Use DQL update query to ensure the change is persisted directly in the database
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->update($this->totpClass, 't')
+            ->set('t.enabled', ':enabled')
+            ->where('t.userId = :userId')
+            ->setParameter('enabled', false)
+            ->setParameter('userId', $dbUserId);
+        
+        $result = $qb->getQuery()->execute();
+        
+        return $result > 0;
     }
 
     public function delete(string $userId): bool

@@ -6,8 +6,8 @@ namespace BetterAuth\Symfony\Security;
 
 use BetterAuth\Core\Exceptions\InvalidTokenException;
 use BetterAuth\Core\Exceptions\TokenExpiredException;
-use BetterAuth\Core\TokenAuthManager;
-use BetterAuth\Core\TokenService;
+use BetterAuth\Core\Interfaces\TokenAuthManagerInterface;
+use BetterAuth\Core\Interfaces\TokenSignerInterface;
 use BetterAuth\Symfony\Event\AuthenticationFailureEvent;
 use BetterAuth\Symfony\Event\AuthenticationSuccessEvent;
 use BetterAuth\Symfony\Event\BetterAuthEvents;
@@ -53,9 +53,9 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 class BetterAuthAuthenticator extends AbstractAuthenticator
 {
     public function __construct(
-        private readonly TokenAuthManager $authManager,
+        private readonly TokenAuthManagerInterface $authManager,
         private readonly EventDispatcherInterface $dispatcher,
-        private readonly ?TokenService $tokenService = null,
+        private readonly ?TokenSignerInterface $tokenService = null,
         private readonly bool $debug = false,
     ) {
     }

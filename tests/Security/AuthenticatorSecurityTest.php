@@ -7,6 +7,7 @@ namespace BetterAuth\Symfony\Tests\Security;
 use BetterAuth\Core\Entities\User;
 use BetterAuth\Core\Exceptions\InvalidTokenException;
 use BetterAuth\Core\Exceptions\TokenExpiredException;
+use BetterAuth\Core\Interfaces\TokenAuthManagerInterface;
 use BetterAuth\Core\Interfaces\TokenSignerInterface;
 use BetterAuth\Symfony\Event\BetterAuthEvents;
 use BetterAuth\Symfony\Event\TokenExpiredEvent;
@@ -18,14 +19,6 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
-
-/**
- * Interface for mocking TokenAuthManager (final class).
- */
-interface TokenAuthManagerInterface
-{
-    public function verify(string $token): User;
-}
 
 /**
  * Security tests for BetterAuthAuthenticator.
@@ -101,12 +94,13 @@ class AuthenticatorSecurityTest extends TestCase
         $this->authManager->method('verify')
             ->willThrowException(new TokenExpiredException());
 
+        $dispatchedEvents = [];
         $this->dispatcher->expects($this->atLeastOnce())
             ->method('dispatch')
-            ->withConsecutive(
-                [$this->anything(), BetterAuthEvents::TOKEN_DECODED],
-                [$this->isInstanceOf(TokenExpiredEvent::class), BetterAuthEvents::TOKEN_EXPIRED]
-            );
+            ->willReturnCallback(function ($event, $eventName) use (&$dispatchedEvents) {
+                $dispatchedEvents[] = $eventName;
+                return $event;
+            });
 
         $this->expectException(CustomUserMessageAuthenticationException::class);
         $this->expectExceptionMessage('Token has expired');

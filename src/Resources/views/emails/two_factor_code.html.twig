@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your 2FA Code</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+        <tr>
+            <td align="center" style="padding: 40px 0;">
+                <table role="presentation" style="width: 600px; border-collapse: collapse; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h1 style="margin: 0 0 20px 0; font-size: 24px; color: #333333;">Your 2FA Code</h1>
+                            <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.5; color: #666666;">
+                                Your two-factor authentication code is:
+                            </p>
+                            <div style="margin: 30px 0; padding: 20px; background-color: #f8f9fa; border-radius: 4px; text-align: center;">
+                                <span style="font-size: 32px; font-weight: bold; color: #333333; letter-spacing: 8px;">{{ code }}</span>
+                            </div>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #999999;">
+                                This code expires in 5 minutes. If you didn't request this code, please contact support immediately.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

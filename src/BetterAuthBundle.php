@@ -25,6 +25,11 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  */
 class BetterAuthBundle extends Bundle
 {
+    public function getPath(): string
+    {
+        return \dirname(__DIR__);
+    }
+
     public function getContainerExtension(): BetterAuthExtension
     {
         return new BetterAuthExtension();

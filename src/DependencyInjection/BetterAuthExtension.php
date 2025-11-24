@@ -45,6 +45,13 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $container->prependExtensionConfig('doctrine', [
             'orm' => [
                 'mappings' => [
+                    'BetterAuthEntities' => [
+                        'type' => 'attribute',
+                        'is_bundle' => false,
+                        'dir' => $betterAuthCorePath . '/Entities',
+                        'prefix' => 'BetterAuth\\Core\\Entities',
+                        'alias' => 'BetterAuth',
+                    ],
                     'BetterAuthDoctrine' => [
                         'type' => 'attribute',
                         'is_bundle' => false,

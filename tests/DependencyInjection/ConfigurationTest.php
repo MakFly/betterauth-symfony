@@ -27,7 +27,7 @@ class ConfigurationTest extends TestCase
     {
         $config = $this->processor->processConfiguration($this->configuration, []);
 
-        $this->assertSame('session', $config['mode']);
+        $this->assertSame('hybrid', $config['mode']);
         $this->assertSame('change_me_in_production', $config['secret']);
         $this->assertSame(604800, $config['session']['lifetime']);
         $this->assertSame('better_auth_session', $config['session']['cookie_name']);
@@ -53,7 +53,7 @@ class ConfigurationTest extends TestCase
     public function testInvalidModeThrowsException(): void
     {
         $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessageMatches('/Invalid mode.*Must be "session" or "api"/');
+        $this->expectExceptionMessageMatches('/Invalid mode.*Must be "session", "api", or "hybrid"/');
 
         $this->processor->processConfiguration($this->configuration, [
             'better_auth' => [

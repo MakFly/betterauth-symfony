@@ -23,7 +23,7 @@ class BetterAuthUser implements UserInterface
      */
     public function getUserIdentifier(): string
     {
-        return $this->user->id;
+        return $this->user->getId();
     }
 
     /**

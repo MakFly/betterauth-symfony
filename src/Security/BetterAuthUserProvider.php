@@ -35,7 +35,7 @@ class BetterAuthUserProvider implements UserProviderInterface
         }
 
         $betterAuthUser = $user->getBetterAuthUser();
-        $freshUser = $this->userRepository->findById($betterAuthUser->id);
+        $freshUser = $this->userRepository->findById($betterAuthUser->getId());
 
         if (!$freshUser) {
             throw new UserNotFoundException('User not found');

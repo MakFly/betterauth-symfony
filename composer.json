@@ -3,6 +3,15 @@
   "description": "Symfony bundle for BetterAuth - Modern authentication library",
   "type": "symfony-bundle",
   "license": "MIT",
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../betterauth-core",
+      "options": {
+        "symlink": true
+      }
+    }
+  ],
   "keywords": [
     "symfony",
     "bundle",
@@ -28,7 +37,7 @@
   },
   "require": {
     "php": "^8.2",
-    "betterauth/core": "^1.0",
+    "betterauth/core": "^1.0|dev-main",
     "symfony/framework-bundle": "^6.0|^7.0",
     "symfony/config": "^6.0|^7.0",
     "symfony/dependency-injection": "^6.0|^7.0",

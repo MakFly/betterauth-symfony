@@ -727,7 +727,7 @@ HELP;
 
     BetterAuth\Symfony\Storage\Doctrine\DoctrineTotpRepository:
         arguments:
-            $totpDataClass: 'App\Entity\TotpData'
+            $totpClass: 'App\Entity\TotpData'
 
 YAML;
 

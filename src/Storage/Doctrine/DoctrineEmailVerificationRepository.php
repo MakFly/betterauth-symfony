@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Storage\Doctrine;
 
 use BetterAuth\Core\Entities\EmailVerificationToken;
-use BetterAuth\Core\Entities\EmailVerificationToken;
 use BetterAuth\Core\Interfaces\EmailVerificationStorageInterface;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;

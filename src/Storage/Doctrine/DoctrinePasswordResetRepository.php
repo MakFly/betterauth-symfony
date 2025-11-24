@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Storage\Doctrine;
 
 use BetterAuth\Core\Entities\PasswordResetToken;
-use BetterAuth\Core\Entities\PasswordResetToken;
 use BetterAuth\Core\Interfaces\PasswordResetStorageInterface;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;

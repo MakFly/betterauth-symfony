@@ -234,6 +234,75 @@ services:
             $decorated: '@.inner'
         autoconfigure: true
 
+    # Email Verification Provider
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineEmailVerificationRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Core\Interfaces\EmailVerificationStorageInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineEmailVerificationRepository
+
+    BetterAuth\Providers\EmailVerificationProvider\EmailVerificationProvider:
+        arguments:
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $verificationStorage: '@BetterAuth\Core\Interfaces\EmailVerificationStorageInterface'
+            $emailSender: '@BetterAuth\Core\Interfaces\EmailSenderInterface'
+            $rateLimiter: '@?BetterAuth\Core\Interfaces\RateLimiterInterface'
+        public: true
+
+    # Magic Link Provider
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineMagicLinkRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Core\Interfaces\MagicLinkStorageInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineMagicLinkRepository
+
+    BetterAuth\Providers\MagicLinkProvider\MagicLinkProvider:
+        arguments:
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $magicLinkStorage: '@BetterAuth\Core\Interfaces\MagicLinkStorageInterface'
+            $emailSender: '@BetterAuth\Core\Interfaces\EmailSenderInterface'
+            $sessionService: '@BetterAuth\Core\SessionService'
+            $rateLimiter: '@?BetterAuth\Core\Interfaces\RateLimiterInterface'
+        public: true
+
+    # Password Reset Provider
+    BetterAuth\Symfony\Storage\Doctrine\DoctrinePasswordResetRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+        public: true
+
+    BetterAuth\Core\Interfaces\PasswordResetStorageInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrinePasswordResetRepository
+
+    BetterAuth\Providers\PasswordResetProvider\PasswordResetProvider:
+        arguments:
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $passwordResetStorage: '@BetterAuth\Core\Interfaces\PasswordResetStorageInterface'
+            $emailSender: '@BetterAuth\Core\Interfaces\EmailSenderInterface'
+            $authManager: '@BetterAuth\Core\AuthManager'
+            $rateLimiter: '@?BetterAuth\Core\Interfaces\RateLimiterInterface'
+        public: true
+
+    # TOTP Provider
+    BetterAuth\Symfony\Storage\Doctrine\DoctrineTotpRepository:
+        arguments:
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+            $idConverter: '@BetterAuth\Symfony\Service\UserIdConverter'
+        public: true
+
+    BetterAuth\Core\Interfaces\TotpStorageInterface:
+        alias: BetterAuth\Symfony\Storage\Doctrine\DoctrineTotpRepository
+
+    BetterAuth\Providers\TotpProvider\TotpProvider:
+        arguments:
+            $totpStorage: '@BetterAuth\Core\Interfaces\TotpStorageInterface'
+            $issuer: 'BetterAuth'
+        public: true
+
     # Commands
     BetterAuth\Symfony\Command\InstallCommand:
         tags: ['console.command']

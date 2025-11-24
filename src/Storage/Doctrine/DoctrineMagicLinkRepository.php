@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BetterAuth\Symfony\Storage\Doctrine;
 
+use BetterAuth\Core\Doctrine\MagicLinkTokenEntity;
 use BetterAuth\Core\Entities\MagicLinkToken;
 use BetterAuth\Core\Interfaces\MagicLinkStorageInterface;
 use DateTimeImmutable;
@@ -20,7 +21,7 @@ final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        string $tokenClass = MagicLinkToken::class
+        string $tokenClass = MagicLinkTokenEntity::class
     ) {
         $this->tokenClass = $tokenClass;
     }

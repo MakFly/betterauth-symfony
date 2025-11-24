@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BetterAuth\Symfony\Storage\Doctrine;
 
+use BetterAuth\Core\Doctrine\PasswordResetTokenEntity;
 use BetterAuth\Core\Entities\PasswordResetToken;
 use BetterAuth\Core\Interfaces\PasswordResetStorageInterface;
 use DateTimeImmutable;
@@ -20,7 +21,7 @@ final class DoctrinePasswordResetRepository implements PasswordResetStorageInter
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        string $tokenClass = PasswordResetToken::class
+        string $tokenClass = PasswordResetTokenEntity::class
     ) {
         $this->tokenClass = $tokenClass;
     }

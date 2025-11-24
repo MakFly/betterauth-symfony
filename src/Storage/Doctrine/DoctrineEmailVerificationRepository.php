@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BetterAuth\Symfony\Storage\Doctrine;
 
+use BetterAuth\Core\Doctrine\EmailVerificationTokenEntity;
 use BetterAuth\Core\Entities\EmailVerificationToken;
 use BetterAuth\Core\Interfaces\EmailVerificationStorageInterface;
 use DateTimeImmutable;
@@ -20,7 +21,7 @@ final class DoctrineEmailVerificationRepository implements EmailVerificationStor
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
-        string $tokenClass = EmailVerificationToken::class
+        string $tokenClass = EmailVerificationTokenEntity::class
     ) {
         $this->tokenClass = $tokenClass;
     }

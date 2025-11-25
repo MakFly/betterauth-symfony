@@ -46,7 +46,7 @@ class OAuthController extends AbstractController
     }
 
     #[Route('/{provider}', name: 'redirect', methods: ['GET'])]
-    public function redirect(string $provider, Request $request): Response
+    public function redirectToProvider(string $provider, Request $request): Response
     {
         $result = $this->oauthManager->getAuthorizationUrl($provider);
 
@@ -57,7 +57,7 @@ class OAuthController extends AbstractController
             ]);
         }
 
-        return $this->redirect($result['url']);
+        return parent::redirect($result['url']);
     }
 
     #[Route('/{provider}/url', name: 'url', methods: ['GET'])]
@@ -80,11 +80,11 @@ class OAuthController extends AbstractController
 
         if ($error) {
             $errorDesc = $request->query->get('error_description', 'OAuth authentication failed');
-            return $this->redirect($this->frontendUrl . '/login?error=' . urlencode($errorDesc));
+            return parent::redirect($this->frontendUrl . '/login?error=' . urlencode($errorDesc));
         }
 
         if (!$code) {
-            return $this->redirect($this->frontendUrl . '/login?error=' . urlencode('Authorization code is required'));
+            return parent::redirect($this->frontendUrl . '/login?error=' . urlencode('Authorization code is required'));
         }
 
         $redirectUri = $request->getSchemeAndHttpHost() . $request->getPathInfo();
@@ -110,7 +110,7 @@ class OAuthController extends AbstractController
             if (isset($result['session'])) {
                 $this->authManager->signOut($result['session']->getToken());
             }
-            return $this->redirect(
+            return parent::redirect(
                 $this->frontendUrl . '/2fa/validate?provider=' . $provider . '&email=' . urlencode($user->getEmail())
             );
         }
@@ -136,6 +136,6 @@ class OAuthController extends AbstractController
             'new_user' => $isNewUser ? '1' : '0',
         ]);
 
-        return $this->redirect($this->frontendUrl . '/oauth/callback?' . $params);
+        return parent::redirect($this->frontendUrl . '/oauth/callback?' . $params);
     }
 }

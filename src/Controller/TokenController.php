@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,6 +19,7 @@ class TokenController extends AbstractController
 
     public function __construct(
         private readonly AuthManager $authManager,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -37,6 +39,9 @@ class TokenController extends AbstractController
 
             return $this->json($this->formatUser($user));
         } catch (\Exception $e) {
+            $this->logger?->warning('Failed to get current user', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 401);
         }
     }
@@ -52,8 +57,14 @@ class TokenController extends AbstractController
 
         try {
             $result = $this->authManager->refresh($data['refreshToken']);
+
+            $this->logger?->info('Token refreshed successfully');
+
             return $this->json($result);
         } catch (\Exception $e) {
+            $this->logger?->warning('Token refresh failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 401);
         }
     }
@@ -69,8 +80,13 @@ class TokenController extends AbstractController
 
             $this->authManager->signOut($token);
 
+            $this->logger?->info('User logged out successfully');
+
             return $this->json(['message' => 'Logged out successfully']);
         } catch (\Exception $e) {
+            $this->logger?->error('Logout failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -91,11 +107,19 @@ class TokenController extends AbstractController
 
             $count = $this->authManager->revokeAllTokens($user->getId());
 
+            $this->logger?->info('All sessions revoked', [
+                'userId' => $user->getId(),
+                'count' => $count,
+            ]);
+
             return $this->json([
                 'message' => 'All sessions revoked successfully',
                 'count' => $count,
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('Failed to revoke all sessions', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }

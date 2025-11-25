@@ -7,6 +7,7 @@ namespace BetterAuth\Symfony\Controller;
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -20,6 +21,7 @@ class TwoFactorController extends AbstractController
     public function __construct(
         private readonly AuthManager $authManager,
         private readonly TotpProvider $totpProvider,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -39,6 +41,10 @@ class TwoFactorController extends AbstractController
 
             $result = $this->totpProvider->generateSecret($user->getId(), $user->getEmail());
 
+            $this->logger?->info('2FA setup initiated', [
+                'userId' => $user->getId(),
+            ]);
+
             return $this->json([
                 'secret' => $result['secret'],
                 'qrCode' => $result['qrCode'],
@@ -46,6 +52,9 @@ class TwoFactorController extends AbstractController
                 'backupCodes' => $result['backupCodes'],
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('2FA setup failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -72,14 +81,24 @@ class TwoFactorController extends AbstractController
             $verified = $this->totpProvider->verifyAndEnable($user->getId(), $data['code']);
 
             if (!$verified) {
+                $this->logger?->warning('2FA validation failed - invalid code', [
+                    'userId' => $user->getId(),
+                ]);
                 return $this->json(['error' => 'Invalid verification code'], 400);
             }
+
+            $this->logger?->info('2FA enabled successfully', [
+                'userId' => $user->getId(),
+            ]);
 
             return $this->json([
                 'message' => 'Two-factor authentication enabled successfully',
                 'enabled' => true,
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('2FA validation failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -106,14 +125,24 @@ class TwoFactorController extends AbstractController
             $verified = $this->totpProvider->verify($user->getId(), $data['code']);
 
             if (!$verified) {
+                $this->logger?->warning('2FA verification failed - invalid code', [
+                    'userId' => $user->getId(),
+                ]);
                 return $this->json(['error' => 'Invalid verification code'], 400);
             }
+
+            $this->logger?->debug('2FA code verified', [
+                'userId' => $user->getId(),
+            ]);
 
             return $this->json([
                 'message' => 'Code verified successfully',
                 'success' => true,
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('2FA verification failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -140,14 +169,24 @@ class TwoFactorController extends AbstractController
             $disabled = $this->totpProvider->disable($user->getId(), $data['backupCode']);
 
             if (!$disabled) {
+                $this->logger?->warning('2FA disable failed - invalid backup code', [
+                    'userId' => $user->getId(),
+                ]);
                 return $this->json(['error' => 'Invalid backup code'], 400);
             }
+
+            $this->logger?->info('2FA disabled', [
+                'userId' => $user->getId(),
+            ]);
 
             return $this->json([
                 'message' => 'Two-factor authentication disabled successfully',
                 'enabled' => false,
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('2FA disable failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -174,14 +213,24 @@ class TwoFactorController extends AbstractController
             $result = $this->totpProvider->regenerateBackupCodes($user->getId(), $data['code']);
 
             if (!$result['success']) {
+                $this->logger?->warning('Backup codes regeneration failed - invalid code', [
+                    'userId' => $user->getId(),
+                ]);
                 return $this->json(['error' => 'Invalid verification code'], 400);
             }
+
+            $this->logger?->info('Backup codes regenerated', [
+                'userId' => $user->getId(),
+            ]);
 
             return $this->json([
                 'message' => 'Backup codes regenerated successfully',
                 'backupCodes' => $result['backupCodes'],
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('Backup codes regeneration failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -209,6 +258,9 @@ class TwoFactorController extends AbstractController
                 'last2faVerifiedAt' => $status['last2faVerifiedAt'] ?? null,
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('Failed to get 2FA status', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -235,8 +287,15 @@ class TwoFactorController extends AbstractController
             $result = $this->totpProvider->resetWithBackupCode($user->getId(), $data['backupCode'], $user->getEmail());
 
             if (!$result['success']) {
+                $this->logger?->warning('2FA reset failed - invalid backup code', [
+                    'userId' => $user->getId(),
+                ]);
                 return $this->json(['error' => $result['error'] ?? 'Failed to reset 2FA'], 400);
             }
+
+            $this->logger?->info('2FA reset successfully', [
+                'userId' => $user->getId(),
+            ]);
 
             return $this->json([
                 'message' => '2FA reset successfully. Please validate the new setup.',
@@ -246,6 +305,9 @@ class TwoFactorController extends AbstractController
                 'backupCodes' => $result['backupCodes'],
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('2FA reset failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Providers\PasswordResetProvider\PasswordResetProvider;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,6 +17,7 @@ class PasswordResetController extends AbstractController
 {
     public function __construct(
         private readonly PasswordResetProvider $passwordResetProvider,
+        private readonly ?LoggerInterface $logger = null,
         #[Autowire(env: 'FRONTEND_URL')]
         private readonly string $frontendUrl = 'http://localhost:5173',
     ) {
@@ -34,12 +36,20 @@ class PasswordResetController extends AbstractController
             $callbackUrl = rtrim($this->frontendUrl, '/') . '/reset-password';
             $this->passwordResetProvider->sendResetEmail($data['email'], $callbackUrl);
 
+            $this->logger?->info('Password reset requested', [
+                'email' => $data['email'],
+            ]);
+
             // Always return success to prevent email enumeration
             return $this->json([
                 'message' => 'If an account exists with this email, a password reset link has been sent',
                 'expiresIn' => 3600,
             ]);
         } catch (\Exception $e) {
+            // Log internally but don't expose to user
+            $this->logger?->error('Password reset request failed', [
+                'error' => $e->getMessage(),
+            ]);
             // Don't expose internal errors for security
             return $this->json([
                 'message' => 'If an account exists with this email, a password reset link has been sent',
@@ -67,16 +77,22 @@ class PasswordResetController extends AbstractController
             );
 
             if (!$result['success']) {
+                $this->logger?->warning('Password reset failed - invalid token');
                 return $this->json([
                     'error' => $result['error'] ?? 'Invalid or expired reset token',
                 ], 400);
             }
+
+            $this->logger?->info('Password reset successfully');
 
             return $this->json([
                 'message' => 'Password reset successfully',
                 'success' => true,
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('Password reset failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -94,6 +110,7 @@ class PasswordResetController extends AbstractController
             $result = $this->passwordResetProvider->verifyResetToken($data['token']);
 
             if (!$result['valid']) {
+                $this->logger?->debug('Password reset token verification failed - invalid token');
                 return $this->json([
                     'valid' => false,
                     'error' => 'Invalid or expired token',
@@ -105,6 +122,9 @@ class PasswordResetController extends AbstractController
                 'email' => $result['email'] ?? null,
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('Password reset token verification failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }

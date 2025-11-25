@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,6 +19,7 @@ class SessionController extends AbstractController
 
     public function __construct(
         private readonly AuthManager $authManager,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -37,6 +39,11 @@ class SessionController extends AbstractController
 
             $sessions = $this->authManager->getUserSessions($user->getId());
 
+            $this->logger?->debug('Sessions listed', [
+                'userId' => $user->getId(),
+                'sessionCount' => count($sessions),
+            ]);
+
             return $this->json([
                 'sessions' => array_map(function ($session) use ($token) {
                     return [
@@ -54,6 +61,9 @@ class SessionController extends AbstractController
                 }, $sessions),
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('Failed to list sessions', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }
@@ -74,8 +84,17 @@ class SessionController extends AbstractController
 
             $this->authManager->revokeSession($user->getId(), $sessionId);
 
+            $this->logger?->info('Session revoked', [
+                'userId' => $user->getId(),
+                'sessionId' => $sessionId,
+            ]);
+
             return $this->json(['message' => 'Session revoked successfully']);
         } catch (\Exception $e) {
+            $this->logger?->error('Failed to revoke session', [
+                'sessionId' => $sessionId,
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         }
     }

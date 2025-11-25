@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Providers\GuestSessionProvider\GuestSessionProvider;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -17,6 +18,7 @@ class GuestSessionController extends AbstractController
     public function __construct(
         private readonly GuestSessionProvider $guestSessionProvider,
         private readonly AuthManager $authManager,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -32,12 +34,20 @@ class GuestSessionController extends AbstractController
                 $data['metadata'] ?? null,
             );
 
+            $this->logger?->info('Guest session created', [
+                'guestToken' => substr($guestSession->token, 0, 8) . '...',
+                'ipAddress' => $request->getClientIp(),
+            ]);
+
             return $this->json([
                 'guest_token' => $guestSession->token,
                 'expires_at' => $guestSession->expiresAt,
                 'created_at' => $guestSession->createdAt,
             ], 201);
         } catch (\Exception $e) {
+            $this->logger?->error('Failed to create guest session', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -49,11 +59,17 @@ class GuestSessionController extends AbstractController
             $guestSession = $this->guestSessionProvider->getGuestSession($token);
 
             if ($guestSession === null) {
+                $this->logger?->debug('Guest session not found', [
+                    'token' => substr($token, 0, 8) . '...',
+                ]);
                 return $this->json(['error' => 'Guest session not found'], 404);
             }
 
             $expiresAt = new \DateTimeImmutable($guestSession->expiresAt);
             if ($expiresAt < new \DateTimeImmutable()) {
+                $this->logger?->debug('Guest session expired', [
+                    'token' => substr($token, 0, 8) . '...',
+                ]);
                 return $this->json(['error' => 'Guest session has expired'], 410);
             }
 
@@ -67,6 +83,9 @@ class GuestSessionController extends AbstractController
                 'metadata' => $guestSession->metadata,
             ]);
         } catch (\Exception $e) {
+            $this->logger?->error('Failed to get guest session', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -101,6 +120,11 @@ class GuestSessionController extends AbstractController
                 $data['name'] ?? null,
             );
 
+            $this->logger?->info('Guest session converted to user', [
+                'userId' => $user->getId(),
+                'email' => $user->getEmail(),
+            ]);
+
             return $this->json([
                 'message' => 'Guest session converted to user successfully',
                 'user' => [
@@ -114,8 +138,14 @@ class GuestSessionController extends AbstractController
                 'token_type' => 'Bearer',
             ], 201);
         } catch (\RuntimeException $e) {
+            $this->logger?->warning('Guest session conversion failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 400);
         } catch (\Exception $e) {
+            $this->logger?->error('Guest session conversion failed', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 500);
         }
     }
@@ -133,11 +163,21 @@ class GuestSessionController extends AbstractController
             $deleted = $this->guestSessionProvider->deleteGuestSession($guestSession->id);
 
             if (!$deleted) {
+                $this->logger?->error('Failed to delete guest session', [
+                    'guestSessionId' => $guestSession->id,
+                ]);
                 return $this->json(['error' => 'Failed to delete guest session'], 500);
             }
 
+            $this->logger?->info('Guest session deleted', [
+                'guestSessionId' => $guestSession->id,
+            ]);
+
             return $this->json(['message' => 'Guest session deleted successfully']);
         } catch (\Exception $e) {
+            $this->logger?->error('Failed to delete guest session', [
+                'error' => $e->getMessage(),
+            ]);
             return $this->json(['error' => $e->getMessage()], 500);
         }
     }

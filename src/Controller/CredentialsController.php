@@ -54,7 +54,7 @@ class CredentialsController extends AbstractController
             return $this->json($this->formatAuthResponse($result, $user), 201);
         } catch (\Exception $e) {
             $this->logger?->error('Registration failed', [
-                'email' => $data['email'] ?? null,
+                'email' => $data['email'],
                 'error' => $e->getMessage(),
             ]);
             return $this->json(['error' => $e->getMessage()], 400);
@@ -91,7 +91,7 @@ class CredentialsController extends AbstractController
             return $this->json($this->formatAuthResponse($result, $user));
         } catch (\Exception $e) {
             $this->logger?->error('Login failed', [
-                'email' => $data['email'] ?? null,
+                'email' => $data['email'],
                 'error' => $e->getMessage(),
             ]);
             return $this->json(['error' => $e->getMessage()], 401);

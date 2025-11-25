@@ -46,7 +46,7 @@ class MagicLinkController extends AbstractController
 
             return $this->json([
                 'message' => 'Magic link sent successfully',
-                'expiresIn' => $result['expiresIn'] ?? 900,
+                'expiresIn' => $result['expiresIn'],
             ]);
         } catch (RateLimitException $e) {
             return $this->json([

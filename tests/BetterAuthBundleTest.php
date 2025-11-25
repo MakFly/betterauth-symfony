@@ -7,7 +7,7 @@ namespace BetterAuth\Symfony\Tests;
 use BetterAuth\Symfony\BetterAuthBundle;
 use BetterAuth\Symfony\DependencyInjection\BetterAuthExtension;
 use BetterAuth\Symfony\DependencyInjection\BetterAuthSecurityPass;
-use BetterAuth\Symfony\DependencyInjection\Compiler\PluginPass;
+use BetterAuth\Symfony\DependencyInjection\EntityAutoConfigurationPass;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -39,18 +39,18 @@ class BetterAuthBundleTest extends TestCase
         $passes = $container->getCompilerPassConfig()->getPasses();
 
         $hasSecurityPass = false;
-        $hasPluginPass = false;
+        $hasEntityAutoConfigPass = false;
 
         foreach ($passes as $pass) {
             if ($pass instanceof BetterAuthSecurityPass) {
                 $hasSecurityPass = true;
             }
-            if ($pass instanceof PluginPass) {
-                $hasPluginPass = true;
+            if ($pass instanceof EntityAutoConfigurationPass) {
+                $hasEntityAutoConfigPass = true;
             }
         }
 
         $this->assertTrue($hasSecurityPass, 'BetterAuthSecurityPass should be registered');
-        $this->assertTrue($hasPluginPass, 'PluginPass should be registered');
+        $this->assertTrue($hasEntityAutoConfigPass, 'EntityAutoConfigurationPass should be registered');
     }
 }

@@ -34,3 +34,22 @@ services:
     BetterAuth\Symfony\Command\InstallCommand:
         tags:
             - { name: 'console.command' }
+
+    # Configuration Commands
+    BetterAuth\Symfony\Command\SwitchModeCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }
+
+    BetterAuth\Symfony\Command\GenerateConfigCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }
+
+    BetterAuth\Symfony\Command\ConfigureCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }

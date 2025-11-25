@@ -1,0 +1,7 @@
+# BetterAuth Bundle Routes
+# These routes are automatically loaded when the bundle is installed.
+# To disable, set `better_auth.controllers.enabled: false` in your config.
+
+better_auth_controllers:
+    resource: '../src/Controller/'
+    type: attribute

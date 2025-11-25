@@ -336,3 +336,82 @@ services:
             - { name: 'monolog.logger', channel: 'better_auth' }
 
     # Commands are registered in commands.yaml
+
+    # ============================================
+    # Symfony 7.3 Modern Features
+    # ============================================
+
+    # CurrentUser ValueResolver - Automatically injects authenticated User into controllers
+    # Usage: public function action(#[CurrentUser] User $user): JsonResponse
+    BetterAuth\Symfony\Security\ValueResolver\CurrentUserResolver:
+        arguments:
+            $authManager: '@BetterAuth\Core\AuthManager'
+        tags:
+            - { name: controller.argument_value_resolver, priority: 150 }
+
+    # AuthExceptionListener - Converts auth exceptions to JSON responses
+    # Handles: AuthenticationException (401), ValidationException (400)
+    BetterAuth\Symfony\EventListener\AuthExceptionListener:
+        arguments:
+            $logger: '@?logger'
+        tags:
+            - { name: kernel.event_listener, event: kernel.exception, priority: 10 }
+            - { name: 'monolog.logger', channel: 'better_auth' }
+
+    # ============================================
+    # Built-in Auth Controllers
+    # ============================================
+    # These controllers are auto-loaded via routes.yaml
+
+    BetterAuth\Symfony\Controller\CredentialsController:
+        arguments:
+            $authManager: '@BetterAuth\Core\AuthManager'
+            $totpProvider: '@BetterAuth\Providers\TotpProvider\TotpProvider'
+        tags: ['controller.service_arguments']
+
+    BetterAuth\Symfony\Controller\TokenController:
+        arguments:
+            $authManager: '@BetterAuth\Core\AuthManager'
+        tags: ['controller.service_arguments']
+
+    BetterAuth\Symfony\Controller\SessionController:
+        arguments:
+            $authManager: '@BetterAuth\Core\AuthManager'
+        tags: ['controller.service_arguments']
+
+    BetterAuth\Symfony\Controller\OAuthController:
+        arguments:
+            $authManager: '@BetterAuth\Core\AuthManager'
+            $oauthManager: '@BetterAuth\Providers\OAuthProvider\OAuthManager'
+            $totpProvider: '@BetterAuth\Providers\TotpProvider\TotpProvider'
+            $logger: '@?logger'
+        tags: ['controller.service_arguments']
+
+    BetterAuth\Symfony\Controller\TwoFactorController:
+        arguments:
+            $totpProvider: '@BetterAuth\Providers\TotpProvider\TotpProvider'
+        tags: ['controller.service_arguments']
+
+    BetterAuth\Symfony\Controller\PasswordResetController:
+        arguments:
+            $passwordResetProvider: '@BetterAuth\Providers\PasswordResetProvider\PasswordResetProvider'
+            $logger: '@?logger'
+        tags: ['controller.service_arguments']
+
+    BetterAuth\Symfony\Controller\EmailVerificationController:
+        arguments:
+            $emailVerificationProvider: '@BetterAuth\Providers\EmailVerificationProvider\EmailVerificationProvider'
+            $logger: '@?logger'
+        tags: ['controller.service_arguments']
+
+    BetterAuth\Symfony\Controller\MagicLinkController:
+        arguments:
+            $magicLinkProvider: '@BetterAuth\Providers\MagicLinkProvider\MagicLinkProvider'
+            $logger: '@?logger'
+        tags: ['controller.service_arguments']
+
+    BetterAuth\Symfony\Controller\GuestSessionController:
+        arguments:
+            $guestSessionProvider: '@BetterAuth\Providers\GuestSessionProvider\GuestSessionProvider'
+            $authManager: '@BetterAuth\Core\AuthManager'
+        tags: ['controller.service_arguments']

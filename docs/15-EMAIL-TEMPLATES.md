@@ -1,6 +1,6 @@
-# Email Templates Customization
+# Email Templates
 
-BetterAuth provides default email templates for all authentication-related emails. You can easily customize these templates to match your brand.
+Customize email templates for Magic Link, verification, password reset, and 2FA.
 
 ## Default Templates
 
@@ -8,9 +8,9 @@ BetterAuth includes 4 default email templates:
 - **Magic Link** - Passwordless authentication
 - **Email Verification** - New account verification
 - **Password Reset** - Password recovery
-- **Two-Factor Code** - 2FA authentication
+- **Two-Factor Code** - 2FA authentication codes
 
-## How to Customize
+## Customization
 
 ### 1. Create Template Override
 
@@ -28,17 +28,14 @@ templates/
 
 ### 2. Copy Default Template
 
-Start by copying the default template you want to customize:
+Start by copying the default template:
 
 ```bash
-# Example: Copy magic link template
 cp vendor/betterauth/symfony-bundle/src/Resources/views/emails/magic_link.html.twig \
    templates/emails/betterauth/magic_link.html.twig
 ```
 
-### 3. Customize the Template
-
-Edit your template with your brand colors, logo, and styling:
+### 3. Customize
 
 ```twig
 {# templates/emails/betterauth/magic_link.html.twig #}
@@ -67,6 +64,8 @@ Edit your template with your brand colors, logo, and styling:
 </html>
 ```
 
+---
+
 ## Available Variables
 
 ### Magic Link Template
@@ -81,6 +80,8 @@ Edit your template with your brand colors, logo, and styling:
 ### Two-Factor Code Template
 - `code` - The 6-digit 2FA code
 
+---
+
 ## Template Override Priority
 
 BetterAuth looks for templates in this order:
@@ -88,11 +89,12 @@ BetterAuth looks for templates in this order:
 1. **Your Project** - `templates/emails/betterauth/{template}` (highest priority)
 2. **Default** - `@BetterAuth/emails/{template}` (fallback)
 
-This means you can override only the templates you want to customize, and the rest will use the defaults.
+---
 
 ## Best Practices
 
-### 1. Responsive Design
+### Responsive Design
+
 Use inline CSS and table-based layouts for maximum email client compatibility:
 
 ```twig
@@ -105,41 +107,36 @@ Use inline CSS and table-based layouts for maximum email client compatibility:
 </table>
 ```
 
-### 2. Test Across Email Clients
-Test your templates in various email clients:
+### Test Across Email Clients
+
+Test your templates in:
 - Gmail
 - Outlook
 - Apple Mail
 - Mobile devices
 
-### 3. Keep It Simple
+### Keep It Simple
+
 - Use inline styles (no external CSS)
 - Avoid JavaScript
 - Use web-safe fonts
 - Keep images to a minimum
 
-### 4. Accessibility
-- Use semantic HTML
-- Provide alt text for images
-- Ensure sufficient color contrast
-- Make buttons large enough for touch
+---
 
 ## Development Tips
 
 ### Testing Locally
 
-Use MailHog or MailCatcher to test emails locally:
+Use MailHog or MailCatcher:
 
-```bash
-# .env
+```env
 MAILER_DSN=smtp://localhost:1025
 ```
 
 Then view emails at `http://localhost:8025`
 
 ### Preview in Browser
-
-For quick iterations, you can render the template directly:
 
 ```php
 // src/Controller/DevController.php
@@ -156,6 +153,8 @@ public function previewEmail(string $template, Environment $twig): Response
     return new Response($html);
 }
 ```
+
+---
 
 ## Examples
 
@@ -186,7 +185,7 @@ public function previewEmail(string $template, Environment $twig): Response
 
 ```twig
 <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 12px;">
-    <p>© 2025 Your Company. All rights reserved.</p>
+    <p>&copy; 2025 Your Company. All rights reserved.</p>
     <p>
         <a href="https://yourcompany.com" style="color: #999;">Website</a> |
         <a href="https://yourcompany.com/privacy" style="color: #999;">Privacy</a>
@@ -194,28 +193,34 @@ public function previewEmail(string $template, Environment $twig): Response
 </div>
 ```
 
+---
+
 ## Troubleshooting
 
 ### Templates Not Loading
 
-1. **Clear cache**: `php bin/console cache:clear`
-2. **Check template path**: Ensure files are in `templates/emails/betterauth/`
-3. **Check file permissions**: Templates must be readable
+1. Clear cache: `php bin/console cache:clear`
+2. Check template path: `templates/emails/betterauth/`
+3. Check file permissions
 
 ### Styling Issues
 
-1. **Use inline styles**: External CSS won't work in most email clients
-2. **Test in multiple clients**: What works in Gmail may not work in Outlook
-3. **Use tables for layout**: CSS layout (flexbox, grid) isn't supported in emails
+1. Use inline styles
+2. Test in multiple clients
+3. Use tables for layout
 
 ### Variables Not Available
 
-Make sure you're using the correct variable names (case-sensitive):
-- ✅ `{{ magicLink }}`
-- ❌ `{{ magic_link }}`
+Use correct variable names (case-sensitive):
+- `{{ magicLink }}`
+- `{{ verificationLink }}`
+- `{{ resetLink }}`
+- `{{ code }}`
 
-## Need Help?
+---
 
-- [BetterAuth Documentation](https://github.com/yourusername/betterauth-php)
-- [Email Template Best Practices](https://www.campaignmonitor.com/css/)
-- [Can I Email](https://www.caniemail.com/) - CSS support in email clients
+## Next Steps
+
+- [Entity Customization](16-ENTITY-CUSTOMIZATION.md)
+- [Configuration](02-CONFIGURATION.md)
+- [API Reference](09-API-REFERENCE.md)

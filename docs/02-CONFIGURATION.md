@@ -210,6 +210,82 @@ better_auth:
 | `issuer` | string | BetterAuth | Name in authenticator apps |
 | `backup_codes_count` | int | 10 | Number of backup codes |
 
+### Security Auto-Configuration
+
+```yaml
+better_auth:
+    security:
+        auto_configure: true      # Auto-configure security.yaml
+        firewall_name: 'api'      # Name of the protected firewall
+        firewall_pattern: '^/api' # Pattern for protected routes
+        public_routes_pattern: '^/auth'  # Pattern for public auth routes
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `auto_configure` | bool | true | Auto-configure Symfony security |
+| `firewall_name` | string | api | Firewall name for protected routes |
+| `firewall_pattern` | string | ^/api | Regex for protected routes |
+| `public_routes_pattern` | string | ^/auth | Regex for public auth routes |
+
+> **Note:** Set `auto_configure: false` if you manage `security.yaml` manually.
+
+### Routing Auto-Configuration
+
+```yaml
+better_auth:
+    routing:
+        auto_configure: true
+        custom_controllers_namespace: 'App\Controller\Api'
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `auto_configure` | bool | true | Auto-configure routes.yaml |
+| `custom_controllers_namespace` | string | App\Controller\Api | Namespace for custom controllers |
+
+### OpenAPI Documentation
+
+```yaml
+better_auth:
+    openapi:
+        enabled: true
+        path_prefix: ~  # null = auto-detect from routes
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | bool | true | Enable OpenAPI docs for auth endpoints |
+| `path_prefix` | string\|null | null | Auth path prefix (e.g., `/api/v1/auth`). If null, auto-detected from routes. |
+
+**Dynamic Path Detection:**
+
+When `path_prefix` is null (default), the bundle automatically detects your auth routes prefix by inspecting the Symfony router. This means:
+
+- If your routes are at `/api/v1/auth/*`, the OpenAPI docs will show `/api/v1/auth/login`, etc.
+- If you change `routes.yaml` prefix to `/api/v2`, the docs update automatically.
+- No manual configuration needed!
+
+**Manual Override:**
+
+```yaml
+better_auth:
+    openapi:
+        path_prefix: '/api/v1/auth'  # Force specific prefix
+```
+
+### CORS Auto-Configuration
+
+```yaml
+better_auth:
+    cors:
+        auto_configure: true  # Requires nelmio/cors-bundle
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `auto_configure` | bool | true | Auto-configure CORS for auth routes |
+
 ---
 
 ## Environment Variables

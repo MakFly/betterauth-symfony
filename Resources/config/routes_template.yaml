@@ -1,0 +1,24 @@
+# BetterAuth Custom Controllers Routes Template
+# 
+# The prefix is automatically configured based on security.public_routes_pattern
+# If you set security.public_routes_pattern: '^/api/v1/auth', the prefix will be '/api/v1'
+#
+# Usage in config/routes.yaml:
+#   api_v1:
+#       resource:
+#           path: ../src/Controller/Api/
+#           namespace: App\Controller\Api
+#       type: attribute
+#       prefix: '%better_auth.routing.prefix%'
+#
+# Or import this template (update namespace if different):
+#   better_auth_custom:
+#       resource: '@BetterAuthBundle/Resources/config/routes_template.yaml'
+
+better_auth_custom_controllers:
+    resource:
+        path: '%kernel.project_dir%/src/Controller/Api'
+        namespace: App\Controller\Api
+    type: attribute
+    prefix: '%better_auth.routing.prefix%'
+

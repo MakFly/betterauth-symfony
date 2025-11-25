@@ -69,3 +69,30 @@ better_auth:
         enabled: false           # Enable multi-tenant features
         default_role: 'member'   # Default role for new organization members
         # Available roles: 'owner', 'admin', 'moderator', 'member'
+
+    # Two-Factor Authentication (TOTP)
+    two_factor:
+        enabled: true                # Enable 2FA support
+        issuer: 'MyApp'              # App name shown in authenticator apps
+        backup_codes_count: 10       # Number of backup codes to generate
+
+    # Security auto-configuration
+    security:
+        auto_configure: true         # Auto-configure security.yaml (firewalls, providers, access_control)
+        firewall_name: 'api'         # Name of the protected API firewall
+        firewall_pattern: '^/api'    # Regex pattern for protected routes
+        public_routes_pattern: '^/auth'  # Pattern for public auth routes
+
+    # CORS auto-configuration (requires nelmio/cors-bundle)
+    cors:
+        auto_configure: true     # Auto-configure CORS for auth routes
+
+    # Routing auto-configuration
+    routing:
+        auto_configure: true                    # Auto-configure routes.yaml prefix for custom controllers
+        custom_controllers_namespace: 'App\Controller\Api'  # Namespace of your custom controllers
+
+    # OpenAPI / API Platform documentation
+    openapi:
+        enabled: true                # Enable OpenAPI docs for auth endpoints
+        path_prefix: ~               # Auto-detect from routes. Set explicitly: '/api/v1/auth'

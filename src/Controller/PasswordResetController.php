@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Providers\PasswordResetProvider\PasswordResetProvider;
-use BetterAuth\Symfony\Exception\ValidationException;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -13,9 +12,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
-/**
- * Handles password reset flow: forgot password, reset, verify token.
- */
 #[Route('/auth/password', name: 'better_auth_password_')]
 class PasswordResetController extends AbstractController
 {
@@ -30,50 +26,88 @@ class PasswordResetController extends AbstractController
     #[Route('/forgot', name: 'forgot', methods: ['POST'])]
     public function forgotPassword(Request $request): JsonResponse
     {
-        $data = $request->toArray();
+        try {
+            $data = $request->toArray();
 
-        $this->logger?->info('Password reset requested', ['email' => $data['email']]);
+            if (!isset($data['email'])) {
+                return $this->json(['error' => 'Email is required'], 400);
+            }
 
-        $callbackUrl = $data['callbackUrl'] ?? rtrim($this->frontendUrl, '/') . '/reset-password';
+            $callbackUrl = rtrim($this->frontendUrl, '/') . '/reset-password';
+            $this->passwordResetProvider->sendResetEmail($data['email'], $callbackUrl);
 
-        // Always return success to prevent email enumeration
-        $this->passwordResetProvider->sendResetEmail($data['email'], $callbackUrl);
-
-        return $this->json([
-            'message' => 'If an account exists with this email, a password reset link has been sent',
-            'expiresIn' => 3600,
-        ]);
+            // Always return success to prevent email enumeration
+            return $this->json([
+                'message' => 'If an account exists with this email, a password reset link has been sent',
+                'expiresIn' => 3600,
+            ]);
+        } catch (\Exception $e) {
+            // Don't expose internal errors for security
+            return $this->json([
+                'message' => 'If an account exists with this email, a password reset link has been sent',
+            ]);
+        }
     }
 
     #[Route('/reset', name: 'reset', methods: ['POST'])]
     public function resetPassword(Request $request): JsonResponse
     {
-        $data = $request->toArray();
-        $result = $this->passwordResetProvider->resetPassword($data['token'], $data['newPassword']);
+        try {
+            $data = $request->toArray();
 
-        if (!$result['success']) {
-            throw new ValidationException($result['error'] ?? 'Invalid or expired reset token');
+            if (!isset($data['token'], $data['newPassword'])) {
+                return $this->json(['error' => 'Token and new password are required'], 400);
+            }
+
+            if (strlen($data['newPassword']) < 8) {
+                return $this->json(['error' => 'Password must be at least 8 characters long'], 400);
+            }
+
+            $result = $this->passwordResetProvider->resetPassword(
+                $data['token'],
+                $data['newPassword']
+            );
+
+            if (!$result['success']) {
+                return $this->json([
+                    'error' => $result['error'] ?? 'Invalid or expired reset token',
+                ], 400);
+            }
+
+            return $this->json([
+                'message' => 'Password reset successfully',
+                'success' => true,
+            ]);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
         }
-
-        return $this->json([
-            'message' => 'Password reset successfully',
-            'success' => true,
-        ]);
     }
 
     #[Route('/verify-token', name: 'verify_token', methods: ['POST'])]
     public function verifyResetToken(Request $request): JsonResponse
     {
-        $data = $request->toArray();
-        $result = $this->passwordResetProvider->verifyResetToken($data['token']);
+        try {
+            $data = $request->toArray();
 
-        if (!$result['valid']) {
-            throw new ValidationException('Invalid or expired token');
+            if (!isset($data['token'])) {
+                return $this->json(['error' => 'Token is required'], 400);
+            }
+
+            $result = $this->passwordResetProvider->verifyResetToken($data['token']);
+
+            if (!$result['valid']) {
+                return $this->json([
+                    'valid' => false,
+                    'error' => 'Invalid or expired token',
+                ], 400);
+            }
+
+            return $this->json([
+                'valid' => true,
+                'email' => $result['email'] ?? null,
+            ]);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
         }
-
-        return $this->json([
-            'valid' => true,
-            'email' => $result['email'] ?? null,
-        ]);
     }
 }

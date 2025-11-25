@@ -5,49 +5,78 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
-use BetterAuth\Core\Entities\User;
-use BetterAuth\Symfony\Security\Attribute\CurrentUser;
+use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
-/**
- * Handles session management: list sessions, revoke specific session.
- */
 #[Route('/auth/sessions', name: 'better_auth_sessions_')]
 class SessionController extends AbstractController
 {
+    use AuthResponseTrait;
+
     public function __construct(
         private readonly AuthManager $authManager,
     ) {
     }
 
     #[Route('', name: 'list', methods: ['GET'])]
-    public function list(#[CurrentUser] User $user): JsonResponse
+    public function list(Request $request): JsonResponse
     {
-        $sessions = $this->authManager->getUserSessions($user->getId());
+        try {
+            $token = $this->extractBearerToken($request);
+            if (!$token) {
+                return $this->json(['error' => 'No token provided'], 401);
+            }
 
-        return $this->json([
-            'sessions' => array_map(fn ($session) => [
-                'id' => $session->getToken(),
-                'device' => $session->getMetadata()['device'] ?? 'Unknown',
-                'browser' => $session->getMetadata()['browser'] ?? 'Unknown',
-                'os' => $session->getMetadata()['os'] ?? 'Unknown',
-                'ip' => $session->getIpAddress(),
-                'location' => $session->getMetadata()['location'] ?? 'Unknown',
-                'current' => $session->getMetadata()['isCurrent'] ?? false,
-                'createdAt' => $session->getCreatedAt()->format('Y-m-d H:i:s'),
-                'lastActiveAt' => $session->getUpdatedAt()->format('Y-m-d H:i:s'),
-                'expiresAt' => $session->getExpiresAt()->format('Y-m-d H:i:s'),
-            ], $sessions),
-        ]);
+            $user = $this->authManager->getCurrentUser($token);
+            if (!$user) {
+                return $this->json(['error' => 'Invalid token'], 401);
+            }
+
+            $sessions = $this->authManager->getUserSessions($user->getId());
+
+            return $this->json([
+                'sessions' => array_map(function ($session) use ($token) {
+                    return [
+                        'id' => $session->getToken(),
+                        'device' => $session->getMetadata()['device'] ?? 'Unknown',
+                        'browser' => $session->getMetadata()['browser'] ?? 'Unknown',
+                        'os' => $session->getMetadata()['os'] ?? 'Unknown',
+                        'ip' => $session->getIpAddress(),
+                        'location' => $session->getMetadata()['location'] ?? 'Unknown',
+                        'current' => $session->getToken() === $token,
+                        'createdAt' => $session->getCreatedAt()->format('Y-m-d H:i:s'),
+                        'lastActiveAt' => $session->getUpdatedAt()->format('Y-m-d H:i:s'),
+                        'expiresAt' => $session->getExpiresAt()->format('Y-m-d H:i:s'),
+                    ];
+                }, $sessions),
+            ]);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
     }
 
     #[Route('/{sessionId}', name: 'revoke', methods: ['DELETE'])]
-    public function revoke(string $sessionId, #[CurrentUser] User $user): JsonResponse
+    public function revoke(string $sessionId, Request $request): JsonResponse
     {
-        $this->authManager->revokeSession($user->getId(), $sessionId);
+        try {
+            $token = $this->extractBearerToken($request);
+            if (!$token) {
+                return $this->json(['error' => 'No token provided'], 401);
+            }
 
-        return $this->json(['message' => 'Session revoked successfully']);
+            $user = $this->authManager->getCurrentUser($token);
+            if (!$user) {
+                return $this->json(['error' => 'Invalid token'], 401);
+            }
+
+            $this->authManager->revokeSession($user->getId(), $sessionId);
+
+            return $this->json(['message' => 'Session revoked successfully']);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
     }
 }

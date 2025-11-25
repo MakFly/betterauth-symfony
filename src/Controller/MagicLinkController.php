@@ -6,18 +6,14 @@ namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\Exceptions\RateLimitException;
 use BetterAuth\Providers\MagicLinkProvider\MagicLinkProvider;
-use BetterAuth\Symfony\Exception\ValidationException;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
-/**
- * Handles passwordless authentication via magic links.
- */
 #[Route('/auth/magic-link', name: 'better_auth_magic_link_')]
 class MagicLinkController extends AbstractController
 {
@@ -32,15 +28,15 @@ class MagicLinkController extends AbstractController
     #[Route('/send', name: 'send', methods: ['POST'])]
     public function sendMagicLink(Request $request): JsonResponse
     {
-        $data = $request->toArray();
-        $callbackUrl = $data['callbackUrl'] ?? rtrim($this->frontendUrl, '/') . '/auth/magic-link/verify';
-
-        $this->logger?->info('Sending magic link', [
-            'email' => $data['email'],
-            'callbackUrl' => $callbackUrl,
-        ]);
-
         try {
+            $data = $request->toArray();
+
+            if (!isset($data['email'])) {
+                return $this->json(['error' => 'Email is required'], 400);
+            }
+
+            $callbackUrl = $data['callbackUrl'] ?? rtrim($this->frontendUrl, '/') . '/auth/magic-link/verify';
+
             $result = $this->magicLinkProvider->sendMagicLink(
                 $data['email'],
                 $request->getClientIp() ?? '127.0.0.1',
@@ -50,58 +46,83 @@ class MagicLinkController extends AbstractController
 
             return $this->json([
                 'message' => 'Magic link sent successfully',
-                'expiresIn' => $result['expiresIn'],
+                'expiresIn' => $result['expiresIn'] ?? 900,
             ]);
         } catch (RateLimitException $e) {
-            throw new TooManyRequestsHttpException(
-                $e->retryAfter,
-                'Too many requests. Please try again later.'
-            );
+            return $this->json([
+                'error' => 'Too many requests. Please try again later.',
+                'retryAfter' => $e->getRetryAfter(),
+            ], 429);
+        } catch (TransportExceptionInterface $e) {
+            $this->logger?->error('Mailer error', ['error' => $e->getMessage()]);
+            return $this->json([
+                'error' => 'Failed to send email. Please check mailer configuration.',
+            ], 500);
+        } catch (\Exception $e) {
+            $this->logger?->error('Magic link error', ['error' => $e->getMessage()]);
+            return $this->json(['error' => $e->getMessage()], 500);
         }
     }
 
     #[Route('/verify', name: 'verify', methods: ['POST'])]
     public function verifyMagicLink(Request $request): JsonResponse
     {
-        $data = $request->toArray();
-        $result = $this->magicLinkProvider->verifyMagicLink(
-            $data['token'],
-            $request->getClientIp() ?? '127.0.0.1',
-            $request->headers->get('User-Agent') ?? 'Unknown'
-        );
+        try {
+            $data = $request->toArray();
 
-        if (!$result['success']) {
-            throw new ValidationException($result['error'] ?? 'Invalid or expired magic link');
+            if (!isset($data['token'])) {
+                return $this->json(['error' => 'Magic link token is required'], 400);
+            }
+
+            $result = $this->magicLinkProvider->verifyMagicLink(
+                $data['token'],
+                $request->getClientIp() ?? '127.0.0.1',
+                $request->headers->get('User-Agent') ?? 'Unknown'
+            );
+
+            if (!$result['success']) {
+                return $this->json([
+                    'error' => $result['error'] ?? 'Invalid or expired magic link',
+                ], 400);
+            }
+
+            return $this->json([
+                'access_token' => $result['access_token'],
+                'refresh_token' => $result['refresh_token'],
+                'expires_in' => $result['expires_in'],
+                'token_type' => 'Bearer',
+                'user' => $result['user'],
+            ]);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
         }
-
-        return $this->json([
-            'access_token' => $result['access_token'],
-            'refresh_token' => $result['refresh_token'],
-            'expires_in' => $result['expires_in'],
-            'token_type' => 'Bearer',
-            'user' => $result['user'],
-        ]);
     }
 
     #[Route('/verify/{token}', name: 'verify_get', methods: ['GET'])]
     public function verifyMagicLinkGet(string $token, Request $request): JsonResponse
     {
-        $result = $this->magicLinkProvider->verifyMagicLink(
-            $token,
-            $request->getClientIp() ?? '127.0.0.1',
-            $request->headers->get('User-Agent') ?? 'Unknown'
-        );
+        try {
+            $result = $this->magicLinkProvider->verifyMagicLink(
+                $token,
+                $request->getClientIp() ?? '127.0.0.1',
+                $request->headers->get('User-Agent') ?? 'Unknown'
+            );
 
-        if (!$result['success']) {
-            throw new ValidationException($result['error'] ?? 'Invalid or expired magic link');
+            if (!$result['success']) {
+                return $this->json([
+                    'error' => $result['error'] ?? 'Invalid or expired magic link',
+                ], 400);
+            }
+
+            return $this->json([
+                'access_token' => $result['access_token'],
+                'refresh_token' => $result['refresh_token'],
+                'expires_in' => $result['expires_in'],
+                'token_type' => 'Bearer',
+                'user' => $result['user'],
+            ]);
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], 400);
         }
-
-        return $this->json([
-            'access_token' => $result['access_token'],
-            'refresh_token' => $result['refresh_token'],
-            'expires_in' => $result['expires_in'],
-            'token_type' => 'Bearer',
-            'user' => $result['user'],
-        ]);
     }
 }

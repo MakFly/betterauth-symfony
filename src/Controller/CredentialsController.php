@@ -8,15 +8,12 @@ use BetterAuth\Core\AuthManager;
 use BetterAuth\Core\Entities\User;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
-use BetterAuth\Symfony\Exception\AuthenticationException;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 
-/**
- * Handles credential-based authentication: register, login, and 2FA login.
- */
 #[Route('/auth', name: 'better_auth_')]
 class CredentialsController extends AbstractController
 {
@@ -25,6 +22,7 @@ class CredentialsController extends AbstractController
     public function __construct(
         private readonly AuthManager $authManager,
         private readonly TotpProvider $totpProvider,
+        private readonly ?LoggerInterface $logger = null,
     ) {
     }
 
@@ -33,22 +31,34 @@ class CredentialsController extends AbstractController
     {
         $data = $request->toArray();
 
-        $additionalData = isset($data['name']) ? ['name' => $data['name']] : [];
+        if (!isset($data['email'], $data['password'])) {
+            return $this->json(['error' => 'Email and password are required'], 400);
+        }
 
-        $user = $this->authManager->signUp(
-            $data['email'],
-            $data['password'],
-            $additionalData
-        );
+        try {
+            $additionalData = isset($data['name']) ? ['name' => $data['name']] : [];
 
-        $result = $this->authManager->signIn(
-            $data['email'],
-            $data['password'],
-            $request->getClientIp() ?? '127.0.0.1',
-            $request->headers->get('User-Agent') ?? 'Unknown'
-        );
+            $user = $this->authManager->signUp(
+                $data['email'],
+                $data['password'],
+                $additionalData
+            );
 
-        return $this->json($this->formatAuthResponse($result, $user), 201);
+            $result = $this->authManager->signIn(
+                $data['email'],
+                $data['password'],
+                $request->getClientIp() ?? '127.0.0.1',
+                $request->headers->get('User-Agent') ?? 'Unknown'
+            );
+
+            return $this->json($this->formatAuthResponse($result, $user), 201);
+        } catch (\Exception $e) {
+            $this->logger?->error('Registration failed', [
+                'email' => $data['email'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+            return $this->json(['error' => $e->getMessage()], 400);
+        }
     }
 
     #[Route('/login', name: 'login', methods: ['POST'])]
@@ -56,24 +66,36 @@ class CredentialsController extends AbstractController
     {
         $data = $request->toArray();
 
-        $result = $this->authManager->signIn(
-            $data['email'],
-            $data['password'],
-            $request->getClientIp() ?? '127.0.0.1',
-            $request->headers->get('User-Agent') ?? 'Unknown'
-        );
-
-        $user = $result['user'];
-
-        if ($this->totpProvider->requires2fa($user->getId())) {
-            return $this->json([
-                'requires2fa' => true,
-                'message' => 'Two-factor authentication required',
-                'user' => $this->formatUser($user),
-            ]);
+        if (!isset($data['email'], $data['password'])) {
+            return $this->json(['error' => 'Email and password are required'], 400);
         }
 
-        return $this->json($this->formatAuthResponse($result, $user));
+        try {
+            $result = $this->authManager->signIn(
+                $data['email'],
+                $data['password'],
+                $request->getClientIp() ?? '127.0.0.1',
+                $request->headers->get('User-Agent') ?? 'Unknown'
+            );
+
+            $user = $result['user'];
+
+            if ($this->totpProvider->requires2fa($user->getId())) {
+                return $this->json([
+                    'requires2fa' => true,
+                    'message' => 'Two-factor authentication required',
+                    'user' => $this->formatUser($user),
+                ]);
+            }
+
+            return $this->json($this->formatAuthResponse($result, $user));
+        } catch (\Exception $e) {
+            $this->logger?->error('Login failed', [
+                'email' => $data['email'] ?? null,
+                'error' => $e->getMessage(),
+            ]);
+            return $this->json(['error' => $e->getMessage()], 401);
+        }
     }
 
     #[Route('/login/2fa', name: 'login_2fa', methods: ['POST'])]
@@ -81,25 +103,33 @@ class CredentialsController extends AbstractController
     {
         $data = $request->toArray();
 
-        $result = $this->authManager->signIn(
-            $data['email'],
-            $data['password'],
-            $request->getClientIp() ?? '127.0.0.1',
-            $request->headers->get('User-Agent') ?? 'Unknown'
-        );
-
-        $user = $result['user'];
-
-        $verified = $this->totpProvider->verify($user->getId(), $data['code']);
-        if (!$verified) {
-            if (isset($result['session'])) {
-                $this->authManager->signOut($result['session']->getToken());
-            } elseif (isset($result['access_token'])) {
-                $this->authManager->revokeAllTokens($user->getId());
-            }
-            throw new AuthenticationException('Invalid 2FA code');
+        if (!isset($data['email'], $data['password'], $data['code'])) {
+            return $this->json(['error' => 'Email, password and 2FA code are required'], 400);
         }
 
-        return $this->json($this->formatAuthResponse($result, $user));
+        try {
+            $result = $this->authManager->signIn(
+                $data['email'],
+                $data['password'],
+                $request->getClientIp() ?? '127.0.0.1',
+                $request->headers->get('User-Agent') ?? 'Unknown'
+            );
+
+            $user = $result['user'];
+
+            $verified = $this->totpProvider->verify($user->getId(), $data['code']);
+            if (!$verified) {
+                if (isset($result['session'])) {
+                    $this->authManager->signOut($result['session']->getToken());
+                } elseif (isset($result['access_token'])) {
+                    $this->authManager->revokeAllTokens($user->getId());
+                }
+                return $this->json(['error' => 'Invalid 2FA code'], 401);
+            }
+
+            return $this->json($this->formatAuthResponse($result, $user));
+        } catch (\Exception $e) {
+            return $this->json(['error' => $e->getMessage()], 401);
+        }
     }
 }

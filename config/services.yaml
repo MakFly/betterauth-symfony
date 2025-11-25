@@ -241,10 +241,13 @@ services:
 
     # OpenAPI decorator for API Platform integration
     # Automatically adds BetterAuth authentication endpoints to OpenAPI docs
+    # The auth path prefix is auto-detected from routes or can be configured via openapi.path_prefix
     BetterAuth\Symfony\OpenApi\AuthenticationDecorator:
         decorates: 'api_platform.openapi.factory'
         arguments:
             $decorated: '@.inner'
+            # $authPathPrefix is optionally injected by BetterAuthExtension (null = auto-detect from routes)
+            $router: '@Symfony\Component\Routing\RouterInterface'
         autoconfigure: true
 
     # Email Sender - Symfony Mailer implementation
@@ -367,6 +370,7 @@ services:
         arguments:
             $authManager: '@BetterAuth\Core\AuthManager'
             $totpProvider: '@BetterAuth\Providers\TotpProvider\TotpProvider'
+            $logger: '@?logger'
         tags: ['controller.service_arguments']
 
     BetterAuth\Symfony\Controller\TokenController:
@@ -389,6 +393,7 @@ services:
 
     BetterAuth\Symfony\Controller\TwoFactorController:
         arguments:
+            $authManager: '@BetterAuth\Core\AuthManager'
             $totpProvider: '@BetterAuth\Providers\TotpProvider\TotpProvider'
         tags: ['controller.service_arguments']
 
@@ -400,6 +405,7 @@ services:
 
     BetterAuth\Symfony\Controller\EmailVerificationController:
         arguments:
+            $authManager: '@BetterAuth\Core\AuthManager'
             $emailVerificationProvider: '@BetterAuth\Providers\EmailVerificationProvider\EmailVerificationProvider'
             $logger: '@?logger'
         tags: ['controller.service_arguments']

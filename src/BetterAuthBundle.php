@@ -6,23 +6,19 @@ namespace BetterAuth\Symfony;
 
 use BetterAuth\Symfony\DependencyInjection\BetterAuthExtension;
 use BetterAuth\Symfony\DependencyInjection\BetterAuthSecurityPass;
-use BetterAuth\Symfony\DependencyInjection\Compiler\EntityAutoConfigurationPass;
-use BetterAuth\Symfony\DependencyInjection\Compiler\PluginPass;
+use BetterAuth\Symfony\DependencyInjection\EntityAutoConfigurationPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
  * BetterAuth Symfony Bundle
  *
- * Provides seamless integration of BetterAuth authentication
- * into Symfony applications, similar to LexikJWTAuthenticationBundle.
- *
  * Features:
  * - Automatic Symfony Security integration
  * - Paseto V4 token authentication
  * - OAuth providers support (Google, GitHub, etc.)
  * - Multi-tenant & SSO support
- * - Stateless API authentication
+ * - TOTP 2FA
  */
 class BetterAuthBundle extends Bundle
 {
@@ -36,20 +32,14 @@ class BetterAuthBundle extends Bundle
         return new BetterAuthExtension();
     }
 
-    /**
-     * Register compiler passes for auto-configuration
-     */
     public function build(ContainerBuilder $container): void
     {
         parent::build($container);
 
-        // Add compiler pass for Symfony Security integration
+        // Security integration (user provider + authenticator tags)
         $container->addCompilerPass(new BetterAuthSecurityPass());
 
-        // Add compiler pass for Plugin System auto-registration
-        $container->addCompilerPass(new PluginPass());
-
-        // Add compiler pass for automatic entity discovery and configuration
+        // Auto-configure repositories to use App\Entity classes
         $container->addCompilerPass(new EntityAutoConfigurationPass());
     }
 }

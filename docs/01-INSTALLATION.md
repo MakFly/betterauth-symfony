@@ -71,17 +71,94 @@ php bin/console better-auth:install \
 
 ```
 src/Entity/
-├── User.php           # User entity (UUID v7 or INT)
-├── Session.php        # Session tracking
-└── RefreshToken.php   # Refresh token storage
+├── User.php                    # User entity (UUID v7 or INT)
+├── Session.php                 # Session tracking
+├── RefreshToken.php            # Refresh token storage
+├── MagicLinkToken.php          # Passwordless magic links
+├── EmailVerificationToken.php  # Email verification tokens
+├── PasswordResetToken.php      # Password reset tokens
+├── TotpData.php                # 2FA/TOTP data
+└── GuestSession.php            # Guest sessions (optional)
 ```
 
-### Controller
+### Controllers
+
+**Core Controllers (installés automatiquement):**
 
 ```
-src/Controller/
-└── AuthController.php   # 8 authentication endpoints
+src/Controller/Api/
+├── Trait/
+│   └── ApiResponseTrait.php      # Trait for consistent API responses
+├── AuthController.php            # Authentication & 2FA (11 endpoints)
+├── PasswordController.php        # Password reset (3 endpoints)
+└── SessionsController.php        # Session management (2 endpoints)
 ```
+
+**Optional Controllers (via `better-auth:add-controller`):**
+
+```
+src/Controller/Api/
+├── OAuthController.php           # OAuth providers (3 endpoints)
+├── EmailVerificationController.php # Email verification (4 endpoints)
+├── MagicLinkController.php       # Passwordless auth (3 endpoints)
+├── GuestSessionController.php    # Guest sessions (4 endpoints)
+├── AccountLinkController.php     # Account linking (4 endpoints)
+└── DeviceController.php          # Device management (6 endpoints)
+```
+
+### All Available Endpoints (40 total)
+
+| Controller | Route | Description |
+|------------|-------|-------------|
+| **AuthController** (11) | | |
+| | `POST /auth/register` | Inscription |
+| | `POST /auth/login` | Connexion |
+| | `POST /auth/login/2fa` | Connexion avec 2FA |
+| | `GET /auth/me` | Utilisateur courant |
+| | `POST /auth/refresh` | Rafraîchir le token |
+| | `POST /auth/logout` | Déconnexion |
+| | `POST /auth/revoke-all` | Déconnecter tous les appareils |
+| | `POST /auth/2fa/setup` | Setup 2FA |
+| | `POST /auth/2fa/verify` | Vérifier et activer 2FA |
+| | `POST /auth/2fa/disable` | Désactiver 2FA |
+| | `GET /auth/2fa/status` | Statut 2FA |
+| **PasswordController** (3) | | |
+| | `POST /auth/password/forgot` | Demande reset |
+| | `POST /auth/password/reset` | Reset mot de passe |
+| | `POST /auth/password/verify-token` | Vérifier token |
+| **SessionsController** (2) | | |
+| | `GET /auth/sessions` | Lister sessions |
+| | `DELETE /auth/sessions/{id}` | Révoquer session |
+| **OAuthController** (3) | | |
+| | `GET /auth/oauth` | Lister providers OAuth |
+| | `GET /auth/oauth/{provider}` | Redirection OAuth |
+| | `GET /auth/oauth/{provider}/callback` | Callback OAuth |
+| **EmailVerificationController** (4) | | |
+| | `POST /auth/email/send-verification` | Envoyer email vérification |
+| | `POST /auth/email/verify` | Vérifier email |
+| | `POST /auth/email/resend` | Renvoyer email |
+| | `GET /auth/email/status` | Statut vérification |
+| **MagicLinkController** (3) | | |
+| | `POST /auth/magic-link/request` | Demander magic link |
+| | `POST /auth/magic-link/verify` | Vérifier magic link |
+| | `POST /auth/magic-link/check` | Valider token |
+| **GuestSessionController** (4) | | |
+| | `POST /auth/guest/create` | Créer session guest |
+| | `POST /auth/guest/convert` | Convertir en user |
+| | `GET /auth/guest/{token}` | Récupérer données guest |
+| | `PATCH /auth/guest/{token}` | Mettre à jour guest |
+| **AccountLinkController** (4) | | |
+| | `GET /auth/account/links` | Lister comptes liés |
+| | `GET /auth/account/link/{provider}` | Initier liaison |
+| | `GET /auth/account/link/{provider}/callback` | Callback liaison |
+| | `DELETE /auth/account/link/{provider}` | Délier compte |
+| **DeviceController** (6) | | |
+| | `GET /auth/devices` | Lister appareils |
+| | `GET /auth/devices/{id}` | Détails appareil |
+| | `DELETE /auth/devices/{id}` | Révoquer appareil |
+| | `POST /auth/devices/{id}/trust` | Marquer comme fiable |
+| | `DELETE /auth/devices/{id}/trust` | Retirer confiance |
+| | `POST /auth/devices/revoke-all` | Révoquer tous sauf actuel |
 
 ### Configuration
 
@@ -97,6 +174,10 @@ config/packages/
 BETTER_AUTH_SECRET=auto_generated_64_char_secret
 APP_URL=http://localhost:8000
 ```
+
+### Auto-Configuration des Repositories
+
+Le bundle détecte automatiquement les entités `App\Entity\*` et configure les repositories Doctrine via `EntityAutoConfigurationPass`. **Aucune configuration manuelle dans `services.yaml` n'est nécessaire.**
 
 ---
 
@@ -159,6 +240,41 @@ curl -X POST http://localhost:8000/auth/register \
 ---
 
 ## Additional Setup Commands
+
+### Add Controller
+
+Add individual controllers after installation:
+
+```bash
+# List all available controllers
+php bin/console better-auth:add-controller --list
+
+# Add a specific controller interactively
+php bin/console better-auth:add-controller
+
+# Add OAuth controller
+php bin/console better-auth:add-controller oauth
+
+# Add all optional controllers at once
+php bin/console better-auth:add-controller --all
+
+# Force overwrite existing
+php bin/console better-auth:add-controller oauth --force
+```
+
+**Available Controllers:**
+
+| Controller | Description | Endpoints |
+|------------|-------------|-----------|
+| `auth` | Core authentication (register, login, 2FA) | 11 |
+| `password` | Password reset flow | 3 |
+| `sessions` | Session management | 2 |
+| `oauth` | OAuth providers (Google, GitHub, etc.) | 3 |
+| `email-verification` | Email verification flow | 4 |
+| `magic-link` | Passwordless authentication | 3 |
+| `guest` | Guest/anonymous sessions | 4 |
+| `account-link` | Link third-party accounts | 4 |
+| `devices` | Device management & tracking | 6 |
 
 ### Setup Dependencies
 

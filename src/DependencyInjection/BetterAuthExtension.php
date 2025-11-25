@@ -14,18 +14,39 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
 {
     public function prepend(ContainerBuilder $container): void
     {
-        // Auto-configure Doctrine ORM mappings for BetterAuth entities
+        $configs = $container->getExtensionConfig($this->getAlias());
+        $configuration = new Configuration();
+        $config = $this->processConfiguration($configuration, $configs);
+
+        // Doctrine auto-configuration
+        $this->prependDoctrineConfig($container);
+
+        // Security auto-configuration
+        if ($config['security']['auto_configure'] ?? true) {
+            $this->prependSecurityConfig($container, $config);
+        }
+
+        // CORS auto-configuration
+        if ($config['cors']['auto_configure'] ?? true) {
+            $this->prependCorsConfig($container, $config);
+        }
+
+        // Routing auto-configuration
+        if ($config['routing']['auto_configure'] ?? true) {
+            $this->prependRoutingConfig($container, $config);
+        }
+    }
+
+    private function prependDoctrineConfig(ContainerBuilder $container): void
+    {
         if (!$container->hasExtension('doctrine')) {
             return;
         }
 
         $projectDir = $container->getParameter('kernel.project_dir');
 
-        // Try to locate betterauth-core package
         $possiblePaths = [
-            // Path repository (development)
             dirname($projectDir) . '/betterauth-core/src/core',
-            // Vendor installation
             $projectDir . '/vendor/betterauth/core/src/core',
         ];
 
@@ -41,7 +62,6 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
             return;
         }
 
-        // Register BetterAuth entity mappings automatically
         $container->prependExtensionConfig('doctrine', [
             'orm' => [
                 'mappings' => [
@@ -56,32 +76,190 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
             ],
         ]);
 
-        // Auto-configure Doctrine migrations for BetterAuth
         if ($container->hasExtension('doctrine_migrations')) {
-            // Try to locate betterauth-symfony package migrations
             $migrationsPaths = [
-                // Path repository (development)
                 dirname($projectDir) . '/betterauth-symfony/migrations',
-                // Vendor installation
                 $projectDir . '/vendor/betterauth/symfony-bundle/migrations',
             ];
 
-            $betterAuthMigrationsPath = null;
             foreach ($migrationsPaths as $path) {
                 if (is_dir($path)) {
-                    $betterAuthMigrationsPath = $path;
+                    $container->prependExtensionConfig('doctrine_migrations', [
+                        'migrations_paths' => [
+                            'BetterAuth\\Symfony\\Migrations' => $path,
+                        ],
+                    ]);
                     break;
                 }
             }
-
-            if ($betterAuthMigrationsPath !== null) {
-                $container->prependExtensionConfig('doctrine_migrations', [
-                    'migrations_paths' => [
-                        'BetterAuth\\Symfony\\Migrations' => $betterAuthMigrationsPath,
-                    ],
-                ]);
-            }
         }
+    }
+
+    private function prependSecurityConfig(ContainerBuilder $container, array $config): void
+    {
+        if (!$container->hasExtension('security')) {
+            return;
+        }
+
+        $securityConfig = $config['security'] ?? [];
+        $publicRoutesPattern = $securityConfig['public_routes_pattern'] ?? '^/auth';
+        $firewallName = $securityConfig['firewall_name'] ?? 'api';
+        $firewallPattern = $securityConfig['firewall_pattern'] ?? '^/api';
+
+        // Public endpoints that don't require authentication
+        $publicEndpoints = '(register|login|refresh|password|oauth|magic-link|email|guest)';
+
+        // Detect if auth routes are under an API pattern (e.g., /api/v1/auth)
+        $authBasePattern = trim($publicRoutesPattern, '^$');
+        $apiBasePattern = trim($firewallPattern, '^$');
+        
+        // Check if auth pattern contains API pattern (e.g., /api/v1/auth contains /api)
+        $isAuthUnderApi = !empty($apiBasePattern) && str_contains($authBasePattern, $apiBasePattern);
+        
+        // Extract the API version pattern if auth is under API (e.g., /api/v1 from /api/v1/auth)
+        $apiVersionPattern = null;
+        if ($isAuthUnderApi && $authBasePattern !== $apiBasePattern) {
+            // Extract the version part (e.g., /api/v1 from /api/v1/auth)
+            $apiVersionPattern = '^' . preg_replace('#/auth.*$#', '', $authBasePattern);
+        }
+
+        $firewalls = [];
+        $accessControl = [];
+
+        // Public firewall for auth routes (allows public endpoints)
+        $firewalls['better_auth_public'] = [
+            'pattern' => $publicRoutesPattern,
+            'stateless' => true,
+            'security' => false,
+        ];
+
+        // Protected firewall for API routes
+        // If auth is under API, create a specific firewall for the API version
+        if ($apiVersionPattern && $apiVersionPattern !== $firewallPattern) {
+            // Create firewall for the specific API version (e.g., /api/v1)
+            $versionFirewallName = str_replace(['^', '/'], ['', '_'], $apiVersionPattern);
+            $versionFirewallName = trim($versionFirewallName, '_');
+            $firewalls[$versionFirewallName] = [
+                'pattern' => $apiVersionPattern,
+                'stateless' => true,
+                'provider' => 'better_auth_provider',
+                'custom_authenticators' => [
+                    'BetterAuth\\Symfony\\Security\\BetterAuthAuthenticator',
+                ],
+            ];
+        }
+
+        // Main API firewall (if different from version-specific one)
+        if (!$apiVersionPattern || $firewallPattern !== $apiVersionPattern) {
+            $firewalls[$firewallName] = [
+                'pattern' => $firewallPattern,
+                'stateless' => true,
+                'provider' => 'better_auth_provider',
+                'custom_authenticators' => [
+                    'BetterAuth\\Symfony\\Security\\BetterAuthAuthenticator',
+                ],
+            ];
+        }
+
+        // Access control rules
+        // Public endpoints (registration, login, password reset, refresh, oauth, etc.)
+        $accessControl[] = [
+            'path' => $publicRoutesPattern . '/' . $publicEndpoints,
+            'roles' => 'PUBLIC_ACCESS',
+        ];
+
+        // Protected auth endpoints require authentication
+        $accessControl[] = [
+            'path' => $publicRoutesPattern,
+            'roles' => 'ROLE_USER',
+        ];
+
+        // Protected API endpoints require authentication
+        if ($apiVersionPattern && $apiVersionPattern !== $firewallPattern) {
+            $accessControl[] = [
+                'path' => $apiVersionPattern,
+                'roles' => 'ROLE_USER',
+            ];
+        }
+        
+        if ($firewallPattern !== $publicRoutesPattern) {
+            $accessControl[] = [
+                'path' => $firewallPattern,
+                'roles' => 'ROLE_USER',
+            ];
+        }
+
+        $container->prependExtensionConfig('security', [
+            'providers' => [
+                'better_auth_provider' => [
+                    'id' => 'BetterAuth\\Symfony\\Security\\BetterAuthUserProvider',
+                ],
+            ],
+            'firewalls' => $firewalls,
+            'access_control' => $accessControl,
+        ]);
+    }
+
+    private function prependCorsConfig(ContainerBuilder $container, array $config): void
+    {
+        if (!$container->hasExtension('nelmio_cors')) {
+            return;
+        }
+
+        $securityConfig = $config['security'] ?? [];
+        $publicRoutesPattern = $securityConfig['public_routes_pattern'] ?? '^/auth';
+        $firewallPattern = $securityConfig['firewall_pattern'] ?? '^/api';
+
+        // Extract base pattern (remove ^ and $ if present, but keep regex)
+        $authPattern = $publicRoutesPattern;
+        $apiPattern = $firewallPattern;
+
+        // Build CORS paths configuration
+        // Use regex patterns as keys (nelmio_cors supports them)
+        $corsPaths = [];
+
+        // Add specific pattern for auth routes (most specific first)
+        if ($authPattern) {
+            $corsPaths[$authPattern] = null; // null means use defaults from nelmio_cors.defaults
+        }
+
+        // Add pattern for API routes if different from auth
+        // This covers cases like /api/v1/auth where auth is under /api
+        if ($apiPattern && $apiPattern !== $authPattern && !str_contains($authPattern, $apiPattern)) {
+            $corsPaths[$apiPattern] = null;
+        }
+
+        // Only prepend if we have paths to configure
+        if (!empty($corsPaths)) {
+            $container->prependExtensionConfig('nelmio_cors', [
+                'paths' => $corsPaths,
+            ]);
+        }
+    }
+
+    private function prependRoutingConfig(ContainerBuilder $container, array $config): void
+    {
+        $securityConfig = $config['security'] ?? [];
+        $publicRoutesPattern = $securityConfig['public_routes_pattern'] ?? '^/auth';
+        $routingConfig = $config['routing'] ?? [];
+        $customNamespace = $routingConfig['custom_controllers_namespace'] ?? 'App\Controller\Api';
+
+        // Extract API prefix from public routes pattern (e.g., /api/v1 from /api/v1/auth)
+        $authBasePattern = trim($publicRoutesPattern, '^$');
+        $apiPrefix = null;
+
+        // Check if auth pattern contains /api/ (versioned API)
+        if (preg_match('#^/api(/v\d+)?/auth#', $authBasePattern, $matches)) {
+            // Extract prefix (e.g., /api/v1 from /api/v1/auth)
+            $apiPrefix = preg_replace('#/auth.*$#', '', $authBasePattern);
+        }
+
+        // Store routing prefix and namespace as parameters
+        // These can be used in user's routes.yaml via %better_auth.routing.prefix%
+        // Default to empty string if no prefix detected (routes at /auth/*)
+        $container->setParameter('better_auth.routing.prefix', $apiPrefix ?: '');
+        $container->setParameter('better_auth.routing.custom_namespace', $customNamespace);
+        $container->setParameter('better_auth.routing.has_prefix', $apiPrefix !== null);
     }
 
     public function load(array $configs, ContainerBuilder $container): void
@@ -89,7 +267,8 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-        // Store config as parameters
+        // Store config parameters
+        $container->setParameter('better_auth.config', $config);
         $container->setParameter('better_auth.mode', $config['mode']);
         $container->setParameter('better_auth.secret', $config['secret']);
         $container->setParameter('better_auth.session', $config['session']);
@@ -97,6 +276,10 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $container->setParameter('better_auth.oauth', $config['oauth']);
         $container->setParameter('better_auth.multi_tenant', $config['multi_tenant']);
         $container->setParameter('better_auth.two_factor', $config['two_factor']);
+        $container->setParameter('better_auth.controllers', $config['controllers']);
+        $container->setParameter('better_auth.security', $config['security']);
+        $container->setParameter('better_auth.cors', $config['cors']);
+        $container->setParameter('better_auth.routing', $config['routing']);
 
         // Load services
         $loader = new YamlFileLoader(
@@ -106,10 +289,9 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $loader->load('services.yaml');
         $loader->load('commands.yaml');
 
-        // Create AuthConfig service dynamically based on mode
+        // Configure AuthConfig based on mode
         $authConfigDefinition = $container->getDefinition(\BetterAuth\Core\Config\AuthConfig::class);
 
-        // api = pure stateless API, session/hybrid = monolith (supports both)
         $factory = $config['mode'] === 'api'
             ? [\BetterAuth\Core\Config\AuthConfig::class, 'forApi']
             : [\BetterAuth\Core\Config\AuthConfig::class, 'forMonolith'];
@@ -132,12 +314,37 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
             $totpProviderDefinition = $container->getDefinition(\BetterAuth\Providers\TotpProvider\TotpProvider::class);
             $totpProviderDefinition->setArgument('$issuer', $config['two_factor']['issuer']);
         }
+
+        // Configure OpenAPI decorator with auth path prefix
+        $this->configureOpenApiDecorator($container, $config);
     }
 
-    /**
-     * Register OAuth providers from configuration.
-     */
-    private function registerOAuthProviders(\Symfony\Component\DependencyInjection\ContainerBuilder $container, array $providers): void
+    private function configureOpenApiDecorator(ContainerBuilder $container, array $config): void
+    {
+        if (!$container->hasDefinition(\BetterAuth\Symfony\OpenApi\AuthenticationDecorator::class)) {
+            return;
+        }
+
+        $openApiConfig = $config['openapi'] ?? [];
+        
+        // If OpenAPI is disabled, remove the decorator
+        if (!($openApiConfig['enabled'] ?? true)) {
+            $container->removeDefinition(\BetterAuth\Symfony\OpenApi\AuthenticationDecorator::class);
+            return;
+        }
+
+        $decoratorDefinition = $container->getDefinition(\BetterAuth\Symfony\OpenApi\AuthenticationDecorator::class);
+
+        // Only inject authPathPrefix if explicitly configured
+        // Otherwise, let the decorator auto-detect from routes
+        $pathPrefix = $openApiConfig['path_prefix'] ?? null;
+        if ($pathPrefix !== null) {
+            $decoratorDefinition->setArgument('$authPathPrefix', $pathPrefix);
+        }
+        // If null, the decorator will use the router to auto-detect the prefix
+    }
+
+    private function registerOAuthProviders(ContainerBuilder $container, array $providers): void
     {
         $oauthManagerDefinition = $container->getDefinition(\BetterAuth\Providers\OAuthProvider\OAuthManager::class);
 
@@ -161,7 +368,6 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
                 continue;
             }
 
-            // Create provider service
             $providerServiceId = 'better_auth.oauth_provider.' . $name;
             $providerDefinition = $container->register($providerServiceId, $providerClass);
             $providerDefinition->setArguments([
@@ -170,7 +376,6 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
                 '$redirectUri' => $providerConfig['redirect_uri'],
             ]);
 
-            // Add provider to OAuthManager
             $oauthManagerDefinition->addMethodCall('addProvider', [
                 new \Symfony\Component\DependencyInjection\Reference($providerServiceId),
             ]);

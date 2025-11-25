@@ -62,6 +62,7 @@ class InstallCommand extends Command
         $this
             ->addOption('id-strategy', null, InputOption::VALUE_REQUIRED, 'ID strategy (uuid or int)', null)
             ->addOption('mode', null, InputOption::VALUE_REQUIRED, 'BetterAuth mode (api, session, or hybrid)', null)
+            ->addOption('app-name', null, InputOption::VALUE_REQUIRED, 'Application name (shown in 2FA authenticator apps)', null)
             ->addOption('skip-migrations', null, InputOption::VALUE_NONE, 'Skip migration generation/execution')
             ->addOption('skip-controller', null, InputOption::VALUE_NONE, 'Skip AuthController generation')
             ->addOption('skip-config', null, InputOption::VALUE_NONE, 'Skip configuration file generation')
@@ -141,12 +142,14 @@ Symfony application with modern security features, OAuth support, and production
   <info>php bin/console better-auth:install \
     --id-strategy=uuid \
     --mode=api \
+    --app-name="My Application" \
     --no-interaction</info>
 
   <comment># API mode with UUID v7 (recommended for modern apps)</comment>
   <info>php bin/console better-auth:install \
     --id-strategy=uuid \
     --mode=api \
+    --app-name="My SaaS" \
     --no-interaction</info>
 
   <comment># Session mode with auto-increment IDs (classic web apps)</comment>
@@ -174,6 +177,11 @@ Symfony application with modern security features, OAuth support, and production
       • session: Stateful cookies
       • hybrid: Both tokens and sessions
     Default: Interactive prompt
+
+  <info>--app-name="Your App Name"</info>
+    Application name shown in 2FA authenticator apps (Google Authenticator, Authy).
+    This helps users identify your app when scanning QR codes.
+    Default: Interactive prompt (or "My App" in non-interactive mode)
 
   <info>--skip-migrations</info>
     Skip automatic migration generation and execution.
@@ -368,11 +376,15 @@ HELP;
         // Step 3: Choose OAuth providers
         $providers = $this->chooseOAuthProviders($io);
 
+        // Step 4: Choose app name
+        $appName = $this->chooseAppName($input, $io);
+
         // Display configuration summary
         $io->section('📋 Configuration Summary');
         $io->writeln([
             sprintf('  • ID Strategy: <info>%s</info>', strtoupper($idStrategy)),
             sprintf('  • Mode: <info>%s</info>', $mode),
+            sprintf('  • App Name: <info>%s</info>', $appName),
             sprintf('  • OAuth Providers: <info>%s</info>', empty($providers) ? 'None' : implode(', ', $providers)),
         ]);
         $io->newLine();
@@ -389,7 +401,7 @@ HELP;
         $this->generateConfiguration($io, $filesystem, $projectDir, $mode, $providers, $state);
         $this->generateController($io, $filesystem, $projectDir, $state, $input);
         $this->configureServices($io, $filesystem, $projectDir, $idStrategy);
-        $this->updateEnvFile($io, $filesystem, $projectDir, $providers);
+        $this->updateEnvFile($io, $filesystem, $projectDir, $providers, $appName);
 
         // Migrations
         if (!$input->getOption('skip-migrations')) {
@@ -397,7 +409,7 @@ HELP;
         }
 
         // Final summary
-        $this->displayFinalSummary($io, $idStrategy, $generatedEntities, $mode, $providers);
+        $this->displayFinalSummary($io, $idStrategy, $generatedEntities, $mode, $providers, $appName);
 
         return Command::SUCCESS;
     }
@@ -546,6 +558,35 @@ HELP;
         }
 
         return $choices;
+    }
+
+    private function chooseAppName(InputInterface $input, SymfonyStyle $io): string
+    {
+        $option = $input->getOption('app-name');
+        if ($option) {
+            return $option;
+        }
+
+        $io->writeln([
+            '',
+            '<fg=yellow>📱 Application Name</>',
+            '<fg=yellow>────────────────────────────────────────────────────────────────────────────────</>',
+            'This name will be displayed in authenticator apps (Google Authenticator, Authy, etc.)',
+            'when users set up Two-Factor Authentication.',
+            '',
+        ]);
+
+        return $io->ask(
+            'What is your application name?',
+            'My App',
+            function (string $value): string {
+                $value = trim($value);
+                if (empty($value)) {
+                    throw new \RuntimeException('Application name cannot be empty.');
+                }
+                return $value;
+            }
+        );
     }
 
     private function generateEntities(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $idStrategy, array $state): array
@@ -739,7 +780,7 @@ YAML;
         }
     }
 
-    private function updateEnvFile(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, array $providers = []): void
+    private function updateEnvFile(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, array $providers = [], string $appName = 'My App'): void
     {
         $io->section('🔑 Step 6/6: Environment Configuration');
 
@@ -766,6 +807,18 @@ YAML;
 
             $io->writeln('  <fg=green>✓</> Added BETTER_AUTH_SECRET to .env');
             $io->writeln('  <fg=green>✓</> Added APP_URL to .env');
+            $modified = true;
+        }
+
+        // Check and add APP_NAME if not present
+        if (str_contains($envContent, 'APP_NAME=')) {
+            $io->writeln('  <fg=green>✓</> APP_NAME already exists in .env');
+        } else {
+            // Escape quotes in app name for .env file
+            $escapedAppName = str_contains($appName, ' ') ? "\"$appName\"" : $appName;
+            $envContent .= "APP_NAME=$escapedAppName\n";
+
+            $io->writeln(sprintf('  <fg=green>✓</> Added APP_NAME="%s" to .env', $appName));
             $modified = true;
         }
 
@@ -844,7 +897,7 @@ YAML;
         }
     }
 
-    private function displayFinalSummary(SymfonyStyle $io, string $idStrategy, array $generatedEntities, string $mode, array $providers): void
+    private function displayFinalSummary(SymfonyStyle $io, string $idStrategy, array $generatedEntities, string $mode, array $providers, string $appName): void
     {
         $io->success('🎉 Installation Complete!');
 
@@ -852,6 +905,7 @@ YAML;
             '<comment>Configuration:</comment>',
             sprintf('  • ID Strategy: <info>%s</info>', strtoupper($idStrategy)),
             sprintf('  • Mode: <info>%s</info>', $mode),
+            sprintf('  • App Name: <info>%s</info> (for 2FA authenticator apps)', $appName),
             sprintf('  • OAuth Providers: <info>%s</info>', empty($providers) ? 'None' : implode(', ', $providers)),
             '',
             '<comment>Generated Files:</comment>',

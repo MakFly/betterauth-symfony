@@ -14,6 +14,12 @@ better_auth:
         providers:
 {{OAUTH_PROVIDERS}}
 
+    # Two-Factor Authentication (TOTP)
+    two_factor:
+        enabled: true
+        issuer: '%env(APP_NAME)%'  # Name shown in authenticator apps (Google Authenticator, Authy, etc.)
+        backup_codes_count: 10
+
     multi_tenant:
         enabled: false  # Disabled by default
         default_role: 'member'

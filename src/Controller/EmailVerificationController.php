@@ -52,7 +52,7 @@ class EmailVerificationController extends AbstractController
 
         return $this->json([
             'message' => 'Verification email sent successfully',
-            'expiresIn' => $result['expiresIn'] ?? 3600,
+            'expiresIn' => $result['expiresIn'],
         ]);
     }
 

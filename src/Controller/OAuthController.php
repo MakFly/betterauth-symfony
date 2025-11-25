@@ -53,7 +53,7 @@ class OAuthController extends AbstractController
         if ($request->headers->get('Accept') === 'application/json') {
             return $this->json([
                 'url' => $result['url'],
-                'state' => $result['state'] ?? null,
+                'state' => $result['state'],
             ]);
         }
 
@@ -67,7 +67,7 @@ class OAuthController extends AbstractController
 
         return $this->json([
             'url' => $result['url'],
-            'state' => $result['state'] ?? null,
+            'state' => $result['state'],
             'provider' => $provider,
         ]);
     }
@@ -103,13 +103,12 @@ class OAuthController extends AbstractController
         );
 
         $user = $result['user'];
-        $isNewUser = $result['isNewUser'] ?? false;
+        $session = $result['session'];
+        $isNewUser = $result['isNewUser'];
 
         // Check if 2FA is required
-        if ($user && $this->totpProvider->requires2fa($user->getId())) {
-            if (isset($result['session'])) {
-                $this->authManager->signOut($result['session']->getToken());
-            }
+        if ($this->totpProvider->requires2fa($user->getId())) {
+            $this->authManager->signOut($session->getToken());
             return parent::redirect(
                 $this->frontendUrl . '/2fa/validate?provider=' . $provider . '&email=' . urlencode($user->getEmail())
             );
@@ -121,12 +120,10 @@ class OAuthController extends AbstractController
             $accessToken = $tokens['access_token'];
             $refreshToken = $tokens['refresh_token'];
 
-            if (isset($result['session'])) {
-                $this->authManager->session()->signOut($result['session']->getToken());
-            }
+            $this->authManager->session()->signOut($session->getToken());
         } else {
-            $accessToken = $result['session']?->getToken() ?? '';
-            $refreshToken = $result['session']?->getToken() ?? '';
+            $accessToken = $session->getToken();
+            $refreshToken = $session->getToken();
         }
 
         $params = http_build_query([

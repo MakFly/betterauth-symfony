@@ -310,11 +310,13 @@ HELP;
         $config = $presetConfig['config']['better_auth'];
 
         if (isset($config['oauth']['providers'])) {
+            /** @var array<string, array{enabled: bool, client_id: string, client_secret: string, redirect_uri: string}> $providers */
+            $providers = $config['oauth']['providers'];
             $enabledProviders = array_filter(
-                $config['oauth']['providers'],
-                fn($p) => $p['enabled'] ?? false
+                $providers,
+                static fn(array $p): bool => $p['enabled']
             );
-            if (!empty($enabledProviders)) {
+            if (count($enabledProviders) > 0) {
                 $features[] = 'OAuth: ' . implode(', ', array_keys($enabledProviders));
             }
         }

@@ -50,11 +50,11 @@ class MagicLinkController extends AbstractController
 
             return $this->json([
                 'message' => 'Magic link sent successfully',
-                'expiresIn' => $result['expiresIn'] ?? 900,
+                'expiresIn' => $result['expiresIn'],
             ]);
         } catch (RateLimitException $e) {
             throw new TooManyRequestsHttpException(
-                $e->getRetryAfter(),
+                $e->retryAfter,
                 'Too many requests. Please try again later.'
             );
         }

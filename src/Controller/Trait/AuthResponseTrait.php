@@ -20,7 +20,7 @@ trait AuthResponseTrait
             'name' => $user->getName(),
             'emailVerified' => $user->isEmailVerified(),
             'createdAt' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
-            'updatedAt' => $user->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
+            'updatedAt' => $user->getUpdatedAt()->format(\DateTimeInterface::ATOM),
         ];
     }
 

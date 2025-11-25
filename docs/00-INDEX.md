@@ -52,6 +52,7 @@ Modern, secure authentication for Symfony 6/7 applications.
 | [15-EMAIL-TEMPLATES](15-EMAIL-TEMPLATES.md) | Customize email templates |
 | [16-ENTITY-CUSTOMIZATION](16-ENTITY-CUSTOMIZATION.md) | Extend User, Session entities |
 | [17-PASSKEY-WEBAUTHN](17-PASSKEY-WEBAUTHN.md) | Passkeys and WebAuthn setup |
+| [18-CONTROLLERS](18-CONTROLLERS.md) | Override and customize controllers |
 
 ---
 

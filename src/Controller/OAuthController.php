@@ -36,7 +36,7 @@ class OAuthController extends AbstractController
     public function providers(): JsonResponse
     {
         try {
-            $providers = $this->oauthManager->getEnabledProviders();
+            $providers = $this->oauthManager->getAvailableProviders();
             return $this->json(['providers' => $providers]);
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);
@@ -56,7 +56,7 @@ class OAuthController extends AbstractController
 
             return $this->json([
                 'url' => $result['url'],
-                'state' => $result['state'] ?? null,
+                'state' => $result['state'],
             ]);
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);
@@ -70,7 +70,7 @@ class OAuthController extends AbstractController
             $result = $this->oauthManager->getAuthorizationUrl($provider);
             return $this->json([
                 'url' => $result['url'],
-                'state' => $result['state'] ?? null,
+                'state' => $result['state'],
             ]);
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);
@@ -96,34 +96,26 @@ class OAuthController extends AbstractController
                 userAgent: $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
+            $user = $result['user'];
+            $session = $result['session'];
+            $userId = $user->getId();
+
             // Check 2FA
-            if (isset($result['user'])) {
-                $user = $result['user'];
-                $userId = $user->getId();
+            if ($userId && $this->totpProvider->requires2fa($userId)) {
+                $this->authManager->signOut($session->getToken());
 
-                if ($userId && $this->totpProvider->requires2fa($userId)) {
-                    if (isset($result['session'])) {
-                        $this->authManager->signOut($result['session']->getToken());
-                    }
-
-                    return $this->redirectToFrontend([
-                        'requires2fa' => 'true',
-                        'email' => $user->getEmail(),
-                    ]);
-                }
+                return $this->redirectToFrontend([
+                    'requires2fa' => 'true',
+                    'email' => $user->getEmail(),
+                ]);
             }
 
-            // Build redirect params
-            $params = [];
-            if (isset($result['access_token'])) {
-                $params['access_token'] = $result['access_token'];
-                $params['refresh_token'] = $result['refresh_token'] ?? '';
-                $params['expires_in'] = (string) ($result['expires_in'] ?? 3600);
-            } elseif (isset($result['session'])) {
-                $params['access_token'] = $result['session']->getToken();
-                $params['refresh_token'] = $result['session']->getToken();
-                $params['expires_in'] = '604800';
-            }
+            // Build redirect params using session token
+            $params = [
+                'access_token' => $session->getToken(),
+                'refresh_token' => $session->getToken(),
+                'expires_in' => '604800',
+            ];
 
             return $this->redirectToFrontend($params, '/oauth/callback');
         } catch (\Exception $e) {

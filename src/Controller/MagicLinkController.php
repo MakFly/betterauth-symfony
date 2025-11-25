@@ -51,7 +51,7 @@ class MagicLinkController extends AbstractController
         } catch (RateLimitException $e) {
             return $this->json([
                 'error' => 'Too many requests. Please try again later.',
-                'retryAfter' => $e->getRetryAfter(),
+                'retryAfter' => $e->retryAfter,
             ], 429);
         } catch (TransportExceptionInterface $e) {
             $this->logger?->error('Mailer error', ['error' => $e->getMessage()]);

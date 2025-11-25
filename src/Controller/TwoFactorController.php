@@ -43,7 +43,7 @@ class TwoFactorController extends AbstractController
                 'secret' => $result['secret'],
                 'qrCode' => $result['qrCode'],
                 'manualEntryKey' => $result['manualEntryKey'] ?? $result['secret'],
-                'backupCodes' => $result['backupCodes'] ?? [],
+                'backupCodes' => $result['backupCodes'],
             ]);
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);

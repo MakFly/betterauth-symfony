@@ -744,7 +744,7 @@ HELP;
                     'account-link' => 'Link third-party accounts',
                     'devices' => 'Device management & tracking',
                 ];
-                if ($io->confirm(sprintf('  Add %s?', $descriptions[$key] ?? $name), false)) {
+                if ($io->confirm(sprintf('  Add %s?', $descriptions[$key]), false)) {
                     $selectedOptional = array_merge($selectedOptional, $config);
                 }
             }

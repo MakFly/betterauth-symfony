@@ -221,14 +221,16 @@ HELP;
         $installAll = $input->getOption('all');
         $force = $input->getOption('force');
 
+        $isInteractive = $input->isInteractive();
+
         // Interactive selection if no controller specified
         if (!$controllerName && !$installAll) {
-            return $this->interactiveSelection($io, $filesystem, $projectDir, $force);
+            return $this->interactiveSelection($io, $filesystem, $projectDir, $force, $isInteractive);
         }
 
         // Install all controllers
         if ($installAll) {
-            return $this->installAllControllers($io, $filesystem, $projectDir, $force);
+            return $this->installAllControllers($io, $filesystem, $projectDir, $force, $isInteractive);
         }
 
         // Install single controller
@@ -238,7 +240,7 @@ HELP;
             return Command::FAILURE;
         }
 
-        return $this->installController($io, $filesystem, $projectDir, $controllerName, $force);
+        return $this->installController($io, $filesystem, $projectDir, $controllerName, $force, $isInteractive);
     }
 
     private function listControllers(SymfonyStyle $io): int
@@ -274,7 +276,7 @@ HELP;
         return Command::SUCCESS;
     }
 
-    private function interactiveSelection(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, bool $force): int
+    private function interactiveSelection(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, bool $force, bool $isInteractive): int
     {
         $io->title('🎮 BetterAuth Controller Selection');
 
@@ -305,13 +307,13 @@ HELP;
         );
 
         if ($selected === 'all') {
-            return $this->installAllControllers($io, $filesystem, $projectDir, $force);
+            return $this->installAllControllers($io, $filesystem, $projectDir, $force, $isInteractive);
         }
 
-        return $this->installController($io, $filesystem, $projectDir, $selected, $force);
+        return $this->installController($io, $filesystem, $projectDir, $selected, $force, $isInteractive);
     }
 
-    private function installAllControllers(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, bool $force): int
+    private function installAllControllers(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, bool $force, bool $isInteractive): int
     {
         $io->title('🚀 Installing All BetterAuth Controllers');
 
@@ -319,7 +321,7 @@ HELP;
         $skipped = 0;
 
         // Install trait first
-        $result = $this->installSingleController($io, $filesystem, $projectDir, 'trait', $force);
+        $result = $this->installSingleController($io, $filesystem, $projectDir, 'trait', $force, $isInteractive);
         if ($result === 'installed') {
             $installed++;
         } elseif ($result === 'skipped') {
@@ -331,7 +333,7 @@ HELP;
             if ($name === 'trait') {
                 continue;
             }
-            $result = $this->installSingleController($io, $filesystem, $projectDir, $name, $force);
+            $result = $this->installSingleController($io, $filesystem, $projectDir, $name, $force, $isInteractive);
             if ($result === 'installed') {
                 $installed++;
             } elseif ($result === 'skipped') {
@@ -347,7 +349,7 @@ HELP;
         return Command::SUCCESS;
     }
 
-    private function installController(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $name, bool $force): int
+    private function installController(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $name, bool $force, bool $isInteractive): int
     {
         $io->title(sprintf('🎮 Installing %s Controller', ucfirst($name)));
 
@@ -355,11 +357,11 @@ HELP;
 
         // Install dependencies first
         foreach ($config['dependencies'] as $dependency) {
-            $this->installSingleController($io, $filesystem, $projectDir, $dependency, $force);
+            $this->installSingleController($io, $filesystem, $projectDir, $dependency, $force, $isInteractive);
         }
 
         // Install the controller
-        $result = $this->installSingleController($io, $filesystem, $projectDir, $name, $force);
+        $result = $this->installSingleController($io, $filesystem, $projectDir, $name, $force, $isInteractive);
 
         if ($result === 'installed') {
             $io->success(sprintf('%s controller installed successfully!', ucfirst($name)));
@@ -377,7 +379,7 @@ HELP;
         return Command::SUCCESS;
     }
 
-    private function installSingleController(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $name, bool $force): string
+    private function installSingleController(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $name, bool $force, bool $isInteractive = true): string
     {
         $config = self::CONTROLLERS[$name];
         $templatesDir = dirname(__DIR__) . '/Resources/templates/controller';
@@ -403,7 +405,7 @@ HELP;
 
         // Check if target exists
         if ($filesystem->exists($targetPath) && !$force) {
-            if (!$io->isInteractive() || !$io->confirm(sprintf('%s already exists. Overwrite?', $config['target']), false)) {
+            if (!$isInteractive || !$io->confirm(sprintf('%s already exists. Overwrite?', $config['target']), false)) {
                 $io->writeln(sprintf('  <fg=yellow>⊘</> Skipped %s', $config['target']));
                 return 'skipped';
             }

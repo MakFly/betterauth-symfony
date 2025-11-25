@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Providers\PasswordResetProvider\PasswordResetProvider;
-use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,7 +16,6 @@ class PasswordResetController extends AbstractController
 {
     public function __construct(
         private readonly PasswordResetProvider $passwordResetProvider,
-        private readonly ?LoggerInterface $logger = null,
         #[Autowire(env: 'FRONTEND_URL')]
         private readonly string $frontendUrl = 'http://localhost:5173',
     ) {

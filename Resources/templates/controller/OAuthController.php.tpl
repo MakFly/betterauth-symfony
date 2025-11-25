@@ -174,7 +174,7 @@ class OAuthController extends AbstractController
     #[Route('', name: 'list', methods: ['GET'])]
     public function listProviders(): JsonResponse
     {
-        $providers = $this->oauthManager->getEnabledProviders();
+        $providers = $this->oauthManager->getAvailableProviders();
 
         return $this->json([
             'success' => true,

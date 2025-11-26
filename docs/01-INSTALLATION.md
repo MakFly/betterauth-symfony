@@ -58,10 +58,40 @@ php bin/console better-auth:install \
 |--------|--------|-------------|
 | `--id-strategy` | `uuid`, `int` | ID generation strategy |
 | `--mode` | `api`, `session`, `hybrid` | Authentication mode |
+| `--exclude-fields` | `name`, `avatar` | Comma-separated list of optional User fields to exclude |
+| `--minimal` | - | Exclude all optional fields (name, avatar) |
 | `--skip-migrations` | - | Don't generate/run migrations |
 | `--skip-controller` | - | Don't generate AuthController |
 | `--skip-config` | - | Don't generate config files |
 | `--no-interaction` | - | Run without prompts |
+
+### Minimal Installation (without profile fields)
+
+If you only need email/password authentication without profile fields:
+
+```bash
+php bin/console better-auth:install \
+  --id-strategy=uuid \
+  --mode=api \
+  --minimal \
+  --no-interaction
+```
+
+Or exclude only specific fields:
+
+```bash
+# Keep name, exclude avatar
+php bin/console better-auth:install \
+  --id-strategy=uuid \
+  --mode=api \
+  --exclude-fields=avatar
+
+# Exclude both name and avatar (same as --minimal)
+php bin/console better-auth:install \
+  --id-strategy=uuid \
+  --mode=api \
+  --exclude-fields=name,avatar
+```
 
 ---
 
@@ -240,6 +270,43 @@ curl -X POST http://localhost:8000/auth/register \
 ---
 
 ## Additional Setup Commands
+
+### Manage User Fields
+
+Add or remove optional fields (`name`, `avatar`) after installation:
+
+```bash
+# Add the name field
+php bin/console better-auth:user-fields add name
+
+# Add multiple fields
+php bin/console better-auth:user-fields add name,avatar
+
+# Remove a field (WARNING: data loss after migration!)
+php bin/console better-auth:user-fields remove avatar
+
+# Remove all optional fields
+php bin/console better-auth:user-fields remove name,avatar
+
+# Force without confirmation
+php bin/console better-auth:user-fields remove name --force
+```
+
+**After modifying fields:**
+
+```bash
+# Generate migration for the changes
+php bin/console doctrine:migrations:diff
+
+# Apply migration
+php bin/console doctrine:migrations:migrate
+```
+
+**Available optional fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `name` | VARCHAR(255) | User display name |
+| `avatar` | VARCHAR(500) | User avatar URL |
 
 ### Add Controller
 

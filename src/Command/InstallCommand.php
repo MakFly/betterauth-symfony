@@ -57,12 +57,19 @@ class InstallCommand extends Command
         'discord' => 'Discord OAuth',
     ];
 
+    /**
+     * List of optional User fields that can be excluded.
+     */
+    private const OPTIONAL_USER_FIELDS = ['name', 'avatar'];
+
     protected function configure(): void
     {
         $this
             ->addOption('id-strategy', null, InputOption::VALUE_REQUIRED, 'ID strategy (uuid or int)', null)
             ->addOption('mode', null, InputOption::VALUE_REQUIRED, 'BetterAuth mode (api, session, or hybrid)', null)
             ->addOption('app-name', null, InputOption::VALUE_REQUIRED, 'Application name (shown in 2FA authenticator apps)', null)
+            ->addOption('exclude-fields', null, InputOption::VALUE_REQUIRED, 'Comma-separated list of optional User fields to exclude (name, avatar)', null)
+            ->addOption('minimal', null, InputOption::VALUE_NONE, 'Generate minimal User entity without optional fields (name, avatar)')
             ->addOption('skip-migrations', null, InputOption::VALUE_NONE, 'Skip migration generation/execution')
             ->addOption('skip-controller', null, InputOption::VALUE_NONE, 'Skip AuthController generation')
             ->addOption('skip-config', null, InputOption::VALUE_NONE, 'Skip configuration file generation')
@@ -164,6 +171,18 @@ Symfony application with modern security features, OAuth support, and production
     --mode=api \
     --skip-migrations</info>
 
+  <comment># Minimal User entity (without name and avatar fields)</comment>
+  <info>php bin/console better-auth:install \
+    --id-strategy=uuid \
+    --mode=api \
+    --minimal</info>
+
+  <comment># Exclude only specific fields</comment>
+  <info>php bin/console better-auth:install \
+    --id-strategy=uuid \
+    --mode=api \
+    --exclude-fields=avatar</info>
+
 <fg=yellow;options=bold>📝 OPTIONS</>
 <fg=yellow>─────────────────────────────────────────────────────────────────────────────────</>
 
@@ -194,6 +213,15 @@ Symfony application with modern security features, OAuth support, and production
   <info>--skip-config</info>
     Skip configuration file generation.
     Only use if you have a custom config setup.
+
+  <info>--exclude-fields=name,avatar</info>
+    Comma-separated list of optional User fields to exclude.
+    Available fields: name, avatar
+    Example: --exclude-fields=avatar (keeps name, excludes avatar)
+
+  <info>--minimal</info>
+    Generate minimal User entity without optional fields (name, avatar).
+    Equivalent to --exclude-fields=name,avatar
 
   <info>--no-interaction</info>
     Run without prompts (requires --id-strategy and --mode).
@@ -379,6 +407,9 @@ HELP;
         // Step 4: Choose app name
         $appName = $this->chooseAppName($input, $io);
 
+        // Step 5: Choose fields to exclude
+        $excludedFields = $this->chooseExcludedFields($input, $io);
+
         // Display configuration summary
         $io->section('📋 Configuration Summary');
         $io->writeln([
@@ -386,6 +417,7 @@ HELP;
             sprintf('  • Mode: <info>%s</info>', $mode),
             sprintf('  • App Name: <info>%s</info>', $appName),
             sprintf('  • OAuth Providers: <info>%s</info>', empty($providers) ? 'None' : implode(', ', $providers)),
+            sprintf('  • Excluded Fields: <info>%s</info>', empty($excludedFields) ? 'None (full profile)' : implode(', ', $excludedFields)),
         ]);
         $io->newLine();
 
@@ -396,7 +428,7 @@ HELP;
         }
 
         // Execute installation steps
-        $generatedEntities = $this->generateEntities($io, $filesystem, $projectDir, $idStrategy, $state);
+        $generatedEntities = $this->generateEntities($io, $filesystem, $projectDir, $idStrategy, $state, $excludedFields);
         $this->registerBundle($io, $filesystem, $projectDir);
         $this->generateConfiguration($io, $filesystem, $projectDir, $mode, $providers, $state);
         $this->generateController($io, $filesystem, $projectDir, $state, $input);
@@ -589,7 +621,86 @@ HELP;
         );
     }
 
-    private function generateEntities(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $idStrategy, array $state): array
+    /**
+     * Choose which optional User fields to exclude.
+     *
+     * @return string[] List of field names to exclude
+     */
+    private function chooseExcludedFields(InputInterface $input, SymfonyStyle $io): array
+    {
+        // Check for --minimal flag (excludes all optional fields)
+        if ($input->getOption('minimal')) {
+            $io->writeln([
+                '',
+                '  <fg=cyan>Minimal mode:</> Excluding all optional fields (name, avatar)',
+            ]);
+            return self::OPTIONAL_USER_FIELDS;
+        }
+
+        // Check for --exclude-fields option
+        $excludeOption = $input->getOption('exclude-fields');
+        if ($excludeOption !== null) {
+            $fields = array_map('trim', explode(',', $excludeOption));
+            $validFields = array_intersect($fields, self::OPTIONAL_USER_FIELDS);
+            $invalidFields = array_diff($fields, self::OPTIONAL_USER_FIELDS);
+
+            if (!empty($invalidFields)) {
+                $io->warning(sprintf(
+                    'Invalid fields ignored: %s. Valid options are: %s',
+                    implode(', ', $invalidFields),
+                    implode(', ', self::OPTIONAL_USER_FIELDS)
+                ));
+            }
+
+            return $validFields;
+        }
+
+        // Non-interactive mode: include all fields by default
+        if (!$input->isInteractive()) {
+            return [];
+        }
+
+        // Interactive mode
+        $io->writeln([
+            '',
+            '<fg=yellow>👤 User Entity Fields Configuration</>',
+            '<fg=yellow>────────────────────────────────────────────────────────────────────────────────</>',
+            'The User entity includes optional profile fields that you can exclude.',
+            'This is useful if you only need email/password authentication without user profiles.',
+            '',
+            '<info>Optional fields:</info>',
+            '  • <fg=cyan>name</> - User display name (VARCHAR 255)',
+            '  • <fg=cyan>avatar</> - User avatar URL (VARCHAR 500)',
+            '',
+            '<comment>Note: You can always add these fields later by editing src/Entity/User.php</comment>',
+            '<comment>      or using: php bin/console better-auth:add-fields name,avatar</comment>',
+            '',
+        ]);
+
+        if (!$io->confirm('Do you want to customize User fields?', false)) {
+            return [];
+        }
+
+        $choices = $io->choice(
+            'Which fields do you want to EXCLUDE?',
+            [
+                'none' => 'Include all fields (name, avatar)',
+                'name' => 'Exclude only "name" field',
+                'avatar' => 'Exclude only "avatar" field',
+                'all' => 'Exclude all optional fields (minimal User)',
+            ],
+            'none'
+        );
+
+        return match ($choices) {
+            'name' => ['name'],
+            'avatar' => ['avatar'],
+            'all' => self::OPTIONAL_USER_FIELDS,
+            default => [],
+        };
+    }
+
+    private function generateEntities(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $idStrategy, array $state, array $excludedFields = []): array
     {
         $io->section('📦 Step 1/5: Generating Entities');
 
@@ -618,12 +729,106 @@ HELP;
             }
 
             $content = file_get_contents($templateFile);
+
+            // Process User entity template with field exclusions
+            if ($entityName === 'User') {
+                $content = $this->processUserTemplate($content, $excludedFields);
+            }
+
             $filesystem->dumpFile($targetFile, $content);
             $generatedFiles[] = $entityName;
-            $io->writeln(sprintf('  <fg=green>✓</> Generated %s.php', $entityName));
+
+            // Show additional info for User entity
+            if ($entityName === 'User' && !empty($excludedFields)) {
+                $io->writeln(sprintf('  <fg=green>✓</> Generated %s.php <fg=gray>(excluded: %s)</>', $entityName, implode(', ', $excludedFields)));
+            } else {
+                $io->writeln(sprintf('  <fg=green>✓</> Generated %s.php', $entityName));
+            }
         }
 
         return $generatedFiles;
+    }
+
+    /**
+     * Process User template to handle field exclusions.
+     */
+    private function processUserTemplate(string $content, array $excludedFields): string
+    {
+        // Check if we should include the profile trait (all optional fields)
+        $allOptionalFieldsExcluded = count(array_intersect($excludedFields, self::OPTIONAL_USER_FIELDS)) === count(self::OPTIONAL_USER_FIELDS);
+        $someFieldsExcluded = !empty($excludedFields) && !$allOptionalFieldsExcluded;
+
+        if ($allOptionalFieldsExcluded) {
+            // Minimal mode: no trait, no optional fields
+            $content = str_replace("{{USE_PROFILE_TRAIT}}\n", '', $content);
+            $content = str_replace("{{PROFILE_TRAIT}}\n", '', $content);
+            $content = str_replace("{{CUSTOM_FIELDS}}\n", '', $content);
+        } elseif ($someFieldsExcluded) {
+            // Partial mode: generate individual fields instead of trait
+            $content = str_replace("{{USE_PROFILE_TRAIT}}\n", "use Doctrine\\DBAL\\Types\\Types;\n", $content);
+            $content = str_replace("{{PROFILE_TRAIT}}\n", '', $content);
+
+            // Generate only the fields that are NOT excluded
+            $customFields = $this->generateCustomFields($excludedFields);
+            $content = str_replace("{{CUSTOM_FIELDS}}\n", $customFields, $content);
+        } else {
+            // Full mode: use the profile trait
+            $content = str_replace("{{USE_PROFILE_TRAIT}}\n", "use BetterAuth\\Symfony\\Model\\UserProfileTrait;\n", $content);
+            $content = str_replace("{{PROFILE_TRAIT}}", "    use UserProfileTrait;\n", $content);
+            $content = str_replace("{{CUSTOM_FIELDS}}\n", '', $content);
+        }
+
+        return $content;
+    }
+
+    /**
+     * Generate custom field definitions for partial field inclusion.
+     */
+    private function generateCustomFields(array $excludedFields): string
+    {
+        $fields = [];
+
+        if (!in_array('name', $excludedFields, true)) {
+            $fields[] = <<<'PHP'
+
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    protected ?string $name = null;
+
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+    public function setName(?string $name): static
+    {
+        $this->name = $name;
+
+        return $this;
+    }
+PHP;
+        }
+
+        if (!in_array('avatar', $excludedFields, true)) {
+            $fields[] = <<<'PHP'
+
+    #[ORM\Column(type: Types::STRING, length: 500, nullable: true)]
+    protected ?string $avatar = null;
+
+    public function getAvatar(): ?string
+    {
+        return $this->avatar;
+    }
+
+    public function setAvatar(?string $avatar): static
+    {
+        $this->avatar = $avatar;
+
+        return $this;
+    }
+PHP;
+        }
+
+        return empty($fields) ? '' : implode("\n", $fields) . "\n";
     }
 
     private function registerBundle(SymfonyStyle $io, Filesystem $filesystem, string $projectDir): void

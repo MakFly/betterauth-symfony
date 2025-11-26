@@ -241,7 +241,7 @@ class AccountLinkController extends AbstractController
 
             // Check if this is the only auth method
             $allLinks = $this->accountLinkProvider->getLinkedAccounts($user->getId());
-            $hasPassword = $user->getPasswordHash() !== null;
+            $hasPassword = $user->getPassword() !== null;
 
             if (count($allLinks) === 1 && !$hasPassword) {
                 return $this->json(

@@ -6,9 +6,103 @@ Extend and customize BetterAuth entities for your application.
 
 | Method | Use Case | Complexity |
 |--------|----------|------------|
+| Use UserProfileTrait | Include optional fields (name, avatar) | Very Low |
+| Exclude optional fields | Minimal User entity | Very Low |
 | Extend entities | Add custom fields | Low |
 | Migration only | Simple field additions | Very Low |
 | Complete custom | Full control | High |
+
+---
+
+## Optional User Fields (name, avatar)
+
+BetterAuth provides optional profile fields (`name`, `avatar`) that can be included or excluded based on your needs.
+
+### During Installation
+
+```bash
+# Include all fields (default)
+php bin/console better-auth:install --id-strategy=uuid --mode=api
+
+# Exclude all optional fields (minimal)
+php bin/console better-auth:install --id-strategy=uuid --mode=api --minimal
+
+# Exclude specific fields
+php bin/console better-auth:install --id-strategy=uuid --mode=api --exclude-fields=avatar
+```
+
+### After Installation
+
+Use the `better-auth:user-fields` command to add or remove fields:
+
+```bash
+# Add fields
+php bin/console better-auth:user-fields add name
+php bin/console better-auth:user-fields add name,avatar
+
+# Remove fields (WARNING: data loss after migration!)
+php bin/console better-auth:user-fields remove avatar
+php bin/console better-auth:user-fields remove name,avatar --force
+
+# Generate and run migration
+php bin/console doctrine:migrations:diff
+php bin/console doctrine:migrations:migrate
+```
+
+### Using UserProfileTrait
+
+If you want profile fields, your User entity can use the `UserProfileTrait`:
+
+```php
+<?php
+// src/Entity/User.php
+
+namespace App\Entity;
+
+use BetterAuth\Symfony\Model\User as BaseUser;
+use BetterAuth\Symfony\Model\UserProfileTrait;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity]
+#[ORM\Table(name: 'users')]
+class User extends BaseUser
+{
+    use UserProfileTrait;  // Adds name and avatar fields
+
+    #[ORM\Id]
+    #[ORM\Column(type: 'string', length: 36)]
+    protected string $id;
+
+    // Your custom fields...
+}
+```
+
+### Minimal User Entity (without profile fields)
+
+For authentication-only use cases:
+
+```php
+<?php
+// src/Entity/User.php
+
+namespace App\Entity;
+
+use BetterAuth\Symfony\Model\User as BaseUser;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity]
+#[ORM\Table(name: 'users')]
+class User extends BaseUser
+{
+    // No UserProfileTrait = no name/avatar fields
+
+    #[ORM\Id]
+    #[ORM\Column(type: 'string', length: 36)]
+    protected string $id;
+
+    // Essential fields only: email, password, roles, emailVerified, timestamps
+}
+```
 
 ---
 

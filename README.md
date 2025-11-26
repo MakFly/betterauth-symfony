@@ -62,9 +62,31 @@ php bin/console better-auth:install \
 **Options:**
 - `--id-strategy=uuid|int` - Choose UUID v7 or INT IDs
 - `--mode=api|session|hybrid` - Authentication mode
+- `--exclude-fields=name,avatar` - Exclude optional User fields
+- `--minimal` - Generate minimal User entity (no name, avatar)
 - `--skip-migrations` - Skip migration generation
 - `--skip-controller` - Skip controller generation
 - `--no-interaction` - Run without prompts
+
+### Minimal Installation (without profile fields)
+
+If you don't need `name` and `avatar` fields:
+
+```bash
+php bin/console better-auth:install \
+  --id-strategy=uuid \
+  --mode=api \
+  --minimal
+```
+
+Or exclude specific fields:
+
+```bash
+php bin/console better-auth:install \
+  --id-strategy=uuid \
+  --mode=api \
+  --exclude-fields=avatar  # Keep name, exclude avatar
+```
 
 ## 🚀 Quick Start
 
@@ -283,8 +305,30 @@ You'll see all BetterAuth endpoints documented under the "Authentication" tag wi
 # Install/setup BetterAuth
 bin/console better-auth:install
 
+# Add/remove optional User fields after installation
+bin/console better-auth:user-fields add name,avatar
+bin/console better-auth:user-fields remove avatar
+
 # List available commands
 bin/console list better-auth
+```
+
+### Managing User Fields
+
+After installation, you can add or remove optional fields (`name`, `avatar`):
+
+```bash
+# Add fields
+php bin/console better-auth:user-fields add name
+php bin/console better-auth:user-fields add name,avatar
+
+# Remove fields (WARNING: data loss after migration!)
+php bin/console better-auth:user-fields remove avatar
+php bin/console better-auth:user-fields remove name,avatar --force
+
+# After modifying fields, generate and run migration
+php bin/console doctrine:migrations:diff
+php bin/console doctrine:migrations:migrate
 ```
 
 ## 🎨 Customizing Entities

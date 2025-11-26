@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-core (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-core.git ../betterauth-core
@@ -75,7 +75,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-core (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-core.git ../betterauth-core
@@ -112,7 +112,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-core (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-core.git ../betterauth-core
@@ -139,7 +139,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-core (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-core.git ../betterauth-core
@@ -184,7 +184,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-core (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-core.git ../betterauth-core

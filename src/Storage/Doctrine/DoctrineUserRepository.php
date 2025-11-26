@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BetterAuth\Symfony\Storage\Doctrine;
 
+use BetterAuth\Core\Entities\SimpleUser;
 use BetterAuth\Core\Entities\User;
 use BetterAuth\Core\Interfaces\UserRepositoryInterface;
 use BetterAuth\Symfony\Service\UserIdConverter;
@@ -179,7 +180,7 @@ final class DoctrineUserRepository implements UserRepositoryInterface
 
     private function toEntity($doctrineUser): User
     {
-        return User::fromArray([
+        return SimpleUser::fromArray([
             'id' => $this->idConverter->toAuthId($doctrineUser->getId()), // Convert to string for Core Entity
             'email' => $doctrineUser->getEmail(),
             'password' => $doctrineUser->getPassword(),

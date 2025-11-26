@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Storage\Doctrine;
 
 use BetterAuth\Core\Entities\RefreshToken;
+use BetterAuth\Core\Entities\SimpleRefreshToken;
 use BetterAuth\Core\Interfaces\RefreshTokenRepositoryInterface;
 use BetterAuth\Symfony\Service\UserIdConverter;
 use DateTimeImmutable;
@@ -118,7 +119,7 @@ final class DoctrineRefreshTokenRepository implements RefreshTokenRepositoryInte
 
     private function toEntity($doctrineToken): RefreshToken
     {
-        return RefreshToken::fromArray([
+        return SimpleRefreshToken::fromArray([
             'token' => $doctrineToken->getToken(),
             'user_id' => $this->idConverter->toAuthId($doctrineToken->getUserId()),
             'expires_at' => $doctrineToken->getExpiresAt()->format('Y-m-d H:i:s'),

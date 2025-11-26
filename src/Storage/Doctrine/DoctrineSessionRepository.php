@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Storage\Doctrine;
 
 use BetterAuth\Core\Entities\Session;
+use BetterAuth\Core\Entities\SimpleSession;
 use BetterAuth\Core\Interfaces\SessionRepositoryInterface;
 use BetterAuth\Symfony\Service\UserIdConverter;
 use DateTimeImmutable;
@@ -145,7 +146,7 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
 
     private function toEntity($doctrineSession): Session
     {
-        return Session::fromArray([
+        return SimpleSession::fromArray([
             'token' => $doctrineSession->getToken(),
             'user_id' => $this->idConverter->toAuthId($doctrineSession->getUserId()),
             'expires_at' => $doctrineSession->getExpiresAt()->format('Y-m-d H:i:s'),

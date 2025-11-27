@@ -27,7 +27,7 @@ class ConfigurationTest extends TestCase
     {
         $config = $this->processor->processConfiguration($this->configuration, []);
 
-        $this->assertSame('hybrid', $config['mode']);
+        $this->assertSame('api', $config['mode']);
         $this->assertSame('change_me_in_production', $config['secret']);
         $this->assertSame(604800, $config['session']['lifetime']);
         $this->assertSame('better_auth_session', $config['session']['cookie_name']);

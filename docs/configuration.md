@@ -96,7 +96,8 @@ better_auth:
                 client_secret: '%env(GITHUB_CLIENT_SECRET)%'
                 redirect_uri: '%env(GITHUB_REDIRECT_URI)%'
 
-            # Available: google, github, facebook, discord, microsoft, twitter, apple
+            # Available: google [STABLE], github, facebook, discord, microsoft [DRAFT]
+            # Note: Apple and Twitter/X are NOT implemented yet
 
     # === MULTI-TENANT ===
     multi_tenant:

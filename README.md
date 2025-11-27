@@ -12,7 +12,7 @@ Modern, secure authentication for Symfony 6/7 applications with automatic setup.
 
 - 🔐 **Email/Password authentication**
 - 🔗 **Magic Link** passwordless auth
-- 🌍 **OAuth 2.0**: Google, GitHub, Facebook, Apple, Discord, Microsoft, Twitter/X
+- 🌍 **OAuth 2.0**: Google `[STABLE]`, GitHub, Facebook, Microsoft, Discord `[DRAFT]`
 - 🔑 **Passkeys/WebAuthn**
 - 📱 **TOTP** (Two-Factor Authentication)
 - 🔄 **SSO/OIDC Provider**
@@ -127,7 +127,7 @@ curl -X POST http://localhost:8000/auth/login \
 # {
 #   "access_token": "v4.local.eyJ...",  # Paseto V4 token
 #   "refresh_token": "...",
-#   "expires_in": 7200,
+#   "expires_in": 3600,
 #   "token_type": "Bearer",
 #   "user": { ... }
 # }
@@ -167,7 +167,7 @@ better_auth:
     secret: '%env(BETTER_AUTH_SECRET)%'
 
     token:
-        lifetime: 7200           # Access token: 2 hours
+        lifetime: 3600           # Access token: 1 hour (default)
         refresh_lifetime: 2592000  # Refresh token: 30 days
 
     oauth:
@@ -372,25 +372,35 @@ php bin/console doctrine:migrations:migrate
 
 ## 🌍 OAuth Providers
 
-Enable OAuth providers during installation or manually:
+Enable OAuth providers during installation or manually.
+
+### Provider Status
+
+| Provider | Status | Notes |
+|----------|--------|-------|
+| Google | `[STABLE]` | Fully tested, production-ready |
+| GitHub | `[DRAFT]` | Implemented, needs more testing |
+| Facebook | `[DRAFT]` | Implemented, needs more testing |
+| Microsoft | `[DRAFT]` | Implemented, needs more testing |
+| Discord | `[DRAFT]` | Implemented, needs more testing |
 
 ```yaml
 better_auth:
     oauth:
         providers:
-            google:
+            google:  # [STABLE]
                 enabled: true
                 client_id: '%env(GOOGLE_CLIENT_ID)%'
                 client_secret: '%env(GOOGLE_CLIENT_SECRET)%'
                 redirect_uri: '%env(APP_URL)%/auth/oauth/google/callback'
 
-            github:
+            github:  # [DRAFT]
                 enabled: true
                 client_id: '%env(GITHUB_CLIENT_ID)%'
                 client_secret: '%env(GITHUB_CLIENT_SECRET)%'
                 redirect_uri: '%env(APP_URL)%/auth/oauth/github/callback'
 
-            # Also supported: facebook, apple, discord, microsoft, twitter
+            # Also available (DRAFT): facebook, microsoft, discord
 ```
 
 ## 👥 Multi-Tenancy

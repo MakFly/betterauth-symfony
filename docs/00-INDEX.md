@@ -28,7 +28,7 @@ Modern, secure authentication for Symfony 6/7 applications.
 ### Features
 | Document | Description |
 |----------|-------------|
-| [06-OAUTH-PROVIDERS](06-OAUTH-PROVIDERS.md) | Google, GitHub, Microsoft, Facebook, Discord |
+| [06-OAUTH-PROVIDERS](06-OAUTH-PROVIDERS.md) | Google `[STABLE]`, GitHub, Microsoft, Facebook, Discord `[DRAFT]` |
 | [07-TWO-FACTOR-AUTH](07-TWO-FACTOR-AUTH.md) | TOTP with Google Authenticator, Authy |
 | [08-EVENTS](08-EVENTS.md) | All events with subscriber examples |
 

@@ -172,13 +172,13 @@ better_auth:
 ```
 
 **Supported providers:**
-- `google` - Google OAuth
-- `github` - GitHub OAuth
-- `microsoft` - Microsoft/Azure AD
-- `facebook` - Facebook OAuth
-- `discord` - Discord OAuth
-- `twitter` - Twitter/X OAuth
-- `apple` - Apple Sign In
+- `google` - Google OAuth `[STABLE]`
+- `github` - GitHub OAuth `[DRAFT]`
+- `microsoft` - Microsoft/Azure AD `[DRAFT]`
+- `facebook` - Facebook OAuth `[DRAFT]`
+- `discord` - Discord OAuth `[DRAFT]`
+
+> **Note:** Only Google is fully tested. Other providers are implemented but need more testing.
 
 ### Multi-Tenant
 

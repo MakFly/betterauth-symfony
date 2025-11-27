@@ -39,7 +39,7 @@ php bin/console better-auth:install
 The wizard asks:
 - **ID Strategy**: UUID v7 (recommended) or INT
 - **Mode**: API, Session, or Hybrid
-- **OAuth Providers**: Google, GitHub, Facebook, Microsoft, Discord
+- **OAuth Providers**: Google `[STABLE]`, GitHub, Facebook, Microsoft, Discord `[DRAFT]`
 
 ### Non-Interactive Mode
 

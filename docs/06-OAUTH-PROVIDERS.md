@@ -1,18 +1,20 @@
 # OAuth Providers
 
-Configure social login with Google, GitHub, Microsoft, Facebook, Discord, and more.
+Configure social login with Google, GitHub, Microsoft, Facebook, and Discord.
 
 ## Supported Providers
 
 | Provider | Status | Documentation |
 |----------|--------|---------------|
-| Google | ✅ Full support | [Console](https://console.cloud.google.com/apis/credentials) |
-| GitHub | ✅ Full support | [Developer Settings](https://github.com/settings/developers) |
-| Microsoft | ✅ Full support | [Azure Portal](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps) |
-| Facebook | ✅ Full support | [Meta Developers](https://developers.facebook.com/apps/) |
-| Discord | ✅ Full support | [Discord Apps](https://discord.com/developers/applications) |
-| Twitter/X | ✅ Full support | [Developer Portal](https://developer.twitter.com/en/portal) |
-| Apple | ✅ Full support | [Apple Developer](https://developer.apple.com/account/resources/identifiers/list) |
+| Google | ✅ **STABLE** | [Console](https://console.cloud.google.com/apis/credentials) |
+| GitHub | ⚠️ DRAFT | [Developer Settings](https://github.com/settings/developers) |
+| Microsoft | ⚠️ DRAFT | [Azure Portal](https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps) |
+| Facebook | ⚠️ DRAFT | [Meta Developers](https://developers.facebook.com/apps/) |
+| Discord | ⚠️ DRAFT | [Discord Apps](https://discord.com/developers/applications) |
+| Twitter/X | ❌ Not implemented | - |
+| Apple | ❌ Not implemented | - |
+
+> **Note:** Only Google OAuth has been fully tested and is production-ready. Other providers (GitHub, Microsoft, Facebook, Discord) are implemented but need more testing. Twitter/X and Apple are not yet implemented.
 
 ---
 

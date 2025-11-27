@@ -49,12 +49,18 @@ class InstallCommand extends Command
         ],
     ];
 
+    /**
+     * OAuth providers with their stability status.
+     * - stable: Fully tested and production-ready
+     * - draft: Implemented but not fully tested
+     * - not_implemented: Listed in docs but not yet available
+     */
     private const OAUTH_PROVIDERS = [
-        'google' => 'Google OAuth',
-        'github' => 'GitHub OAuth',
-        'facebook' => 'Facebook OAuth',
-        'microsoft' => 'Microsoft OAuth',
-        'discord' => 'Discord OAuth',
+        'google' => ['name' => 'Google OAuth', 'status' => 'stable'],
+        'github' => ['name' => 'GitHub OAuth', 'status' => 'draft'],
+        'facebook' => ['name' => 'Facebook OAuth', 'status' => 'draft'],
+        'microsoft' => ['name' => 'Microsoft OAuth', 'status' => 'draft'],
+        'discord' => ['name' => 'Discord OAuth', 'status' => 'draft'],
     ];
 
     /**
@@ -104,7 +110,7 @@ Symfony application with modern security features, OAuth support, and production
 
   <info>API Mode</info> (Recommended for SPAs, Mobile Apps, Microservices)
     • Stateless authentication with Paseto V4 tokens
-    • Access tokens (2h lifetime) + Refresh tokens (30 days)
+    • Access tokens (1h lifetime) + Refresh tokens (30 days)
     • Perfect for React, Vue, Angular, Flutter, React Native
     • No cookies, pure JWT-like tokens
 
@@ -313,7 +319,7 @@ The wizard will:
     "access_token": "v4.local.xxxxx",
     "refresh_token": "xxxxx",
     "token_type": "Bearer",
-    "expires_in": 7200
+    "expires_in": 3600
   }
 
   <comment># Test authenticated request</comment>
@@ -563,22 +569,28 @@ HELP;
         }
 
         $availableProviders = [];
-        foreach (self::OAUTH_PROVIDERS as $key => $label) {
-            $availableProviders[$key] = $label;
+        foreach (self::OAUTH_PROVIDERS as $key => $config) {
+            $availableProviders[$key] = $config['name'];
         }
 
         $io->writeln([
             '',
             '<info>Available OAuth Providers:</info>',
         ]);
-        foreach ($availableProviders as $key => $label) {
-            $io->writeln("  • $label");
+        foreach (self::OAUTH_PROVIDERS as $key => $config) {
+            $statusBadge = match ($config['status']) {
+                'stable' => '<fg=green>[STABLE]</>',
+                'draft' => '<fg=yellow>[DRAFT]</>',
+                default => '<fg=red>[NOT IMPLEMENTED]</>',
+            };
+            $io->writeln("  • {$config['name']} $statusBadge");
         }
         $io->newLine();
 
         $choices = [];
-        foreach (self::OAUTH_PROVIDERS as $key => $label) {
-            if ($io->confirm("  Enable $label?", $key === 'google')) {
+        foreach (self::OAUTH_PROVIDERS as $key => $config) {
+            $statusHint = $config['status'] === 'draft' ? ' <fg=yellow>(draft)</>' : '';
+            if ($io->confirm("  Enable {$config['name']}?$statusHint", $key === 'google')) {
                 $choices[] = $key;
             }
         }
@@ -673,7 +685,7 @@ HELP;
             '  • <fg=cyan>avatar</> - User avatar URL (VARCHAR 500)',
             '',
             '<comment>Note: You can always add these fields later by editing src/Entity/User.php</comment>',
-            '<comment>      or using: php bin/console better-auth:add-fields name,avatar</comment>',
+            '<comment>      or using: php bin/console better-auth:user-fields add name,avatar</comment>',
             '',
         ]);
 

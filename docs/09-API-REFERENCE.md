@@ -375,11 +375,11 @@ curl -X GET http://localhost:8000/auth/oauth/google
 ```
 
 **Supported providers:**
-- `google`
-- `github`
-- `microsoft`
-- `facebook`
-- `discord`
+- `google` - `[STABLE]` - Fully tested, production-ready
+- `github` - `[DRAFT]` - Implemented, needs more testing
+- `microsoft` - `[DRAFT]` - Implemented, needs more testing
+- `facebook` - `[DRAFT]` - Implemented, needs more testing
+- `discord` - `[DRAFT]` - Implemented, needs more testing
 
 ---
 

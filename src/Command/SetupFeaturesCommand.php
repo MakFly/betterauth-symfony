@@ -474,7 +474,10 @@ class SetupFeaturesCommand extends Command
         }
 
         $generatedEntities = [];
-        $templatesDir = dirname(__DIR__) . '/Resources/templates/entities';
+        // Find bundle path using ReflectionClass
+        $reflection = new \ReflectionClass(self::class);
+        $bundlePath = dirname($reflection->getFileName(), 3); // Go up from Command/ to bundle root
+        $templatesDir = $bundlePath . '/Resources/templates/entities';
         $entitiesDir = $this->projectDir . '/src/Entity';
 
         if (!$this->filesystem->exists($entitiesDir) && !$dryRun) {
@@ -588,7 +591,10 @@ class SetupFeaturesCommand extends Command
 
         $controllersDir = $this->projectDir . '/src/Controller/Api';
         $traitDir = $controllersDir . '/Trait';
-        $templatesDir = dirname(__DIR__) . '/Resources/templates/controller';
+        // Find bundle path using ReflectionClass
+        $reflection = new \ReflectionClass(self::class);
+        $bundlePath = dirname($reflection->getFileName(), 3); // Go up from Command/ to bundle root
+        $templatesDir = $bundlePath . '/Resources/templates/controller';
 
         // Controller name mapping
         $controllerMapping = [

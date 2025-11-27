@@ -308,7 +308,13 @@ bin/console list better-auth
 
 ### 🔧 Setup Features (Add Magic Link, 2FA, OAuth, etc.)
 
-**After initial installation**, use `better-auth:setup-features` to add new features with automatic entity generation and migrations:
+**After initial installation**, use `better-auth:setup-features` to add new features with automatic entity generation and migrations.
+
+**Key behavior:**
+- Only generates **additional** controllers for new features (not core auth controllers)
+- **Asks for confirmation** before generating each controller
+- **Detects existing controllers** in both `src/Controller/` and legacy `src/Controller/Api/`
+- Skips controllers that already exist (unless `--force` is used)
 
 ```bash
 # 🚀 Enable Magic Link with auto-generation (recommended)
@@ -378,6 +384,19 @@ php bin/console better-auth:add-controller oauth
 php bin/console better-auth:add-controller --all
 ```
 
+**Generated structure:**
+```
+src/Controller/
+├── Trait/
+│   └── ApiResponseTrait.php   # Shared response formatting
+├── AuthController.php         # Core auth (register, login, logout, etc.)
+├── PasswordController.php     # Password reset flow
+├── SessionsController.php     # Session management
+├── MagicLinkController.php    # Passwordless authentication
+├── OAuthController.php        # OAuth providers
+└── ...
+```
+
 ### 👤 Managing User Fields
 
 After installation, you can add or remove optional fields (`name`, `avatar`):
@@ -428,7 +447,7 @@ php bin/console better-auth:setup-features --enable=magic_link --with-controller
 
 # This will:
 # ✅ Generate src/Entity/MagicLinkToken.php
-# ✅ Generate src/Controller/Api/MagicLinkController.php
+# ✅ Generate src/Controller/MagicLinkController.php (if you confirm)
 # ✅ Update config/packages/better_auth.yaml
 # ✅ Run doctrine:migrations:diff
 # ✅ Run doctrine:migrations:migrate
@@ -481,7 +500,7 @@ php bin/console better-auth:setup-features --enable=multi_tenant --with-controll
 # This generates:
 # - src/Entity/Organization.php
 # - src/Entity/OrganizationMember.php
-# - src/Controller/Api/OrganizationsController.php
+# - src/Controller/OrganizationsController.php (if you confirm)
 ```
 
 ### Full Enterprise Setup

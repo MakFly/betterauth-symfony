@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\Api;
+namespace App\Controller;
 
-use App\Controller\Api\Trait\ApiResponseTrait;
+use App\Controller\Trait\ApiResponseTrait;
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Core\Entities\User;
 use BetterAuth\Core\Exceptions\AuthException;

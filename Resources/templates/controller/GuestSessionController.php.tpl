@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\Api;
+namespace App\Controller;
 
-use App\Controller\Api\Trait\ApiResponseTrait;
+use App\Controller\Trait\ApiResponseTrait;
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Providers\GuestSessionProvider\GuestSessionProvider;
 use Psr\Log\LoggerInterface;

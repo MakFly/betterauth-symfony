@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\Api;
+namespace App\Controller;
 
-use App\Controller\Api\Trait\ApiResponseTrait;
+use App\Controller\Trait\ApiResponseTrait;
 use BetterAuth\Providers\MagicLinkProvider\MagicLinkProvider;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -60,7 +60,12 @@ class MagicLinkController extends AbstractController
         $callbackUrl = $data['callbackUrl'] ?? rtrim($this->frontendUrl, '/') . '/auth/magic-link';
 
         try {
-            $this->magicLinkProvider->sendMagicLink($data['email'], $callbackUrl);
+            $this->magicLinkProvider->sendMagicLink(
+                $data['email'],
+                $request->getClientIp() ?? '127.0.0.1',
+                $request->headers->get('User-Agent') ?? 'Unknown',
+                $callbackUrl
+            );
 
             $this->logger?->info('Magic link sent', ['email' => $data['email']]);
 
@@ -102,28 +107,39 @@ class MagicLinkController extends AbstractController
         }
 
         try {
-            $result = $this->magicLinkProvider->verifyMagicLink($data['token'], [
-                'ip_address' => $request->getClientIp() ?? '127.0.0.1',
-                'user_agent' => $request->headers->get('User-Agent') ?? 'Unknown',
-            ]);
+            $result = $this->magicLinkProvider->verifyMagicLink(
+                $data['token'],
+                $request->getClientIp() ?? '127.0.0.1',
+                $request->headers->get('User-Agent') ?? 'Unknown'
+            );
 
-            if (!isset($result['user'])) {
+            if (!$result['success'] || !isset($result['user'])) {
                 return $this->json(
-                    $this->formatErrorResponse('invalid_token', 'Invalid or expired magic link', 401),
+                    $this->formatErrorResponse('invalid_token', $result['error'] ?? 'Invalid or expired magic link', 401),
                     401
                 );
             }
 
-            $user = $result['user'];
-
             $this->logger?->info('Magic link authentication successful', [
-                'userId' => $user->getId(),
-                'email' => $user->getEmail(),
+                'userId' => $result['user']['id'],
+                'email' => $result['user']['email'],
             ]);
 
-            return $this->json($this->formatAuthResponse($result, $user, [
-                'authMethod' => 'magic_link',
-            ]));
+            return $this->json([
+                'success' => true,
+                'data' => [
+                    'auth' => [
+                        'accessToken' => $result['access_token'],
+                        'refreshToken' => $result['refresh_token'],
+                        'tokenType' => $result['token_type'] ?? 'Bearer',
+                        'expiresIn' => $result['expires_in'] ?? 3600,
+                        'expiresAt' => date('c', time() + ($result['expires_in'] ?? 3600)),
+                    ],
+                    'user' => $result['user'],
+                    'authMethod' => 'magic_link',
+                ],
+                'meta' => ['timestamp' => date('c'), 'version' => 'v1'],
+            ]);
         } catch (\Exception $e) {
             $this->logger?->warning('Magic link verification failed', [
                 'error' => $e->getMessage(),

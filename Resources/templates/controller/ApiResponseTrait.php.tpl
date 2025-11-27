@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\Api\Trait;
+namespace App\Controller\Trait;
 
 use BetterAuth\Core\Entities\User;
 

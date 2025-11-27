@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\Api;
+namespace App\Controller;
 
-use App\Controller\Api\Trait\ApiResponseTrait;
+use App\Controller\Trait\ApiResponseTrait;
 use BetterAuth\Core\Entities\User;
 use BetterAuth\Core\Interfaces\SessionRepositoryInterface;
 use BetterAuth\Symfony\Security\Attribute\CurrentUser;

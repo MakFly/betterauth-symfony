@@ -915,7 +915,7 @@ PHP;
         $io->section('🎮 Step 4/6: Generating Controllers');
 
         $templatesDir = dirname(__DIR__) . '/Resources/templates/controller';
-        $controllerDir = $projectDir . '/src/Controller/Api';
+        $controllerDir = $projectDir . '/src/Controller';
         $traitDir = $controllerDir . '/Trait';
 
         // Create directories
@@ -943,6 +943,17 @@ PHP;
             'account-link' => ['AccountLinkController' => 'AccountLinkController.php.tpl'],
             'devices' => ['DeviceController' => 'DeviceController.php.tpl'],
         ];
+
+        // Check for existing controllers in both locations
+        $existingControllers = $this->detectExistingControllers($filesystem, $projectDir);
+        if (!empty($existingControllers)) {
+            $io->writeln('');
+            $io->writeln('  <fg=yellow>Detected existing controllers:</>');
+            foreach ($existingControllers as $name => $path) {
+                $io->writeln(sprintf('    • %s at %s', $name, $path));
+            }
+            $io->writeln('');
+        }
 
         // Ask for optional controllers
         $io->writeln('');
@@ -980,8 +991,18 @@ PHP;
                 continue;
             }
 
+            // Check if controller exists in current location or legacy Api/ location
+            $controllerName = basename($name, '.php');
+            $legacyPath = $projectDir . '/src/Controller/Api/' . $name . '.php';
+            
             if ($filesystem->exists($targetFile)) {
                 if (!$io->confirm(sprintf('  %s already exists. Overwrite?', $name), false)) {
+                    $io->writeln(sprintf('  <fg=yellow>⊘</> Skipped %s', $name));
+                    continue;
+                }
+            } elseif ($filesystem->exists($legacyPath)) {
+                $io->writeln(sprintf('  <fg=yellow>⚠</> %s exists in legacy location (src/Controller/Api/)', $controllerName));
+                if (!$io->confirm(sprintf('  Generate new %s in src/Controller/ anyway?', $controllerName), false)) {
                     $io->writeln(sprintf('  <fg=yellow>⊘</> Skipped %s', $name));
                     continue;
                 }
@@ -997,12 +1018,48 @@ PHP;
             $io->writeln('  <fg=green>✓</> Routes automatically configured via attributes');
             $io->writeln('');
             $io->writeln('  <fg=cyan>Generated structure:</>');
-            $io->writeln('    src/Controller/Api/');
+            $io->writeln('    src/Controller/');
             $io->writeln('    ├── Trait/ApiResponseTrait.php');
             $io->writeln('    ├── AuthController.php');
             $io->writeln('    ├── PasswordController.php');
             $io->writeln('    └── SessionsController.php');
         }
+    }
+
+    /**
+     * Detect existing controllers in both standard and legacy locations.
+     */
+    private function detectExistingControllers(Filesystem $filesystem, string $projectDir): array
+    {
+        $controllers = [
+            'AuthController',
+            'PasswordController',
+            'SessionsController',
+            'OAuthController',
+            'MagicLinkController',
+            'EmailVerificationController',
+            'GuestSessionController',
+            'AccountLinkController',
+            'DeviceController',
+        ];
+
+        $found = [];
+        foreach ($controllers as $controller) {
+            // Check src/Controller/
+            $standardPath = $projectDir . '/src/Controller/' . $controller . '.php';
+            if ($filesystem->exists($standardPath)) {
+                $found[$controller] = 'src/Controller/' . $controller . '.php';
+                continue;
+            }
+
+            // Check src/Controller/Api/
+            $legacyPath = $projectDir . '/src/Controller/Api/' . $controller . '.php';
+            if ($filesystem->exists($legacyPath)) {
+                $found[$controller] = 'src/Controller/Api/' . $controller . '.php';
+            }
+        }
+
+        return $found;
     }
 
     private function configureServices(SymfonyStyle $io, Filesystem $filesystem, string $projectDir, string $idStrategy): void
@@ -1196,7 +1253,7 @@ YAML;
             '',
             '<comment>Generated Files:</comment>',
             sprintf('  • Entities: <info>%s</info>', empty($generatedEntities) ? 'None (skipped)' : implode(', ', $generatedEntities)),
-            '  • Controller: <info>src/Controller/AuthController.php</info>',
+            '  • Controllers: <info>src/Controller/*.php</info>',
             '  • Config: <info>config/packages/better_auth.yaml</info>',
             '',
         ]);

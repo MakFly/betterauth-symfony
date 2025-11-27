@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\Api;
+namespace App\Controller;
 
-use App\Controller\Api\Trait\ApiResponseTrait;
+use App\Controller\Trait\ApiResponseTrait;
 use BetterAuth\Core\Entities\User;
 use BetterAuth\Providers\EmailVerificationProvider\EmailVerificationProvider;
 use BetterAuth\Symfony\Security\Attribute\CurrentUser;
@@ -54,7 +54,7 @@ class EmailVerificationController extends AbstractController
         $callbackUrl = $data['callbackUrl'] ?? rtrim($this->frontendUrl, '/') . '/auth/verify-email';
 
         try {
-            $this->emailVerificationProvider->sendVerificationEmail($user->getId(), $callbackUrl);
+            $this->emailVerificationProvider->sendVerificationEmail($user->getId(), $user->getEmail(), $callbackUrl);
 
             $this->logger?->info('Verification email sent', [
                 'userId' => $user->getId(),

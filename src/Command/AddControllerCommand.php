@@ -195,8 +195,8 @@ $controllersList
 
 <fg=yellow>Generated Files:</fg>
 
-  Controllers are generated in: <info>src/Controller/Api/</info>
-  Trait is generated in: <info>src/Controller/Api/Trait/</info>
+  Controllers are generated in: <info>src/Controller/</info>
+  Trait is generated in: <info>src/Controller/Trait/</info>
 
 <fg=yellow>Dependencies:</fg>
 
@@ -280,13 +280,22 @@ HELP;
     {
         $io->title('🎮 BetterAuth Controller Selection');
 
-        $controllerDir = $projectDir . '/src/Controller/Api';
+        $controllerDir = $projectDir . '/src/Controller';
+        $legacyDir = $projectDir . '/src/Controller/Api';
 
-        // Show current state
+        // Show current state (check both locations)
         $io->section('Current State');
         foreach (self::CONTROLLERS as $name => $config) {
             $targetPath = $controllerDir . '/' . $config['target'];
-            $status = $filesystem->exists($targetPath) ? '<fg=green>✓ Installed</>' : '<fg=gray>○ Not installed</>';
+            $legacyPath = $legacyDir . '/' . $config['target'];
+            
+            if ($filesystem->exists($targetPath)) {
+                $status = '<fg=green>✓ Installed</>';
+            } elseif ($filesystem->exists($legacyPath)) {
+                $status = '<fg=yellow>✓ Installed (legacy location)</>';
+            } else {
+                $status = '<fg=gray>○ Not installed</>';
+            }
             $io->writeln(sprintf('  %s: %s', $name, $status));
         }
         $io->newLine();
@@ -383,7 +392,8 @@ HELP;
     {
         $config = self::CONTROLLERS[$name];
         $templatesDir = dirname(__DIR__) . '/Resources/templates/controller';
-        $controllerDir = $projectDir . '/src/Controller/Api';
+        $controllerDir = $projectDir . '/src/Controller';
+        $legacyDir = $projectDir . '/src/Controller/Api';
 
         // Ensure directories exist
         $traitDir = $controllerDir . '/Trait';
@@ -396,6 +406,7 @@ HELP;
 
         $templatePath = $templatesDir . '/' . $config['template'];
         $targetPath = $controllerDir . '/' . $config['target'];
+        $legacyPath = $legacyDir . '/' . $config['target'];
 
         // Check if template exists
         if (!$filesystem->exists($templatePath)) {
@@ -403,9 +414,15 @@ HELP;
             return 'error';
         }
 
-        // Check if target exists
+        // Check if target exists in current or legacy location
         if ($filesystem->exists($targetPath) && !$force) {
             if (!$isInteractive || !$io->confirm(sprintf('%s already exists. Overwrite?', $config['target']), false)) {
+                $io->writeln(sprintf('  <fg=yellow>⊘</> Skipped %s', $config['target']));
+                return 'skipped';
+            }
+        } elseif ($filesystem->exists($legacyPath) && !$force) {
+            $io->writeln(sprintf('  <fg=yellow>⚠</> %s exists in legacy location (src/Controller/Api/)', $config['target']));
+            if (!$isInteractive || !$io->confirm(sprintf('Generate new %s in src/Controller/ anyway?', $config['target']), false)) {
                 $io->writeln(sprintf('  <fg=yellow>⊘</> Skipped %s', $config['target']));
                 return 'skipped';
             }
@@ -423,7 +440,7 @@ HELP;
     {
         $io->section('📁 Generated Structure');
         $io->writeln([
-            '  src/Controller/Api/',
+            '  src/Controller/',
             '  ├── Trait/',
             '  │   └── ApiResponseTrait.php',
             '  ├── AuthController.php',

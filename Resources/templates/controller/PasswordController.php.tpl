@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Controller\Api;
+namespace App\Controller;
 
-use App\Controller\Api\Trait\ApiResponseTrait;
+use App\Controller\Trait\ApiResponseTrait;
 use BetterAuth\Providers\PasswordResetProvider\PasswordResetProvider;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -149,14 +149,13 @@ class PasswordController extends AbstractController
         }
 
         try {
-            $result = $this->passwordResetProvider->verifyToken($data['token']);
+            $result = $this->passwordResetProvider->verifyResetToken($data['token']);
 
             return $this->json([
                 'success' => true,
                 'data' => [
                     'valid' => $result['valid'] ?? false,
                     'email' => $result['email'] ?? null,
-                    'expiresAt' => isset($result['expiresAt']) ? date('c', $result['expiresAt']) : null,
                 ],
                 'meta' => ['timestamp' => date('c'), 'version' => 'v1'],
             ]);

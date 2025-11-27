@@ -574,22 +574,28 @@ class SetupFeaturesCommand extends Command
 
     private function generateRequiredControllers(SymfonyStyle $io, array $selectedFeatures, bool $dryRun, bool $force): void
     {
+        // Determine which controllers are needed for NEW features only
         $requiredControllers = [];
+        $coreControllers = ['auth', 'password', 'sessions']; // Core controllers linked to required features
 
         foreach ($selectedFeatures as $feature => $enabled) {
             if ($enabled && isset(self::FEATURES[$feature]['controllers'])) {
                 foreach (self::FEATURES[$feature]['controllers'] as $controller) {
-                    $requiredControllers[$controller] = true;
+                    // Skip core controllers - they should be installed via better-auth:install
+                    if (!in_array($controller, $coreControllers, true)) {
+                        $requiredControllers[$controller] = $feature;
+                    }
                 }
             }
         }
 
         if (empty($requiredControllers)) {
-            $io->text('  <fg=gray>No controllers required</>');
+            $io->text('  <fg=gray>No additional controllers required for selected features</>');
+            $io->text('  <fg=gray>Core controllers (auth, password, sessions) should be installed via better-auth:install</>');
             return;
         }
 
-        $controllersDir = $this->projectDir . '/src/Controller/Api';
+        $controllersDir = $this->projectDir . '/src/Controller';
         $traitDir = $controllersDir . '/Trait';
         // Find bundle path using ReflectionClass
         $reflection = new \ReflectionClass(self::class);
@@ -598,21 +604,22 @@ class SetupFeaturesCommand extends Command
 
         // Controller name mapping
         $controllerMapping = [
-            'auth' => ['AuthController.php.tpl', 'AuthController.php'],
-            'password' => ['PasswordController.php.tpl', 'PasswordController.php'],
-            'sessions' => ['SessionsController.php.tpl', 'SessionsController.php'],
-            'oauth' => ['OAuthController.php.tpl', 'OAuthController.php'],
-            'email-verification' => ['EmailVerificationController.php.tpl', 'EmailVerificationController.php'],
-            'magic-link' => ['MagicLinkController.php.tpl', 'MagicLinkController.php'],
-            'guest' => ['GuestSessionController.php.tpl', 'GuestSessionController.php'],
-            'account-link' => ['AccountLinkController.php.tpl', 'AccountLinkController.php'],
-            'devices' => ['DeviceController.php.tpl', 'DeviceController.php'],
-            'trait' => ['ApiResponseTrait.php.tpl', 'Trait/ApiResponseTrait.php'],
+            'oauth' => ['OAuthController.php.tpl', 'OAuthController.php', 'OAuth (Google, GitHub, Facebook, etc.)'],
+            'email-verification' => ['EmailVerificationController.php.tpl', 'EmailVerificationController.php', 'Email verification flow'],
+            'magic-link' => ['MagicLinkController.php.tpl', 'MagicLinkController.php', 'Magic link (passwordless)'],
+            'guest' => ['GuestSessionController.php.tpl', 'GuestSessionController.php', 'Guest/anonymous sessions'],
+            'account-link' => ['AccountLinkController.php.tpl', 'AccountLinkController.php', 'Account linking'],
+            'devices' => ['DeviceController.php.tpl', 'DeviceController.php', 'Device management'],
+            'trait' => ['ApiResponseTrait.php.tpl', 'Trait/ApiResponseTrait.php', 'API response formatting'],
         ];
 
-        // Always include trait if any controller is needed
-        if (!empty($requiredControllers)) {
-            $requiredControllers['trait'] = true;
+        // Detect existing controllers in both locations
+        $existingControllers = $this->detectExistingControllers();
+
+        // Check if trait is needed and exists
+        $needTrait = true;
+        if (isset($existingControllers['ApiResponseTrait'])) {
+            $needTrait = false;
         }
 
         if (!$dryRun) {
@@ -624,39 +631,142 @@ class SetupFeaturesCommand extends Command
             }
         }
 
-        foreach ($requiredControllers as $controller => $enabled) {
+        // Generate trait first if needed
+        if ($needTrait) {
+            $this->generateSingleController($io, $templatesDir, $controllersDir, 'trait', $controllerMapping, $existingControllers, $dryRun, $force);
+        }
+
+        // Ask for each controller individually
+        foreach ($requiredControllers as $controller => $forFeature) {
             if (!isset($controllerMapping[$controller])) {
                 continue;
             }
 
-            [$templateFile, $targetFile] = $controllerMapping[$controller];
-            $templatePath = $templatesDir . '/' . $templateFile;
-            $targetPath = $controllersDir . '/' . $targetFile;
+            [$templateFile, $targetFile, $description] = $controllerMapping[$controller];
+            $controllerName = basename($targetFile, '.php');
 
-            if (!$this->filesystem->exists($templatePath)) {
-                $io->text("  <fg=yellow>⚠</> Template not found: $templateFile");
+            // Check if already exists
+            if (isset($existingControllers[$controllerName])) {
+                $io->text(sprintf('  <fg=yellow>⊘</> %s already exists at %s', $controllerName, $existingControllers[$controllerName]));
                 continue;
             }
 
-            $exists = $this->filesystem->exists($targetPath);
-
-            if ($dryRun) {
-                if ($exists && !$force) {
-                    $io->text("  <fg=yellow>○</> Would skip (exists): $targetFile");
-                } else {
-                    $io->text("  <fg=cyan>○</> Would generate: $targetFile");
-                }
-            } else {
-                if ($exists && !$force) {
-                    $io->text("  <fg=yellow>⊘</> Skipped (exists): $targetFile");
+            // Ask user if they want to generate this controller
+            if (!$dryRun && !$force) {
+                if (!$io->confirm(sprintf('  Generate %s for feature "%s"?', $controllerName, $forFeature), true)) {
+                    $io->text(sprintf('  <fg=yellow>⊘</> Skipped %s', $controllerName));
                     continue;
                 }
+            }
 
-                $content = file_get_contents($templatePath);
-                $this->filesystem->dumpFile($targetPath, $content);
-                $io->text("  <fg=green>✓</> Generated: $targetFile");
+            $this->generateSingleController($io, $templatesDir, $controllersDir, $controller, $controllerMapping, $existingControllers, $dryRun, $force);
+        }
+    }
+
+    /**
+     * Generate a single controller file.
+     */
+    private function generateSingleController(
+        SymfonyStyle $io,
+        string $templatesDir,
+        string $controllersDir,
+        string $controller,
+        array $controllerMapping,
+        array $existingControllers,
+        bool $dryRun,
+        bool $force
+    ): void {
+        if (!isset($controllerMapping[$controller])) {
+            return;
+        }
+
+        [$templateFile, $targetFile] = $controllerMapping[$controller];
+        $templatePath = $templatesDir . '/' . $templateFile;
+        $targetPath = $controllersDir . '/' . $targetFile;
+        $controllerName = basename($targetFile, '.php');
+
+        if (!$this->filesystem->exists($templatePath)) {
+            $io->text("  <fg=yellow>⚠</> Template not found: $templateFile");
+            return;
+        }
+
+        // Check both locations
+        $existsInStandard = $this->filesystem->exists($targetPath);
+        $existsInLegacy = $this->filesystem->exists($this->projectDir . '/src/Controller/Api/' . $targetFile);
+
+        if ($dryRun) {
+            if ($existsInStandard || $existsInLegacy) {
+                $location = $existsInStandard ? 'src/Controller/' : 'src/Controller/Api/';
+                $io->text("  <fg=yellow>○</> Would skip (exists at $location): $targetFile");
+            } else {
+                $io->text("  <fg=cyan>○</> Would generate: $targetFile");
+            }
+        } else {
+            if ($existsInStandard && !$force) {
+                $io->text("  <fg=yellow>⊘</> Skipped (exists): $targetFile");
+                return;
+            }
+
+            if ($existsInLegacy && !$force) {
+                $io->text("  <fg=yellow>⊘</> Skipped (exists in legacy location): $targetFile");
+                return;
+            }
+
+            $content = file_get_contents($templatePath);
+            $this->filesystem->dumpFile($targetPath, $content);
+            $io->text("  <fg=green>✓</> Generated: $targetFile");
+        }
+    }
+
+    /**
+     * Detect existing controllers in both standard and legacy locations.
+     */
+    private function detectExistingControllers(): array
+    {
+        $controllers = [
+            'AuthController',
+            'PasswordController',
+            'SessionsController',
+            'OAuthController',
+            'MagicLinkController',
+            'EmailVerificationController',
+            'GuestSessionController',
+            'AccountLinkController',
+            'DeviceController',
+            'ApiResponseTrait',
+        ];
+
+        $found = [];
+        foreach ($controllers as $controller) {
+            // Check for trait in Trait subfolder
+            if ($controller === 'ApiResponseTrait') {
+                $standardPath = $this->projectDir . '/src/Controller/Trait/' . $controller . '.php';
+                if ($this->filesystem->exists($standardPath)) {
+                    $found[$controller] = 'src/Controller/Trait/' . $controller . '.php';
+                    continue;
+                }
+                $legacyPath = $this->projectDir . '/src/Controller/Api/Trait/' . $controller . '.php';
+                if ($this->filesystem->exists($legacyPath)) {
+                    $found[$controller] = 'src/Controller/Api/Trait/' . $controller . '.php';
+                }
+                continue;
+            }
+
+            // Check src/Controller/
+            $standardPath = $this->projectDir . '/src/Controller/' . $controller . '.php';
+            if ($this->filesystem->exists($standardPath)) {
+                $found[$controller] = 'src/Controller/' . $controller . '.php';
+                continue;
+            }
+
+            // Check src/Controller/Api/
+            $legacyPath = $this->projectDir . '/src/Controller/Api/' . $controller . '.php';
+            if ($this->filesystem->exists($legacyPath)) {
+                $found[$controller] = 'src/Controller/Api/' . $controller . '.php';
             }
         }
+
+        return $found;
     }
 
     private function runDoctrineMigrationsDiff(SymfonyStyle $io, bool $noInteraction): void
@@ -833,7 +943,6 @@ class SetupFeaturesCommand extends Command
 
             case 'session_management':
                 $config['better_auth']['session'] = [
-                    'enabled' => true,
                     'lifetime' => 604800,
                     'cookie_name' => 'better_auth_session',
                 ];

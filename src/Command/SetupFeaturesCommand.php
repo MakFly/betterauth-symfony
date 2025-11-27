@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Command;
 
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -15,7 +16,7 @@ use Symfony\Component\Yaml\Yaml;
 
 #[AsCommand(
     name: 'better-auth:setup-features',
-    description: 'Interactively enable or disable BetterAuth features'
+    description: 'Enable/disable features with auto entity & migration generation (e.g. --enable=magic_link --migrate)'
 )]
 class SetupFeaturesCommand extends Command
 {
@@ -25,6 +26,8 @@ class SetupFeaturesCommand extends Command
             'description' => 'Classic email and password login',
             'default' => true,
             'required' => true,
+            'entities' => [],
+            'controllers' => ['auth'],
         ],
         'oauth' => [
             'name' => 'OAuth 2.0 Providers',
@@ -32,67 +35,105 @@ class SetupFeaturesCommand extends Command
             'default' => false,
             'required' => false,
             'providers' => ['google', 'github', 'facebook', 'microsoft', 'discord', 'apple', 'twitter'],
+            'entities' => [],
+            'controllers' => ['oauth', 'account-link'],
         ],
         'two_factor' => [
             'name' => 'Two-Factor Authentication (2FA)',
             'description' => 'TOTP codes with Google Authenticator',
             'default' => false,
             'required' => false,
+            'entities' => ['TotpData'],
+            'controllers' => ['auth'], // 2FA endpoints in auth controller
         ],
         'magic_link' => [
             'name' => 'Magic Link (Passwordless)',
             'description' => 'Login via email link without password',
             'default' => false,
             'required' => false,
+            'entities' => ['MagicLinkToken'],
+            'controllers' => ['magic-link'],
         ],
         'email_verification' => [
             'name' => 'Email Verification',
             'description' => 'Verify user email addresses',
             'default' => true,
             'required' => false,
+            'entities' => ['EmailVerificationToken'],
+            'controllers' => ['email-verification'],
         ],
         'password_reset' => [
             'name' => 'Password Reset',
             'description' => 'Forgot password functionality',
             'default' => true,
             'required' => false,
+            'entities' => ['PasswordResetToken'],
+            'controllers' => ['password'],
         ],
         'session_management' => [
             'name' => 'Session Management',
             'description' => 'View and revoke active sessions',
             'default' => true,
             'required' => false,
+            'entities' => [],
+            'controllers' => ['sessions'],
         ],
         'device_tracking' => [
             'name' => 'Device Tracking',
             'description' => 'Track user devices and locations',
             'default' => false,
             'required' => false,
+            'entities' => ['Device'],
+            'controllers' => ['devices'],
         ],
         'security_monitoring' => [
             'name' => 'Security Monitoring',
             'description' => 'Detect suspicious activities and threats',
             'default' => false,
             'required' => false,
+            'entities' => ['SecurityEvent'],
+            'controllers' => [],
         ],
         'guest_sessions' => [
             'name' => 'Guest Sessions',
             'description' => 'Anonymous sessions that can be converted to users',
             'default' => false,
             'required' => false,
+            'entities' => ['GuestSession'],
+            'controllers' => ['guest'],
         ],
         'passkeys' => [
             'name' => 'Passkeys (WebAuthn)',
             'description' => 'Passwordless login with biometrics or security keys',
             'default' => false,
             'required' => false,
+            'entities' => ['Passkey'],
+            'controllers' => ['passkeys'],
         ],
         'multi_tenant' => [
             'name' => 'Multi-Tenant (Organizations)',
             'description' => 'Organizations, teams, and member management',
             'default' => false,
             'required' => false,
+            'entities' => ['Organization', 'OrganizationMember'],
+            'controllers' => ['organizations'],
         ],
+    ];
+
+    /**
+     * Entity templates mapping: EntityName => template file
+     */
+    private const ENTITY_TEMPLATES = [
+        'MagicLinkToken' => 'magic_link_token.uuid.php.tpl',
+        'EmailVerificationToken' => 'email_verification_token.uuid.php.tpl',
+        'PasswordResetToken' => 'password_reset_token.uuid.php.tpl',
+        'TotpData' => 'totp_data.uuid.php.tpl',
+        'Device' => 'device.uuid.php.tpl',
+        'SecurityEvent' => 'security_event.uuid.php.tpl',
+        'GuestSession' => 'guest_session.uuid.php.tpl',
+        'Passkey' => 'passkey.uuid.php.tpl',
+        'Organization' => 'organization.uuid.php.tpl',
+        'OrganizationMember' => 'organization_member.uuid.php.tpl',
     ];
 
     private Filesystem $filesystem;
@@ -108,10 +149,15 @@ class SetupFeaturesCommand extends Command
     protected function configure(): void
     {
         $this
-            ->addOption('list', 'l', InputOption::VALUE_NONE, 'List all available features')
+            ->addOption('list', 'l', InputOption::VALUE_NONE, 'List all available features and their status')
             ->addOption('enable', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Enable specific features')
             ->addOption('disable', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'Disable specific features')
             ->addOption('preset', 'p', InputOption::VALUE_REQUIRED, 'Use a preset (minimal, standard, full)')
+            ->addOption('with-controllers', null, InputOption::VALUE_NONE, 'Also generate required controllers')
+            ->addOption('with-migrations', null, InputOption::VALUE_NONE, 'Automatically run doctrine:migrations:diff')
+            ->addOption('migrate', null, InputOption::VALUE_NONE, 'Also run doctrine:migrations:migrate (implies --with-migrations)')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Overwrite existing entities without asking')
+            ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Show what would be done without making changes')
             ->setHelp($this->getDetailedHelp());
     }
 
@@ -119,7 +165,7 @@ class SetupFeaturesCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
 
-        $io->title('BetterAuth Feature Setup');
+        $io->title('🔧 BetterAuth Feature Setup');
 
         // List mode
         if ($input->getOption('list')) {
@@ -129,66 +175,72 @@ class SetupFeaturesCommand extends Command
         // Preset mode
         $preset = $input->getOption('preset');
         if ($preset) {
-            return $this->applyPreset($io, $preset);
+            return $this->applyPreset($io, $input, $preset);
         }
 
         // Enable/Disable mode
         $enableFeatures = $input->getOption('enable');
         $disableFeatures = $input->getOption('disable');
         if (!empty($enableFeatures) || !empty($disableFeatures)) {
-            return $this->toggleFeatures($io, $enableFeatures, $disableFeatures);
+            return $this->toggleFeatures($io, $input, $enableFeatures, $disableFeatures);
         }
 
         // Interactive mode
-        return $this->interactiveSetup($io);
+        return $this->interactiveSetup($io, $input);
     }
 
     private function listFeatures(SymfonyStyle $io): int
     {
-        $io->section('Available Features');
+        $io->section('📋 Available Features');
 
+        $currentConfig = $this->loadCurrentConfig();
         $rows = [];
+
         foreach (self::FEATURES as $key => $feature) {
-            $status = $feature['required'] ? '<fg=green>Required</>' : ($feature['default'] ? '<fg=blue>Default</>' : '<fg=gray>Optional</>');
+            $isEnabled = $this->isFeatureEnabled($key, $currentConfig);
+            $entities = $feature['entities'];
+            $missingEntities = $this->getMissingEntities($entities);
+
+            $statusIcon = $feature['required'] ? '🔒' : ($isEnabled ? '✅' : '⬚');
+            $entityStatus = empty($entities) ? '-' : (empty($missingEntities) ? '✅' : '⚠️ ' . implode(', ', $missingEntities));
+
             $rows[] = [
-                $key,
+                $statusIcon . ' ' . $key,
                 $feature['name'],
-                $feature['description'],
-                $status,
+                $entityStatus,
+                implode(', ', $feature['controllers']) ?: '-',
             ];
         }
 
-        $io->table(['Key', 'Feature', 'Description', 'Status'], $rows);
+        $io->table(['Feature', 'Description', 'Entities', 'Controllers'], $rows);
 
-        $io->section('Available Presets');
+        $io->section('📦 Presets');
         $io->listing([
-            '<info>minimal</info> - Email/Password only (fastest setup)',
-            '<info>standard</info> - Email/Password + Email Verification + Password Reset + Session Management',
-            '<info>full</info> - All features enabled',
+            '<info>minimal</info>  - Email/Password only',
+            '<info>standard</info> - + Email Verification + Password Reset + Sessions',
+            '<info>full</info>     - All features enabled',
         ]);
 
-        $io->section('Usage Examples');
+        $io->section('🚀 Quick Commands');
         $io->text([
-            '<comment># Interactive setup</comment>',
-            'php bin/console better-auth:setup-features',
+            '<comment># Enable magic link with auto-generation</comment>',
+            '<info>php bin/console better-auth:setup-features --enable=magic_link --with-controllers --with-migrations</info>',
             '',
-            '<comment># Use a preset</comment>',
-            'php bin/console better-auth:setup-features --preset=standard',
+            '<comment># Enable multiple features at once</comment>',
+            '<info>php bin/console better-auth:setup-features --enable=magic_link --enable=two_factor --migrate</info>',
             '',
-            '<comment># Enable specific features</comment>',
-            'php bin/console better-auth:setup-features --enable=oauth --enable=two_factor',
-            '',
-            '<comment># Disable specific features</comment>',
-            'php bin/console better-auth:setup-features --disable=device_tracking',
+            '<comment># Apply full preset with everything</comment>',
+            '<info>php bin/console better-auth:setup-features --preset=full --with-controllers --migrate</info>',
         ]);
 
         return Command::SUCCESS;
     }
 
-    private function interactiveSetup(SymfonyStyle $io): int
+    private function interactiveSetup(SymfonyStyle $io, InputInterface $input): int
     {
-        $io->section('Select Features to Enable');
+        $io->section('🎮 Interactive Feature Selection');
 
+        $currentConfig = $this->loadCurrentConfig();
         $selectedFeatures = [];
 
         // Group features by category
@@ -205,6 +257,8 @@ class SetupFeaturesCommand extends Command
 
             foreach ($featureKeys as $key) {
                 $feature = self::FEATURES[$key];
+                $isCurrentlyEnabled = $this->isFeatureEnabled($key, $currentConfig);
+                $missingEntities = $this->getMissingEntities($feature['entities']);
 
                 if ($feature['required']) {
                     $selectedFeatures[$key] = true;
@@ -212,10 +266,14 @@ class SetupFeaturesCommand extends Command
                     continue;
                 }
 
-                $default = $feature['default'] ? 'yes' : 'no';
+                $extraInfo = '';
+                if (!empty($missingEntities)) {
+                    $extraInfo = " <fg=yellow>[missing: " . implode(', ', $missingEntities) . "]</>";
+                }
+
                 $enabled = $io->confirm(
-                    "  Enable {$feature['name']}? ({$feature['description']})",
-                    $feature['default']
+                    "  Enable {$feature['name']}?{$extraInfo}",
+                    $isCurrentlyEnabled
                 );
                 $selectedFeatures[$key] = $enabled;
 
@@ -233,36 +291,34 @@ class SetupFeaturesCommand extends Command
         }
 
         // Show summary
-        $io->section('Feature Summary');
-        $enabledFeatures = array_filter($selectedFeatures, fn($v) => $v === true);
-        $disabledFeatures = array_filter($selectedFeatures, fn($v) => $v === false);
-
-        $io->text('<fg=green>Enabled:</>');
-        foreach ($enabledFeatures as $key => $value) {
-            if ($key === 'oauth_providers') {
-                continue;
-            }
-            $io->text("  ✓ " . self::FEATURES[$key]['name']);
-        }
-
-        if (!empty($selectedFeatures['oauth_providers'])) {
-            $io->text("    OAuth Providers: " . implode(', ', $selectedFeatures['oauth_providers']));
-        }
-
-        $io->text("\n<fg=red>Disabled:</>");
-        foreach ($disabledFeatures as $key => $value) {
-            $io->text("  ✗ " . self::FEATURES[$key]['name']);
-        }
+        $this->showFeatureSummary($io, $selectedFeatures);
 
         if (!$io->confirm("\nApply this configuration?", true)) {
             $io->warning('Setup cancelled.');
             return Command::SUCCESS;
         }
 
-        return $this->applyConfiguration($io, $selectedFeatures);
+        // Ask about controllers
+        $withControllers = $input->getOption('with-controllers');
+        if (!$withControllers) {
+            $withControllers = $io->confirm('Generate required controllers?', true);
+        }
+
+        // Ask about migrations
+        $withMigrations = $input->getOption('with-migrations') || $input->getOption('migrate');
+        if (!$withMigrations) {
+            $withMigrations = $io->confirm('Generate database migrations?', true);
+        }
+
+        $runMigrate = $input->getOption('migrate');
+        if ($withMigrations && !$runMigrate) {
+            $runMigrate = $io->confirm('Also run migrations now?', false);
+        }
+
+        return $this->applyConfiguration($io, $input, $selectedFeatures, $withControllers, $withMigrations, $runMigrate);
     }
 
-    private function applyPreset(SymfonyStyle $io, string $preset): int
+    private function applyPreset(SymfonyStyle $io, InputInterface $input, string $preset): int
     {
         $presets = [
             'minimal' => ['email_password'],
@@ -280,18 +336,23 @@ class SetupFeaturesCommand extends Command
             $selectedFeatures[$key] = in_array($key, $presets[$preset], true);
         }
 
-        $io->success("Applying '$preset' preset...");
-        return $this->applyConfiguration($io, $selectedFeatures);
+        $io->text("📦 Applying <info>$preset</info> preset...\n");
+
+        $withControllers = $input->getOption('with-controllers');
+        $withMigrations = $input->getOption('with-migrations') || $input->getOption('migrate');
+        $runMigrate = $input->getOption('migrate');
+
+        return $this->applyConfiguration($io, $input, $selectedFeatures, $withControllers, $withMigrations, $runMigrate);
     }
 
-    private function toggleFeatures(SymfonyStyle $io, array $enable, array $disable): int
+    private function toggleFeatures(SymfonyStyle $io, InputInterface $input, array $enable, array $disable): int
     {
-        // Load current config
-        $configFile = $this->projectDir . '/config/packages/better_auth.yaml';
-        $config = [];
+        $currentConfig = $this->loadCurrentConfig();
+        $selectedFeatures = [];
 
-        if ($this->filesystem->exists($configFile)) {
-            $config = Yaml::parseFile($configFile) ?? [];
+        // Start with current state
+        foreach (self::FEATURES as $key => $feature) {
+            $selectedFeatures[$key] = $this->isFeatureEnabled($key, $currentConfig);
         }
 
         // Apply changes
@@ -301,7 +362,7 @@ class SetupFeaturesCommand extends Command
                 continue;
             }
             $io->text("<fg=green>✓</> Enabling: " . self::FEATURES[$feature]['name']);
-            $config = $this->enableFeatureInConfig($config, $feature);
+            $selectedFeatures[$feature] = true;
         }
 
         foreach ($disable as $feature) {
@@ -314,27 +375,164 @@ class SetupFeaturesCommand extends Command
                 continue;
             }
             $io->text("<fg=red>✗</> Disabling: " . self::FEATURES[$feature]['name']);
-            $config = $this->disableFeatureInConfig($config, $feature);
+            $selectedFeatures[$feature] = false;
         }
 
-        // Save config
-        $this->filesystem->dumpFile($configFile, Yaml::dump($config, 4));
-        $io->success('Configuration updated!');
+        $io->newLine();
+
+        $withControllers = $input->getOption('with-controllers');
+        $withMigrations = $input->getOption('with-migrations') || $input->getOption('migrate');
+        $runMigrate = $input->getOption('migrate');
+
+        return $this->applyConfiguration($io, $input, $selectedFeatures, $withControllers, $withMigrations, $runMigrate);
+    }
+
+    private function applyConfiguration(
+        SymfonyStyle $io,
+        InputInterface $input,
+        array $selectedFeatures,
+        bool $withControllers,
+        bool $withMigrations,
+        bool $runMigrate
+    ): int {
+        $dryRun = $input->getOption('dry-run');
+        $force = $input->getOption('force');
+
+        if ($dryRun) {
+            $io->note('DRY RUN - No changes will be made');
+        }
+
+        // Step 1: Generate missing entities
+        $io->section('📦 Step 1/4: Generating Entities');
+        $generatedEntities = $this->generateRequiredEntities($io, $selectedFeatures, $dryRun, $force);
+
+        // Step 2: Update configuration
+        $io->section('⚙️ Step 2/4: Updating Configuration');
+        $this->updateConfiguration($io, $selectedFeatures, $dryRun);
+
+        // Step 3: Generate controllers
+        if ($withControllers) {
+            $io->section('🎮 Step 3/4: Generating Controllers');
+            $this->generateRequiredControllers($io, $selectedFeatures, $dryRun, $force);
+        } else {
+            $io->section('🎮 Step 3/4: Skipping Controllers');
+            $io->text('  <fg=gray>Use --with-controllers to generate them</>');
+        }
+
+        // Step 4: Migrations
+        if ($withMigrations && !empty($generatedEntities)) {
+            $io->section('🗃️ Step 4/4: Database Migrations');
+
+            if ($dryRun) {
+                $io->text('  Would run: <info>doctrine:migrations:diff</info>');
+                if ($runMigrate) {
+                    $io->text('  Would run: <info>doctrine:migrations:migrate</info>');
+                }
+            } else {
+                $this->runDoctrineMigrationsDiff($io, $input->getOption('no-interaction'));
+
+                if ($runMigrate) {
+                    $this->runDoctrineMigrationsMigrate($io, $input->getOption('no-interaction'));
+                }
+            }
+        } else {
+            $io->section('🗃️ Step 4/4: Skipping Migrations');
+            if (empty($generatedEntities)) {
+                $io->text('  <fg=gray>No new entities generated</>');
+            } else {
+                $io->text('  <fg=gray>Use --with-migrations to generate them</>');
+            }
+        }
+
+        // Final summary
+        $io->newLine();
+        if ($dryRun) {
+            $io->success('Dry run complete! Use without --dry-run to apply changes.');
+        } else {
+            $io->success('Features configured successfully!');
+
+            if (!$withMigrations && !empty($generatedEntities)) {
+                $io->section('📝 Next Steps');
+                $io->listing([
+                    'Run <info>php bin/console doctrine:migrations:diff</info> to generate migrations',
+                    'Run <info>php bin/console doctrine:migrations:migrate</info> to apply migrations',
+                ]);
+            }
+        }
 
         return Command::SUCCESS;
     }
 
-    private function applyConfiguration(SymfonyStyle $io, array $selectedFeatures): int
+    private function generateRequiredEntities(SymfonyStyle $io, array $selectedFeatures, bool $dryRun, bool $force): array
+    {
+        $requiredEntities = $this->getRequiredEntities($selectedFeatures);
+        $missingEntities = $this->getMissingEntities($requiredEntities);
+
+        if (empty($missingEntities)) {
+            $io->text('  <fg=green>✓</> All required entities already exist');
+            return [];
+        }
+
+        $generatedEntities = [];
+        $templatesDir = dirname(__DIR__) . '/Resources/templates/entities';
+        $entitiesDir = $this->projectDir . '/src/Entity';
+
+        if (!$this->filesystem->exists($entitiesDir) && !$dryRun) {
+            $this->filesystem->mkdir($entitiesDir);
+        }
+
+        foreach ($missingEntities as $entityName) {
+            $templateFile = self::ENTITY_TEMPLATES[$entityName] ?? null;
+
+            if (!$templateFile) {
+                $io->text("  <fg=yellow>⚠</> No template for $entityName (skipped)");
+                continue;
+            }
+
+            $templatePath = $templatesDir . '/' . $templateFile;
+            $targetPath = $entitiesDir . '/' . $entityName . '.php';
+
+            if (!$this->filesystem->exists($templatePath)) {
+                $io->text("  <fg=yellow>⚠</> Template not found: $templateFile");
+                continue;
+            }
+
+            if ($dryRun) {
+                $io->text("  <fg=cyan>○</> Would generate: $entityName.php");
+            } else {
+                // Check if file exists and handle accordingly
+                if ($this->filesystem->exists($targetPath) && !$force) {
+                    $io->text("  <fg=yellow>⊘</> $entityName.php already exists (use --force to overwrite)");
+                    continue;
+                }
+
+                $content = file_get_contents($templatePath);
+                $this->filesystem->dumpFile($targetPath, $content);
+                $io->text("  <fg=green>✓</> Generated: $entityName.php");
+            }
+
+            $generatedEntities[] = $entityName;
+        }
+
+        return $generatedEntities;
+    }
+
+    private function updateConfiguration(SymfonyStyle $io, array $selectedFeatures, bool $dryRun): void
     {
         $configFile = $this->projectDir . '/config/packages/better_auth.yaml';
 
-        // Load or create config
-        $config = [
-            'better_auth' => [
+        // Load existing config or create new one
+        $config = [];
+        if ($this->filesystem->exists($configFile)) {
+            $config = Yaml::parseFile($configFile) ?? [];
+        }
+
+        if (!isset($config['better_auth'])) {
+            $config['better_auth'] = [
                 'mode' => 'api',
                 'secret' => '%env(BETTER_AUTH_SECRET)%',
-            ],
-        ];
+            ];
+        }
 
         // Apply feature configurations
         foreach ($selectedFeatures as $feature => $enabled) {
@@ -343,6 +541,8 @@ class SetupFeaturesCommand extends Command
             }
             if ($enabled) {
                 $config = $this->enableFeatureInConfig($config, $feature);
+            } else {
+                $config = $this->disableFeatureInConfig($config, $feature);
             }
         }
 
@@ -358,24 +558,247 @@ class SetupFeaturesCommand extends Command
             }
         }
 
-        // Save configuration
-        $this->filesystem->dumpFile($configFile, Yaml::dump($config, 4));
+        if ($dryRun) {
+            $io->text("  <fg=cyan>○</> Would update: config/packages/better_auth.yaml");
+        } else {
+            $this->filesystem->dumpFile($configFile, Yaml::dump($config, 4));
+            $io->text("  <fg=green>✓</> Updated: config/packages/better_auth.yaml");
+        }
 
-        // Generate services configuration
-        $this->generateServicesConfig($io, $selectedFeatures);
+        // Update .env if needed
+        $this->updateEnvFile($io, $selectedFeatures, $dryRun);
+    }
 
-        // Update .env
-        $this->updateEnvFile($io, $selectedFeatures);
+    private function generateRequiredControllers(SymfonyStyle $io, array $selectedFeatures, bool $dryRun, bool $force): void
+    {
+        $requiredControllers = [];
 
-        $io->success('Features configured successfully!');
-        $io->section('Next Steps');
-        $io->listing([
-            'Run <info>php bin/console doctrine:migrations:diff</info> to generate migrations',
-            'Run <info>php bin/console doctrine:migrations:migrate</info> to apply migrations',
-            'Configure OAuth credentials in <info>.env</info> if OAuth is enabled',
-        ]);
+        foreach ($selectedFeatures as $feature => $enabled) {
+            if ($enabled && isset(self::FEATURES[$feature]['controllers'])) {
+                foreach (self::FEATURES[$feature]['controllers'] as $controller) {
+                    $requiredControllers[$controller] = true;
+                }
+            }
+        }
 
-        return Command::SUCCESS;
+        if (empty($requiredControllers)) {
+            $io->text('  <fg=gray>No controllers required</>');
+            return;
+        }
+
+        $controllersDir = $this->projectDir . '/src/Controller/Api';
+        $traitDir = $controllersDir . '/Trait';
+        $templatesDir = dirname(__DIR__) . '/Resources/templates/controller';
+
+        // Controller name mapping
+        $controllerMapping = [
+            'auth' => ['AuthController.php.tpl', 'AuthController.php'],
+            'password' => ['PasswordController.php.tpl', 'PasswordController.php'],
+            'sessions' => ['SessionsController.php.tpl', 'SessionsController.php'],
+            'oauth' => ['OAuthController.php.tpl', 'OAuthController.php'],
+            'email-verification' => ['EmailVerificationController.php.tpl', 'EmailVerificationController.php'],
+            'magic-link' => ['MagicLinkController.php.tpl', 'MagicLinkController.php'],
+            'guest' => ['GuestSessionController.php.tpl', 'GuestSessionController.php'],
+            'account-link' => ['AccountLinkController.php.tpl', 'AccountLinkController.php'],
+            'devices' => ['DeviceController.php.tpl', 'DeviceController.php'],
+            'trait' => ['ApiResponseTrait.php.tpl', 'Trait/ApiResponseTrait.php'],
+        ];
+
+        // Always include trait if any controller is needed
+        if (!empty($requiredControllers)) {
+            $requiredControllers['trait'] = true;
+        }
+
+        if (!$dryRun) {
+            if (!$this->filesystem->exists($controllersDir)) {
+                $this->filesystem->mkdir($controllersDir);
+            }
+            if (!$this->filesystem->exists($traitDir)) {
+                $this->filesystem->mkdir($traitDir);
+            }
+        }
+
+        foreach ($requiredControllers as $controller => $enabled) {
+            if (!isset($controllerMapping[$controller])) {
+                continue;
+            }
+
+            [$templateFile, $targetFile] = $controllerMapping[$controller];
+            $templatePath = $templatesDir . '/' . $templateFile;
+            $targetPath = $controllersDir . '/' . $targetFile;
+
+            if (!$this->filesystem->exists($templatePath)) {
+                $io->text("  <fg=yellow>⚠</> Template not found: $templateFile");
+                continue;
+            }
+
+            $exists = $this->filesystem->exists($targetPath);
+
+            if ($dryRun) {
+                if ($exists && !$force) {
+                    $io->text("  <fg=yellow>○</> Would skip (exists): $targetFile");
+                } else {
+                    $io->text("  <fg=cyan>○</> Would generate: $targetFile");
+                }
+            } else {
+                if ($exists && !$force) {
+                    $io->text("  <fg=yellow>⊘</> Skipped (exists): $targetFile");
+                    continue;
+                }
+
+                $content = file_get_contents($templatePath);
+                $this->filesystem->dumpFile($targetPath, $content);
+                $io->text("  <fg=green>✓</> Generated: $targetFile");
+            }
+        }
+    }
+
+    private function runDoctrineMigrationsDiff(SymfonyStyle $io, bool $noInteraction): void
+    {
+        $io->text('  Running <info>doctrine:migrations:diff</info>...');
+
+        try {
+            $application = $this->getApplication();
+            if (!$application) {
+                $io->warning('Cannot run migrations:diff - no application context');
+                return;
+            }
+
+            $command = $application->find('doctrine:migrations:diff');
+            $arguments = new ArrayInput([]);
+            if ($noInteraction) {
+                $arguments->setInteractive(false);
+            }
+
+            $returnCode = $command->run($arguments, $io);
+
+            if ($returnCode === Command::SUCCESS) {
+                $io->text('  <fg=green>✓</> Migration file generated');
+            }
+        } catch (\Exception $e) {
+            $io->warning('Could not run migrations:diff automatically: ' . $e->getMessage());
+            $io->text('  Run manually: <info>php bin/console doctrine:migrations:diff</info>');
+        }
+    }
+
+    private function runDoctrineMigrationsMigrate(SymfonyStyle $io, bool $noInteraction): void
+    {
+        $io->text('  Running <info>doctrine:migrations:migrate</info>...');
+
+        try {
+            $application = $this->getApplication();
+            if (!$application) {
+                $io->warning('Cannot run migrations:migrate - no application context');
+                return;
+            }
+
+            $command = $application->find('doctrine:migrations:migrate');
+            $arguments = new ArrayInput(['--no-interaction' => true]);
+
+            $returnCode = $command->run($arguments, $io);
+
+            if ($returnCode === Command::SUCCESS) {
+                $io->text('  <fg=green>✓</> Migrations applied');
+            }
+        } catch (\Exception $e) {
+            $io->warning('Could not run migrations:migrate automatically: ' . $e->getMessage());
+            $io->text('  Run manually: <info>php bin/console doctrine:migrations:migrate</info>');
+        }
+    }
+
+    private function getRequiredEntities(array $selectedFeatures): array
+    {
+        $entities = [];
+
+        foreach ($selectedFeatures as $feature => $enabled) {
+            if ($enabled && isset(self::FEATURES[$feature]['entities'])) {
+                foreach (self::FEATURES[$feature]['entities'] as $entity) {
+                    $entities[$entity] = true;
+                }
+            }
+        }
+
+        return array_keys($entities);
+    }
+
+    private function getMissingEntities(array $entities): array
+    {
+        $missing = [];
+        $entitiesDir = $this->projectDir . '/src/Entity';
+
+        foreach ($entities as $entity) {
+            $entityFile = $entitiesDir . '/' . $entity . '.php';
+            if (!$this->filesystem->exists($entityFile)) {
+                $missing[] = $entity;
+            }
+        }
+
+        return $missing;
+    }
+
+    private function loadCurrentConfig(): array
+    {
+        $configFile = $this->projectDir . '/config/packages/better_auth.yaml';
+
+        if (!$this->filesystem->exists($configFile)) {
+            return [];
+        }
+
+        return Yaml::parseFile($configFile) ?? [];
+    }
+
+    private function isFeatureEnabled(string $feature, array $config): bool
+    {
+        $featureConfig = self::FEATURES[$feature];
+
+        if ($featureConfig['required']) {
+            return true;
+        }
+
+        // Check config for explicit settings
+        $betterAuth = $config['better_auth'] ?? [];
+
+        return match ($feature) {
+            'two_factor' => ($betterAuth['two_factor']['enabled'] ?? false) === true,
+            'oauth' => !empty($betterAuth['oauth']['providers'] ?? []),
+            'multi_tenant' => ($betterAuth['multi_tenant']['enabled'] ?? false) === true,
+            'magic_link' => ($betterAuth['magic_link']['enabled'] ?? false) === true,
+            'email_verification' => ($betterAuth['email_verification']['enabled'] ?? $featureConfig['default']) === true,
+            'password_reset' => ($betterAuth['password_reset']['enabled'] ?? $featureConfig['default']) === true,
+            'session_management' => ($betterAuth['session']['enabled'] ?? $featureConfig['default']) !== false,
+            'device_tracking' => ($betterAuth['device_tracking']['enabled'] ?? false) === true,
+            'security_monitoring' => ($betterAuth['security_monitoring']['enabled'] ?? false) === true,
+            'guest_sessions' => ($betterAuth['guest_sessions']['enabled'] ?? false) === true,
+            'passkeys' => ($betterAuth['passkeys']['enabled'] ?? false) === true,
+            default => $featureConfig['default'],
+        };
+    }
+
+    private function showFeatureSummary(SymfonyStyle $io, array $selectedFeatures): void
+    {
+        $io->section('📊 Feature Summary');
+
+        $enabledFeatures = array_filter($selectedFeatures, fn($v) => $v === true);
+        $disabledFeatures = array_filter($selectedFeatures, fn($v) => $v === false);
+
+        $io->text('<fg=green>Enabled:</>');
+        foreach ($enabledFeatures as $key => $value) {
+            if ($key === 'oauth_providers') {
+                continue;
+            }
+            $entities = self::FEATURES[$key]['entities'] ?? [];
+            $entityInfo = empty($entities) ? '' : ' <fg=gray>[' . implode(', ', $entities) . ']</>';
+            $io->text("  ✓ " . self::FEATURES[$key]['name'] . $entityInfo);
+        }
+
+        if (!empty($selectedFeatures['oauth_providers'])) {
+            $io->text("    OAuth Providers: " . implode(', ', $selectedFeatures['oauth_providers']));
+        }
+
+        $io->text("\n<fg=red>Disabled:</>");
+        foreach ($disabledFeatures as $key => $value) {
+            $io->text("  ✗ " . self::FEATURES[$key]['name']);
+        }
     }
 
     private function enableFeatureInConfig(array $config, string $feature): array
@@ -390,7 +813,9 @@ class SetupFeaturesCommand extends Command
                 break;
 
             case 'oauth':
-                $config['better_auth']['oauth'] = ['providers' => []];
+                if (!isset($config['better_auth']['oauth'])) {
+                    $config['better_auth']['oauth'] = ['providers' => []];
+                }
                 break;
 
             case 'multi_tenant':
@@ -402,19 +827,54 @@ class SetupFeaturesCommand extends Command
 
             case 'session_management':
                 $config['better_auth']['session'] = [
-                    'lifetime' => 604800, // 7 days
+                    'enabled' => true,
+                    'lifetime' => 604800,
                     'cookie_name' => 'better_auth_session',
                 ];
                 break;
 
-            case 'device_tracking':
-            case 'security_monitoring':
-            case 'guest_sessions':
-            case 'passkeys':
             case 'magic_link':
+                $config['better_auth']['magic_link'] = [
+                    'enabled' => true,
+                    'lifetime' => 900, // 15 minutes
+                ];
+                break;
+
             case 'email_verification':
+                $config['better_auth']['email_verification'] = [
+                    'enabled' => true,
+                    'lifetime' => 86400, // 24 hours
+                ];
+                break;
+
             case 'password_reset':
-                // These features are enabled by default when their services are loaded
+                $config['better_auth']['password_reset'] = [
+                    'enabled' => true,
+                    'lifetime' => 3600, // 1 hour
+                ];
+                break;
+
+            case 'device_tracking':
+                $config['better_auth']['device_tracking'] = ['enabled' => true];
+                break;
+
+            case 'security_monitoring':
+                $config['better_auth']['security_monitoring'] = ['enabled' => true];
+                break;
+
+            case 'guest_sessions':
+                $config['better_auth']['guest_sessions'] = [
+                    'enabled' => true,
+                    'lifetime' => 86400,
+                ];
+                break;
+
+            case 'passkeys':
+                $config['better_auth']['passkeys'] = [
+                    'enabled' => true,
+                    'rp_name' => '%env(APP_NAME)%',
+                    'rp_id' => '%env(APP_DOMAIN)%',
+                ];
                 break;
         }
 
@@ -423,44 +883,34 @@ class SetupFeaturesCommand extends Command
 
     private function disableFeatureInConfig(array $config, string $feature): array
     {
-        switch ($feature) {
-            case 'two_factor':
-                $config['better_auth']['two_factor']['enabled'] = false;
-                break;
+        $featureKeys = [
+            'two_factor' => 'two_factor',
+            'oauth' => 'oauth',
+            'multi_tenant' => 'multi_tenant',
+            'magic_link' => 'magic_link',
+            'email_verification' => 'email_verification',
+            'password_reset' => 'password_reset',
+            'session_management' => 'session',
+            'device_tracking' => 'device_tracking',
+            'security_monitoring' => 'security_monitoring',
+            'guest_sessions' => 'guest_sessions',
+            'passkeys' => 'passkeys',
+        ];
 
-            case 'multi_tenant':
-                $config['better_auth']['multi_tenant']['enabled'] = false;
-                break;
+        $configKey = $featureKeys[$feature] ?? null;
 
-            case 'oauth':
-                unset($config['better_auth']['oauth']);
-                break;
+        if ($configKey && isset($config['better_auth'][$configKey])) {
+            if (is_array($config['better_auth'][$configKey])) {
+                $config['better_auth'][$configKey]['enabled'] = false;
+            } else {
+                unset($config['better_auth'][$configKey]);
+            }
         }
 
         return $config;
     }
 
-    private function generateServicesConfig(SymfonyStyle $io, array $selectedFeatures): void
-    {
-        $servicesFile = $this->projectDir . '/config/services_betterauth.yaml';
-
-        $services = ['services' => []];
-
-        // Add repository configurations based on features
-        if ($selectedFeatures['guest_sessions'] ?? false) {
-            $services['services']['BetterAuth\\Symfony\\Storage\\Doctrine\\DoctrineGuestSessionRepository'] = '~';
-            $services['services']['BetterAuth\\Providers\\GuestSessionProvider\\GuestSessionProvider'] = [
-                'arguments' => ['$sessionLifetime' => 86400],
-            ];
-        }
-
-        if (!empty($services['services'])) {
-            $this->filesystem->dumpFile($servicesFile, Yaml::dump($services, 4));
-            $io->text("Created: <info>$servicesFile</info>");
-        }
-    }
-
-    private function updateEnvFile(SymfonyStyle $io, array $selectedFeatures): void
+    private function updateEnvFile(SymfonyStyle $io, array $selectedFeatures, bool $dryRun): void
     {
         $envFile = $this->projectDir . '/.env';
 
@@ -486,13 +936,24 @@ class SetupFeaturesCommand extends Command
             }
         }
 
-        if (!empty($additions)) {
-            $envContent .= "\n###> betterauth/symfony ###\n";
-            $envContent .= implode("\n", $additions);
-            $envContent .= "\n###< betterauth/symfony ###\n";
+        // Add passkeys env vars
+        if ($selectedFeatures['passkeys'] ?? false) {
+            if (!str_contains($envContent, 'APP_DOMAIN')) {
+                $additions[] = 'APP_DOMAIN=localhost';
+            }
+        }
 
-            $this->filesystem->dumpFile($envFile, $envContent);
-            $io->text('Updated: <info>.env</info>');
+        if (!empty($additions)) {
+            if ($dryRun) {
+                $io->text("  <fg=cyan>○</> Would add to .env: " . implode(', ', array_map(fn($a) => explode('=', $a)[0], $additions)));
+            } else {
+                $envContent .= "\n###> betterauth/symfony ###\n";
+                $envContent .= implode("\n", $additions);
+                $envContent .= "\n###< betterauth/symfony ###\n";
+
+                $this->filesystem->dumpFile($envFile, $envContent);
+                $io->text("  <fg=green>✓</> Updated: .env");
+            }
         }
     }
 
@@ -508,53 +969,60 @@ class SetupFeaturesCommand extends Command
 <fg=cyan;options=bold>                    BetterAuth Feature Setup</>
 <fg=cyan>═══════════════════════════════════════════════════════════════════════════════</>
 
-The <info>better-auth:setup-features</info> command allows you to interactively enable
-or disable BetterAuth features for your application.
+The <info>better-auth:setup-features</info> command enables/disables features with
+<fg=green>automatic entity generation</>, <fg=green>controller scaffolding</>, and <fg=green>database migrations</>.
+
+<fg=yellow;options=bold>QUICK START</>
+
+  <comment># Enable magic link with everything auto-generated</comment>
+  php bin/console better-auth:setup-features --enable=magic_link --with-controllers --migrate
+
+  <comment># Enable multiple features at once</comment>
+  php bin/console better-auth:setup-features --enable=magic_link --enable=two_factor --migrate
+
+  <comment># Full setup with all features</comment>
+  php bin/console better-auth:setup-features --preset=full --with-controllers --migrate
+
+<fg=yellow;options=bold>OPTIONS</>
+
+  <info>--enable=FEATURE</info>       Enable a feature (can be used multiple times)
+  <info>--disable=FEATURE</info>      Disable a feature
+  <info>--preset=PRESET</info>        Use preset: minimal, standard, full
+  <info>--with-controllers</info>     Generate required controllers
+  <info>--with-migrations</info>      Run doctrine:migrations:diff
+  <info>--migrate</info>              Run both diff and migrate
+  <info>--force</info>                Overwrite existing files
+  <info>--dry-run</info>              Preview changes without applying
 
 <fg=yellow;options=bold>AVAILABLE FEATURES</>
 
   <info>Authentication</info>
-    • email_password    - Classic email/password login (required)
-    • oauth             - Login with Google, GitHub, Facebook, etc.
-    • magic_link        - Passwordless login via email link
-    • passkeys          - WebAuthn biometric/security key login
+    • email_password     - Classic email/password login (required)
+    • oauth              - Google, GitHub, Facebook, etc.
+    • magic_link         - Passwordless email links → <fg=cyan>MagicLinkToken</>
+    • passkeys           - WebAuthn biometrics → <fg=cyan>Passkey</>
 
   <info>Security</info>
-    • two_factor        - TOTP 2FA with Google Authenticator
-    • security_monitoring - Detect suspicious activities
-    • device_tracking   - Track user devices and locations
+    • two_factor         - TOTP 2FA → <fg=cyan>TotpData</>
+    • device_tracking    - Track devices → <fg=cyan>Device</>
+    • security_monitoring - Threat detection → <fg=cyan>SecurityEvent</>
 
   <info>User Management</info>
-    • email_verification - Verify user email addresses
-    • password_reset    - Forgot password functionality
-    • session_management - View and revoke active sessions
+    • email_verification - Verify emails → <fg=cyan>EmailVerificationToken</>
+    • password_reset     - Forgot password → <fg=cyan>PasswordResetToken</>
+    • session_management - View/revoke sessions
 
   <info>Advanced</info>
-    • guest_sessions    - Anonymous sessions (convertible to users)
-    • multi_tenant      - Organizations, teams, members
+    • guest_sessions     - Anonymous users → <fg=cyan>GuestSession</>
+    • multi_tenant       - Organizations → <fg=cyan>Organization, OrganizationMember</>
 
-<fg=yellow;options=bold>PRESETS</>
+<fg=yellow;options=bold>WORKFLOW</>
 
-  <info>minimal</info>   - Email/Password only
-  <info>standard</info>  - Email/Password + Verification + Reset + Sessions
-  <info>full</info>      - All features enabled
-
-<fg=yellow;options=bold>EXAMPLES</>
-
-  <comment># Interactive mode</comment>
-  php bin/console better-auth:setup-features
-
-  <comment># Use preset</comment>
-  php bin/console better-auth:setup-features --preset=standard
-
-  <comment># Enable specific features</comment>
-  php bin/console better-auth:setup-features --enable=oauth --enable=two_factor
-
-  <comment># Disable features</comment>
-  php bin/console better-auth:setup-features --disable=device_tracking
-
-  <comment># List all features</comment>
-  php bin/console better-auth:setup-features --list
+  1. Detects which entities are missing for enabled features
+  2. Generates entity PHP files from templates
+  3. Updates <info>config/packages/better_auth.yaml</info>
+  4. Optionally generates controllers
+  5. Optionally runs <info>doctrine:migrations:diff</info> and <info>migrate</info>
 
 HELP;
     }

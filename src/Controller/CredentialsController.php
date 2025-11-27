@@ -51,7 +51,8 @@ class CredentialsController extends AbstractController
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
-            return $this->json($this->formatAuthResponse($result, $user), 201);
+            // $result already contains formatted user data (password excluded)
+            return $this->json($result, 201);
         } catch (\Exception $e) {
             $this->logger?->error('Registration failed', [
                 'email' => $data['email'],
@@ -78,17 +79,20 @@ class CredentialsController extends AbstractController
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
-            $user = $result['user'];
+            // $result['user'] is already a DTO array (password excluded)
+            $userData = $result['user'];
+            $userId = $userData['id'];
 
-            if ($this->totpProvider->requires2fa($user->getId())) {
+            if ($this->totpProvider->requires2fa($userId)) {
                 return $this->json([
                     'requires2fa' => true,
                     'message' => 'Two-factor authentication required',
-                    'user' => $this->formatUser($user),
+                    'user' => $userData,
                 ]);
             }
 
-            return $this->json($this->formatAuthResponse($result, $user));
+            // $result already contains formatted user data (password excluded)
+            return $this->json($result);
         } catch (\Exception $e) {
             $this->logger?->error('Login failed', [
                 'email' => $data['email'],
@@ -115,19 +119,22 @@ class CredentialsController extends AbstractController
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
-            $user = $result['user'];
+            // $result['user'] is already a DTO array (password excluded)
+            $userData = $result['user'];
+            $userId = $userData['id'];
 
-            $verified = $this->totpProvider->verify($user->getId(), $data['code']);
+            $verified = $this->totpProvider->verify($userId, $data['code']);
             if (!$verified) {
                 if (isset($result['session'])) {
                     $this->authManager->signOut($result['session']->getToken());
                 } elseif (isset($result['access_token'])) {
-                    $this->authManager->revokeAllTokens($user->getId());
+                    $this->authManager->revokeAllTokens($userId);
                 }
                 return $this->json(['error' => 'Invalid 2FA code'], 401);
             }
 
-            return $this->json($this->formatAuthResponse($result, $user));
+            // $result already contains formatted user data (password excluded)
+            return $this->json($result);
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 401);
         }

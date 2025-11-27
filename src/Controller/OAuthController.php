@@ -96,26 +96,39 @@ class OAuthController extends AbstractController
                 userAgent: $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
-            $user = $result['user'];
-            $session = $result['session'];
-            $userId = $user->getId();
+            // $result['user'] is already a DTO array (password excluded)
+            $userData = $result['user'];
+            $session = $result['session'] ?? null;
+            $userId = $userData['id'];
+            $userEmail = $userData['email'];
 
             // Check 2FA
             if ($userId && $this->totpProvider->requires2fa($userId)) {
-                $this->authManager->signOut($session->getToken());
+                if ($session) {
+                    $this->authManager->signOut($session->getToken());
+                }
 
                 return $this->redirectToFrontend([
                     'requires2fa' => 'true',
-                    'email' => $user->getEmail(),
+                    'email' => $userEmail,
                 ]);
             }
 
-            // Build redirect params using session token
-            $params = [
-                'access_token' => $session->getToken(),
-                'refresh_token' => $session->getToken(),
-                'expires_in' => '604800',
-            ];
+            // Build redirect params using session token or access token
+            if ($session) {
+                $params = [
+                    'access_token' => $session->getToken(),
+                    'refresh_token' => $session->getToken(),
+                    'expires_in' => '604800',
+                ];
+            } else {
+                // API mode - use tokens from result
+                $params = [
+                    'access_token' => $result['access_token'] ?? '',
+                    'refresh_token' => $result['refresh_token'] ?? '',
+                    'expires_in' => (string)($result['expires_in'] ?? 3600),
+                ];
+            }
 
             return $this->redirectToFrontend($params, '/oauth/callback');
         } catch (\Exception $e) {

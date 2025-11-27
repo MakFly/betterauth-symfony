@@ -80,6 +80,10 @@ Modern, secure authentication for Symfony 6/7 applications.
 # Installation
 php bin/console better-auth:install              # Full installation wizard
 
+# Features Setup (NEW!)
+php bin/console better-auth:setup-features       # Enable/disable features with auto entity generation
+php bin/console better-auth:setup-features --enable=magic_link --with-controllers --migrate
+
 # Configuration
 php bin/console better-auth:configure            # Interactive configuration wizard
 php bin/console better-auth:switch-mode          # Switch authentication mode
@@ -89,6 +93,7 @@ php bin/console better-auth:generate-config      # Generate config with presets
 php bin/console better-auth:setup:dependencies   # Install dependencies
 php bin/console better-auth:setup:logging        # Configure logging
 php bin/console better-auth:config:update        # Update configuration files
+php bin/console better-auth:add-controller       # Add individual controllers
 ```
 
 ---

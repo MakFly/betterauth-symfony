@@ -6,11 +6,54 @@ Extend and customize BetterAuth entities for your application.
 
 | Method | Use Case | Complexity |
 |--------|----------|------------|
+| **Auto-generate with setup-features** | Add features (Magic Link, 2FA, etc.) | **Very Low** ⭐ |
 | Use UserProfileTrait | Include optional fields (name, avatar) | Very Low |
 | Exclude optional fields | Minimal User entity | Very Low |
 | Extend entities | Add custom fields | Low |
 | Migration only | Simple field additions | Very Low |
 | Complete custom | Full control | High |
+
+> ⭐ **Recommended**: Use `better-auth:setup-features` to automatically generate entities for Magic Link, 2FA, OAuth, and other features. See [Installation Guide](01-INSTALLATION.md#setup-features-add-magic-link-2fa-oauth-etc) for details.
+
+---
+
+## Auto-Generate Entities with setup-features
+
+**The easiest way to add entities** for features like Magic Link, 2FA, OAuth, etc.:
+
+```bash
+# Enable Magic Link - automatically generates MagicLinkToken entity
+php bin/console better-auth:setup-features --enable=magic_link --migrate
+
+# Enable 2FA - automatically generates TotpData entity
+php bin/console better-auth:setup-features --enable=two_factor --migrate
+
+# Enable multiple features at once
+php bin/console better-auth:setup-features --enable=magic_link --enable=two_factor --migrate
+```
+
+This command will:
+- ✅ Generate missing entity PHP files from templates
+- ✅ Update `config/packages/better_auth.yaml`
+- ✅ Optionally generate controllers (with `--with-controllers`)
+- ✅ Optionally run migrations (with `--migrate`)
+
+**Available entities that can be auto-generated:**
+
+| Entity | Feature | Command |
+|--------|---------|---------|
+| `MagicLinkToken` | Magic Link | `--enable=magic_link` |
+| `TotpData` | Two-Factor Auth | `--enable=two_factor` |
+| `EmailVerificationToken` | Email Verification | `--enable=email_verification` |
+| `PasswordResetToken` | Password Reset | `--enable=password_reset` |
+| `Device` | Device Tracking | `--enable=device_tracking` |
+| `SecurityEvent` | Security Monitoring | `--enable=security_monitoring` |
+| `GuestSession` | Guest Sessions | `--enable=guest_sessions` |
+| `Passkey` | Passkeys/WebAuthn | `--enable=passkeys` |
+| `Organization` | Multi-Tenant | `--enable=multi_tenant` |
+| `OrganizationMember` | Multi-Tenant | `--enable=multi_tenant` |
+
+See [Installation Guide - Setup Features](01-INSTALLATION.md#setup-features-add-magic-link-2fa-oauth-etc) for complete documentation.
 
 ---
 

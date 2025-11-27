@@ -308,6 +308,86 @@ php bin/console doctrine:migrations:migrate
 | `name` | VARCHAR(255) | User display name |
 | `avatar` | VARCHAR(500) | User avatar URL |
 
+### Setup Features (Add Magic Link, 2FA, OAuth, etc.)
+
+**After initial installation**, use `better-auth:setup-features` to add new features with automatic entity generation, controller scaffolding, and database migrations:
+
+```bash
+# 🚀 Enable Magic Link with everything auto-generated (recommended)
+php bin/console better-auth:setup-features --enable=magic_link --with-controllers --migrate
+
+# Enable multiple features at once
+php bin/console better-auth:setup-features --enable=magic_link --enable=two_factor --migrate
+
+# Enable OAuth with 2FA
+php bin/console better-auth:setup-features --enable=oauth --enable=two_factor --with-controllers --migrate
+
+# Use a preset (minimal, standard, full)
+php bin/console better-auth:setup-features --preset=full --with-controllers --migrate
+
+# Interactive mode (guided wizard)
+php bin/console better-auth:setup-features
+
+# List all features and their status
+php bin/console better-auth:setup-features --list
+
+# Preview changes without applying (dry-run)
+php bin/console better-auth:setup-features --enable=magic_link --dry-run
+```
+
+**What it does automatically:**
+
+1. ✅ **Generates missing entities** (MagicLinkToken, TotpData, Device, etc.)
+2. ✅ **Updates `config/packages/better_auth.yaml`**
+3. ✅ **Generates required controllers** (with `--with-controllers`)
+4. ✅ **Runs `doctrine:migrations:diff`** (with `--with-migrations`)
+5. ✅ **Applies migrations** (with `--migrate`)
+
+**Available Features:**
+
+| Feature | Description | Entities Generated | Controllers |
+|---------|-------------|-------------------|-------------|
+| `magic_link` | Passwordless login via email | `MagicLinkToken` | `magic-link` |
+| `two_factor` | TOTP 2FA (Google Authenticator) | `TotpData` | `auth` (2FA endpoints) |
+| `oauth` | Google, GitHub, Facebook, etc. | - | `oauth`, `account-link` |
+| `email_verification` | Verify user emails | `EmailVerificationToken` | `email-verification` |
+| `password_reset` | Forgot password flow | `PasswordResetToken` | `password` |
+| `session_management` | View/revoke sessions | - | `sessions` |
+| `device_tracking` | Track user devices | `Device` | `devices` |
+| `security_monitoring` | Threat detection | `SecurityEvent` | - |
+| `guest_sessions` | Anonymous sessions | `GuestSession` | `guest` |
+| `passkeys` | WebAuthn biometrics | `Passkey` | `passkeys` |
+| `multi_tenant` | Organizations & teams | `Organization`, `OrganizationMember` | `organizations` |
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--enable=FEATURE` | Enable a feature (can repeat) |
+| `--disable=FEATURE` | Disable a feature |
+| `--preset=PRESET` | Use preset: `minimal`, `standard`, `full` |
+| `--with-controllers` | Generate required controllers |
+| `--with-migrations` | Run `doctrine:migrations:diff` |
+| `--migrate` | Run diff AND migrate |
+| `--force` | Overwrite existing files |
+| `--dry-run` | Preview changes without applying |
+
+**Example Workflow:**
+
+```bash
+# 1. Initial installation (basic auth only)
+php bin/console better-auth:install --id-strategy=uuid --mode=api
+
+# 2. Later, add Magic Link feature
+php bin/console better-auth:setup-features --enable=magic_link --with-controllers --migrate
+
+# 3. Add 2FA
+php bin/console better-auth:setup-features --enable=two_factor --migrate
+
+# 4. Add OAuth
+php bin/console better-auth:setup-features --enable=oauth --with-controllers --migrate
+```
+
 ### Add Controller
 
 Add individual controllers after installation:

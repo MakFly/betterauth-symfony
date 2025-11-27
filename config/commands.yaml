@@ -53,3 +53,23 @@ services:
             $projectDir: '%kernel.project_dir%'
         tags:
             - { name: 'console.command' }
+
+    # Cleanup Commands
+    BetterAuth\Symfony\Command\CleanupSessionsCommand:
+        tags:
+            - { name: 'console.command' }
+
+    BetterAuth\Symfony\Command\CleanupTokensCommand:
+        tags:
+            - { name: 'console.command' }
+
+    # Utility Commands
+    BetterAuth\Symfony\Command\PublishTemplatesCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }
+
+    BetterAuth\Symfony\Command\GenerateSecretCommand:
+        tags:
+            - { name: 'console.command' }

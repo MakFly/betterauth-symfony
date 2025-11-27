@@ -249,4 +249,65 @@ abstract class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         return null;
     }
+
+    /**
+     * Magic getter to allow read access to protected properties.
+     *
+     * This enables convenient property access like $user->email
+     * while maintaining encapsulation (properties remain protected).
+     *
+     * @param string $name Property name
+     *
+     * @return mixed Property value
+     *
+     * @throws \InvalidArgumentException If property doesn't exist
+     */
+    public function __get(string $name): mixed
+    {
+        $allowedProperties = [
+            'id', 'email', 'password', 'roles', 'name', 'avatar',
+            'emailVerified', 'emailVerifiedAt', 'createdAt', 'updatedAt', 'metadata',
+        ];
+
+        if (in_array($name, $allowedProperties, true)) {
+            // Use getter if available (for overridden properties like name/avatar)
+            $getter = 'get' . ucfirst($name);
+            if (method_exists($this, $getter)) {
+                return $this->$getter();
+            }
+            // Special case for boolean emailVerified
+            if ($name === 'emailVerified' && method_exists($this, 'isEmailVerified')) {
+                return $this->isEmailVerified();
+            }
+
+            return $this->$name ?? null;
+        }
+
+        throw new \InvalidArgumentException(sprintf('Property "%s" does not exist on %s', $name, static::class));
+    }
+
+    /**
+     * Magic isset to support property_exists checks.
+     *
+     * @param string $name Property name
+     */
+    public function __isset(string $name): bool
+    {
+        $allowedProperties = [
+            'id', 'email', 'password', 'roles', 'name', 'avatar',
+            'emailVerified', 'emailVerifiedAt', 'createdAt', 'updatedAt', 'metadata',
+        ];
+
+        if (!in_array($name, $allowedProperties, true)) {
+            return false;
+        }
+
+        // Use getter if available
+        $getter = 'get' . ucfirst($name);
+        if (method_exists($this, $getter)) {
+            return $this->$getter() !== null;
+        }
+
+        return isset($this->$name);
+    }
 }

@@ -72,6 +72,59 @@ services:
             $tokenAuthManager: '@BetterAuth\Core\TokenAuthManager'
         public: true
 
+    # Interface aliases for dependency injection
+    BetterAuth\Core\Interfaces\AuthManagerInterface:
+        alias: BetterAuth\Core\AuthManager
+
+    BetterAuth\Core\Interfaces\SessionAuthManagerInterface:
+        alias: BetterAuth\Core\SessionAuthManager
+
+    # TokenManager - High-level token management (like Lexik's JWTManager)
+    # Use this interface in custom controllers to create/decode tokens
+    BetterAuth\Core\TokenManager:
+        arguments:
+            $tokenSigner: '@BetterAuth\Core\TokenService'
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $refreshTokenRepository: '@BetterAuth\Core\Interfaces\RefreshTokenRepositoryInterface'
+            $config: '@BetterAuth\Core\Config\AuthConfig'
+        public: true
+
+    BetterAuth\Core\Interfaces\TokenManagerInterface:
+        alias: BetterAuth\Core\TokenManager
+
+    # ============================================
+    # Token Extractors (like Lexik)
+    # ============================================
+    # Extracts tokens from HTTP requests
+
+    BetterAuth\Symfony\TokenExtractor\AuthorizationHeaderTokenExtractor:
+        arguments:
+            $prefix: 'Bearer'
+            $name: 'Authorization'
+        public: true
+
+    BetterAuth\Symfony\TokenExtractor\CookieTokenExtractor:
+        arguments:
+            $name: 'access_token'
+        public: true
+
+    BetterAuth\Symfony\TokenExtractor\QueryParameterTokenExtractor:
+        arguments:
+            $name: 'bearer'
+        public: true
+
+    # ChainTokenExtractor - Combines multiple extractors
+    # By default, tries Authorization header first, then cookies
+    BetterAuth\Symfony\TokenExtractor\ChainTokenExtractor:
+        arguments:
+            $extractors:
+                - '@BetterAuth\Symfony\TokenExtractor\AuthorizationHeaderTokenExtractor'
+                - '@BetterAuth\Symfony\TokenExtractor\CookieTokenExtractor'
+        public: true
+
+    BetterAuth\Symfony\TokenExtractor\TokenExtractorInterface:
+        alias: BetterAuth\Symfony\TokenExtractor\ChainTokenExtractor
+
     # TokenService Decorator - Enables token modification events (like Lexik)
     BetterAuth\Symfony\Service\EventDispatchingTokenService:
         decorates: BetterAuth\Core\TokenService
@@ -88,6 +141,7 @@ services:
             $dispatcher: '@Symfony\Contracts\EventDispatcher\EventDispatcherInterface'
             $tokenService: '@BetterAuth\Core\TokenService'
             $debug: '%kernel.debug%'
+            $tokenExtractor: '@BetterAuth\Symfony\TokenExtractor\TokenExtractorInterface'
         public: true
         tags:
             - { name: 'monolog.logger', channel: 'better_auth' }
@@ -98,10 +152,13 @@ services:
         public: true
 
     # OAuth Manager - Manages OAuth providers (Google, GitHub, etc.)
+    # Supports both session-based and token-based auth modes
     BetterAuth\Providers\OAuthProvider\OAuthManager:
         arguments:
             $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
             $sessionService: '@BetterAuth\Core\SessionService'
+            $authConfig: '@BetterAuth\Core\Config\AuthConfig'
+            $tokenManager: '@?BetterAuth\Core\Interfaces\TokenManagerInterface'
         public: true
 
     # ID Converter - Automatic UUID/INT detection and conversion
@@ -294,7 +351,7 @@ services:
             $emailSender: '@BetterAuth\Core\Interfaces\EmailSenderInterface'
             $sessionService: '@BetterAuth\Core\SessionService'
             $authConfig: '@BetterAuth\Core\Config\AuthConfig'
-            $tokenAuthManager: '@?BetterAuth\Core\TokenAuthManager'
+            $tokenManager: '@?BetterAuth\Core\Interfaces\TokenManagerInterface'
             $rateLimiter: '@?BetterAuth\Core\Interfaces\RateLimiterInterface'
             $logger: '@?logger'
         public: true

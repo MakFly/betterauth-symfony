@@ -16,6 +16,8 @@ use BetterAuth\Symfony\Event\TokenDecodedEvent;
 use BetterAuth\Symfony\Event\TokenExpiredEvent;
 use BetterAuth\Symfony\Event\TokenInvalidEvent;
 use BetterAuth\Symfony\Event\TokenNotFoundEvent;
+use BetterAuth\Symfony\TokenExtractor\AuthorizationHeaderTokenExtractor;
+use BetterAuth\Symfony\TokenExtractor\TokenExtractorInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -41,6 +43,12 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * - AUTHENTICATION_SUCCESS: on successful auth
  * - AUTHENTICATION_FAILURE: on failed auth
  *
+ * Supports configurable token extractors (similar to Lexik):
+ * - AuthorizationHeaderTokenExtractor (default)
+ * - CookieTokenExtractor
+ * - QueryParameterTokenExtractor
+ * - ChainTokenExtractor (combines multiple)
+ *
  * Usage dans security.yaml:
  * security:
  *     firewalls:
@@ -52,12 +60,17 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  */
 class BetterAuthAuthenticator extends AbstractAuthenticator
 {
+    private readonly TokenExtractorInterface $tokenExtractor;
+
     public function __construct(
         private readonly TokenAuthManagerInterface $authManager,
         private readonly EventDispatcherInterface $dispatcher,
         private readonly ?TokenSignerInterface $tokenService = null,
         private readonly bool $debug = false,
+        ?TokenExtractorInterface $tokenExtractor = null,
     ) {
+        // Default to Authorization header extractor if none provided
+        $this->tokenExtractor = $tokenExtractor ?? new AuthorizationHeaderTokenExtractor();
     }
 
     /**
@@ -65,7 +78,8 @@ class BetterAuthAuthenticator extends AbstractAuthenticator
      */
     public function supports(Request $request): ?bool
     {
-        return $request->headers->has('Authorization');
+        // Check if any extractor can extract a token
+        return $this->tokenExtractor->extract($request) !== null;
     }
 
     /**
@@ -73,11 +87,11 @@ class BetterAuthAuthenticator extends AbstractAuthenticator
      */
     public function authenticate(Request $request): Passport
     {
-        $token = $this->extractToken($request);
+        $token = $this->tokenExtractor->extract($request);
 
         // Event: TOKEN_NOT_FOUND
         if (!$token) {
-            $event = new TokenNotFoundEvent('No Bearer token in Authorization header');
+            $event = new TokenNotFoundEvent('No token found in request');
             $this->dispatcher->dispatch($event, BetterAuthEvents::TOKEN_NOT_FOUND);
 
             if ($event->getResponse()) {
@@ -210,21 +224,10 @@ class BetterAuthAuthenticator extends AbstractAuthenticator
     }
 
     /**
-     * Extraire le token Bearer depuis Authorization header
+     * Get the token extractor.
      */
-    private function extractToken(Request $request): ?string
+    public function getTokenExtractor(): TokenExtractorInterface
     {
-        $header = $request->headers->get('Authorization');
-
-        if (!$header) {
-            return null;
-        }
-
-        // Format: "Bearer v4.local.xxxxx"
-        if (preg_match('/^Bearer\s+(.+)$/i', $header, $matches)) {
-            return $matches[1];
-        }
-
-        return null;
+        return $this->tokenExtractor;
     }
 }

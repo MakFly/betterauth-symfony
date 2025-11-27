@@ -578,10 +578,11 @@ HELP;
             '<info>Available OAuth Providers:</info>',
         ]);
         foreach (self::OAUTH_PROVIDERS as $key => $config) {
-            $statusBadge = match ($config['status']) {
+            /** @var 'stable'|'draft' $status */
+            $status = $config['status'];
+            $statusBadge = match ($status) {
                 'stable' => '<fg=green>[STABLE]</>',
                 'draft' => '<fg=yellow>[DRAFT]</>',
-                default => '<fg=red>[NOT IMPLEMENTED]</>',
             };
             $io->writeln("  • {$config['name']} $statusBadge");
         }

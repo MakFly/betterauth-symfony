@@ -36,6 +36,8 @@ Modern, secure authentication for Symfony 6/7 applications.
 | Document | Description |
 |----------|-------------|
 | [09-API-REFERENCE](09-API-REFERENCE.md) | All endpoints with curl examples |
+| [08-EVENTS](08-EVENTS.md) | All events with subscriber examples |
+| [20-TOKEN-EXTRACTORS](20-TOKEN-EXTRACTORS.md) | Token extraction system and customization |
 | [10-ERROR-HANDLING](10-ERROR-HANDLING.md) | Exceptions and error responses |
 | [11-SECURITY](11-SECURITY.md) | Best practices and hardening |
 

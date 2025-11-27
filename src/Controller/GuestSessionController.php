@@ -107,7 +107,7 @@ class GuestSessionController extends AbstractController
             $userData = [
                 'email' => $data['email'],
                 'name' => $data['name'] ?? null,
-                'password_hash' => isset($data['password'])
+                'password' => isset($data['password'])
                     ? password_hash($data['password'], PASSWORD_ARGON2ID)
                     : null,
             ];

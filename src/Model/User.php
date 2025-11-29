@@ -51,7 +51,7 @@ abstract class User implements UserInterface, PasswordAuthenticatedUserInterface
      * List of optional fields that can be excluded during installation.
      * These fields are provided via UserProfileTrait.
      */
-    public const OPTIONAL_FIELDS = ['name', 'avatar'];
+    public const OPTIONAL_FIELDS = ['username', 'avatar'];
 
     #[ORM\Column(type: Types::STRING, length: 255, unique: true)]
     protected string $email;
@@ -235,10 +235,10 @@ abstract class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * Get name - returns null by default.
-     * Override this method or use UserProfileTrait for name support.
+     * Get username - returns null by default.
+     * Override this method or use UserProfileTrait for username support.
      */
-    public function getName(): ?string
+    public function getUsername(): ?string
     {
         return null;
     }
@@ -267,12 +267,12 @@ abstract class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __get(string $name): mixed
     {
         $allowedProperties = [
-            'id', 'email', 'password', 'roles', 'name', 'avatar',
+            'id', 'email', 'password', 'roles', 'username', 'avatar',
             'emailVerified', 'emailVerifiedAt', 'createdAt', 'updatedAt', 'metadata',
         ];
 
         if (in_array($name, $allowedProperties, true)) {
-            // Use getter if available (for overridden properties like name/avatar)
+            // Use getter if available (for overridden properties like username/avatar)
             $getter = 'get' . ucfirst($name);
             if (method_exists($this, $getter)) {
                 return $this->$getter();
@@ -296,7 +296,7 @@ abstract class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function __isset(string $name): bool
     {
         $allowedProperties = [
-            'id', 'email', 'password', 'roles', 'name', 'avatar',
+            'id', 'email', 'password', 'roles', 'username', 'avatar',
             'emailVerified', 'emailVerifiedAt', 'createdAt', 'updatedAt', 'metadata',
         ];
 

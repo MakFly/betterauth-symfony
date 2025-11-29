@@ -10,7 +10,7 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * Optional profile fields for User entity.
  *
- * Use this trait in your User entity to add name and avatar fields.
+ * Use this trait in your User entity to add username and avatar fields.
  * These fields are optional and can be excluded during installation
  * using the --exclude-fields option.
  *
@@ -30,31 +30,31 @@ use Doctrine\ORM\Mapping as ORM;
  * ```php
  * #[ORM\Entity]
  * class User extends BaseUser {
- *     // Only add name, not avatar
+ *     // Only add username, not avatar
  *     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
- *     protected ?string $name = null;
+ *     protected ?string $username = null;
  *
- *     public function getName(): ?string { return $this->name; }
- *     public function setName(?string $name): static { $this->name = $name; return $this; }
+ *     public function getUsername(): ?string { return $this->username; }
+ *     public function setUsername(?string $username): static { $this->username = $username; return $this; }
  * }
  * ```
  */
 trait UserProfileTrait
 {
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
-    protected ?string $name = null;
+    protected ?string $username = null;
 
     #[ORM\Column(type: Types::STRING, length: 500, nullable: true)]
     protected ?string $avatar = null;
 
-    public function getName(): ?string
+    public function getUsername(): ?string
     {
-        return $this->name;
+        return $this->username;
     }
 
-    public function setName(?string $name): static
+    public function setUsername(?string $username): static
     {
-        $this->name = $name;
+        $this->username = $username;
 
         return $this;
     }

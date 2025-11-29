@@ -130,7 +130,7 @@ class GuestSessionController extends AbstractController
                 'user' => [
                     'id' => $user->getId(),
                     'email' => $user->getEmail(),
-                    'name' => $user->getName(),
+                    'username' => $user->getUsername(),
                 ],
                 'access_token' => $tokens['access_token'] ?? null,
                 'refresh_token' => $tokens['refresh_token'] ?? null,

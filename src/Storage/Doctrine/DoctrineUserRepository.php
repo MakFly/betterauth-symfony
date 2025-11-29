@@ -82,7 +82,7 @@ final class DoctrineUserRepository implements UserRepositoryInterface
 
         $doctrineUser->setEmail($data['email']);
         $doctrineUser->setPassword($data['password'] ?? null);
-        $doctrineUser->setName($data['name'] ?? null);
+        $doctrineUser->setUsername($data['username'] ?? null);
         $doctrineUser->setAvatar($data['avatar'] ?? null);
         $doctrineUser->setEmailVerified($data['email_verified'] ?? false);
         $doctrineUser->setMetadata($data['metadata'] ?? null);
@@ -115,8 +115,8 @@ final class DoctrineUserRepository implements UserRepositoryInterface
         if (isset($data['password'])) {
             $doctrineUser->setPassword($data['password']);
         }
-        if (isset($data['name'])) {
-            $doctrineUser->setName($data['name']);
+        if (isset($data['username'])) {
+            $doctrineUser->setUsername($data['username']);
         }
         if (isset($data['avatar'])) {
             $doctrineUser->setAvatar($data['avatar']);
@@ -184,7 +184,7 @@ final class DoctrineUserRepository implements UserRepositoryInterface
             'id' => $this->idConverter->toAuthId($doctrineUser->getId()), // Convert to string for Core Entity
             'email' => $doctrineUser->getEmail(),
             'password' => $doctrineUser->getPassword(),
-            'name' => $doctrineUser->getName(),
+            'username' => $doctrineUser->getUsername(),
             'avatar' => $doctrineUser->getAvatar(),
             'email_verified' => $doctrineUser->isEmailVerified(),
             'email_verified_at' => $doctrineUser->getEmailVerifiedAt()?->format('Y-m-d H:i:s'),

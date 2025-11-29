@@ -256,7 +256,7 @@ final class AuthenticationDecorator implements OpenApiFactoryInterface
                                 'properties' => [
                                     'email' => ['type' => 'string', 'format' => 'email', 'example' => 'user@example.com'],
                                     'password' => ['type' => 'string', 'format' => 'password', 'example' => 'SecurePassword123'],
-                                    'name' => ['type' => 'string', 'example' => 'John Doe', 'nullable' => true],
+                                    'username' => ['type' => 'string', 'example' => 'JohnDoe', 'nullable' => true],
                                 ],
                                 'required' => ['email', 'password'],
                             ],
@@ -276,7 +276,7 @@ final class AuthenticationDecorator implements OpenApiFactoryInterface
                                             'properties' => [
                                                 'id' => ['type' => 'string', 'example' => '06DB1F28JAB2JHV1VXZVTKJEHM'],
                                                 'email' => ['type' => 'string', 'example' => 'user@example.com'],
-                                                'name' => ['type' => 'string', 'example' => 'John Doe'],
+                                                'username' => ['type' => 'string', 'example' => 'JohnDoe'],
                                                 'emailVerified' => ['type' => 'boolean', 'example' => false],
                                                 'createdAt' => ['type' => 'string', 'format' => 'date-time', 'example' => '2025-11-23 12:42:00'],
                                             ],
@@ -367,7 +367,7 @@ final class AuthenticationDecorator implements OpenApiFactoryInterface
                                     'properties' => [
                                         'id' => ['type' => 'string'],
                                         'email' => ['type' => 'string'],
-                                        'name' => ['type' => 'string'],
+                                        'username' => ['type' => 'string'],
                                         'emailVerified' => ['type' => 'boolean'],
                                         'createdAt' => ['type' => 'string', 'format' => 'date-time'],
                                     ],

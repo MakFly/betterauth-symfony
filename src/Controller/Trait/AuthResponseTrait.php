@@ -17,7 +17,7 @@ trait AuthResponseTrait
         return [
             'id' => $user->getId(),
             'email' => $user->getEmail(),
-            'name' => $user->getName(),
+            'username' => $user->getUsername(),
             'emailVerified' => $user->isEmailVerified(),
             'createdAt' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'updatedAt' => $user->getUpdatedAt()->format(\DateTimeInterface::ATOM),

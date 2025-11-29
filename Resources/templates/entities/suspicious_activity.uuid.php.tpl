@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use BetterAuth\Symfony\Model\SecurityEvent as BaseSecurityEvent;
+use BetterAuth\Symfony\Model\SuspiciousActivity as BaseSuspiciousActivity;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * SecurityEvent entity with UUID IDs.
+ * SuspiciousActivity entity with UUID IDs.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'security_events')]
+#[ORM\Table(name: 'suspicious_activities')]
 #[ORM\Index(columns: ['user_id'])]
-#[ORM\Index(columns: ['event_type'])]
-#[ORM\Index(columns: ['severity'])]
-#[ORM\Index(columns: ['created_at'])]
-class SecurityEvent extends BaseSecurityEvent
+#[ORM\Index(columns: ['status'])]
+#[ORM\Index(columns: ['risk_level'])]
+#[ORM\Index(columns: ['detected_at'])]
+class SuspiciousActivity extends BaseSuspiciousActivity
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME)]

@@ -6,11 +6,9 @@ namespace App\Entity;
 
 use BetterAuth\Symfony\Model\SecurityEvent as BaseSecurityEvent;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Bridge\Doctrine\Types\UuidType;
-use Symfony\Component\Uid\Uuid;
 
 /**
- * SecurityEvent entity with UUID IDs.
+ * SecurityEvent entity with INT IDs.
  */
 #[ORM\Entity]
 #[ORM\Table(name: 'security_events')]
@@ -21,38 +19,33 @@ use Symfony\Component\Uid\Uuid;
 class SecurityEvent extends BaseSecurityEvent
 {
     #[ORM\Id]
-    #[ORM\Column(type: UuidType::NAME)]
-    protected Uuid $id;
+    #[ORM\GeneratedValue(strategy: 'IDENTITY')]
+    #[ORM\Column(type: 'integer')]
+    protected ?int $id = null;
 
-    #[ORM\Column(type: UuidType::NAME)]
-    protected Uuid $userId;
+    #[ORM\Column(type: 'integer')]
+    protected int $userId;
 
-    public function __construct()
-    {
-        parent::__construct();
-        $this->id = Uuid::v7();
-    }
-
-    public function getId(): Uuid
+    public function getId(): ?int
     {
         return $this->id;
     }
 
     public function setId(string|int $id): static
     {
-        $this->id = $id instanceof Uuid ? $id : Uuid::fromString((string) $id);
+        $this->id = (int) $id;
 
         return $this;
     }
 
-    public function getUserId(): Uuid
+    public function getUserId(): int
     {
         return $this->userId;
     }
 
     public function setUserId(string|int $userId): static
     {
-        $this->userId = $userId instanceof Uuid ? $userId : Uuid::fromString((string) $userId);
+        $this->userId = (int) $userId;
 
         return $this;
     }

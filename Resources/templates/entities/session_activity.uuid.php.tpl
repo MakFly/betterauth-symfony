@@ -4,28 +4,26 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use BetterAuth\Symfony\Model\SecurityEvent as BaseSecurityEvent;
+use BetterAuth\Symfony\Model\SessionActivity as BaseSessionActivity;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * SecurityEvent entity with UUID IDs.
+ * SessionActivity entity with UUID IDs.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'security_events')]
-#[ORM\Index(columns: ['user_id'])]
-#[ORM\Index(columns: ['event_type'])]
-#[ORM\Index(columns: ['severity'])]
+#[ORM\Table(name: 'session_activity')]
+#[ORM\Index(columns: ['session_id'])]
 #[ORM\Index(columns: ['created_at'])]
-class SecurityEvent extends BaseSecurityEvent
+class SessionActivity extends BaseSessionActivity
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME)]
     protected Uuid $id;
 
-    #[ORM\Column(type: UuidType::NAME)]
-    protected Uuid $userId;
+    #[ORM\Column(type: 'string', length: 255)]
+    protected string $sessionId;
 
     public function __construct()
     {
@@ -45,14 +43,14 @@ class SecurityEvent extends BaseSecurityEvent
         return $this;
     }
 
-    public function getUserId(): Uuid
+    public function getSessionId(): string
     {
-        return $this->userId;
+        return $this->sessionId;
     }
 
-    public function setUserId(string|int $userId): static
+    public function setSessionId(string $sessionId): static
     {
-        $this->userId = $userId instanceof Uuid ? $userId : Uuid::fromString((string) $userId);
+        $this->sessionId = $sessionId;
 
         return $this;
     }

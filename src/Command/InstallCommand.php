@@ -31,6 +31,26 @@ class InstallCommand extends Command
             'uuid' => 'refresh_token.uuid.php.tpl',
             'int' => 'refresh_token.int.php.tpl',
         ],
+        'AccountLink' => [
+            'uuid' => 'account_link.uuid.php.tpl',
+            'int' => 'account_link.int.php.tpl',
+        ],
+        'DeviceInfo' => [
+            'uuid' => 'device_info.uuid.php.tpl',
+            'int' => 'device_info.int.php.tpl',
+        ],
+        'SecurityEvent' => [
+            'uuid' => 'security_event.uuid.php.tpl',
+            'int' => 'security_event.int.php.tpl',
+        ],
+        'SuspiciousActivity' => [
+            'uuid' => 'suspicious_activity.uuid.php.tpl',
+            'int' => 'suspicious_activity.int.php.tpl',
+        ],
+        'SessionActivity' => [
+            'uuid' => 'session_activity.uuid.php.tpl',
+            'int' => 'session_activity.int.php.tpl',
+        ],
         'MagicLinkToken' => [
             'uuid' => 'magic_link_token.uuid.php.tpl',
             'int' => null, // Only UUID version available
@@ -459,6 +479,11 @@ HELP;
                 'User' => $filesystem->exists($projectDir . '/src/Entity/User.php'),
                 'Session' => $filesystem->exists($projectDir . '/src/Entity/Session.php'),
                 'RefreshToken' => $filesystem->exists($projectDir . '/src/Entity/RefreshToken.php'),
+                'AccountLink' => $filesystem->exists($projectDir . '/src/Entity/AccountLink.php'),
+                'DeviceInfo' => $filesystem->exists($projectDir . '/src/Entity/DeviceInfo.php'),
+                'SecurityEvent' => $filesystem->exists($projectDir . '/src/Entity/SecurityEvent.php'),
+                'SuspiciousActivity' => $filesystem->exists($projectDir . '/src/Entity/SuspiciousActivity.php'),
+                'SessionActivity' => $filesystem->exists($projectDir . '/src/Entity/SessionActivity.php'),
             ],
             'controller' => $filesystem->exists($projectDir . '/src/Controller/AuthController.php'),
             'config' => $filesystem->exists($projectDir . '/config/packages/better_auth.yaml'),

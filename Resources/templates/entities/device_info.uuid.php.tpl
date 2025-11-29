@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use BetterAuth\Symfony\Model\SecurityEvent as BaseSecurityEvent;
+use BetterAuth\Symfony\Model\DeviceInfo as BaseDeviceInfo;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * SecurityEvent entity with UUID IDs.
+ * DeviceInfo entity with UUID IDs.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'security_events')]
+#[ORM\Table(name: 'device_info')]
 #[ORM\Index(columns: ['user_id'])]
-#[ORM\Index(columns: ['event_type'])]
-#[ORM\Index(columns: ['severity'])]
-#[ORM\Index(columns: ['created_at'])]
-class SecurityEvent extends BaseSecurityEvent
+#[ORM\Index(columns: ['fingerprint'])]
+class DeviceInfo extends BaseDeviceInfo
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME)]

@@ -7,39 +7,130 @@ namespace BetterAuth\Symfony\Model;
 use DateTimeImmutable;
 use Doctrine\ORM\Mapping as ORM;
 
-#[ORM\Entity]
-#[ORM\Table(name: 'security_events')]
-#[ORM\Index(columns: ['user_id'])]
-#[ORM\Index(columns: ['event_type'])]
-#[ORM\Index(columns: ['severity'])]
-#[ORM\Index(columns: ['created_at'])]
-class SecurityEvent
+/**
+ * Base SecurityEvent entity for BetterAuth - Mapped Superclass.
+ *
+ * Stores security audit events for users.
+ * Extend this class in your application to define the ID and userId types.
+ */
+#[ORM\MappedSuperclass]
+abstract class SecurityEvent
 {
-    #[ORM\Id]
-    #[ORM\Column(type: 'string', length: 36)]
-    public string $id;
-
-    #[ORM\Column(type: 'string', length: 36)]
-    public string $userId;
-
     #[ORM\Column(type: 'string', length: 50)]
-    public string $eventType;
+    protected string $eventType;
 
     #[ORM\Column(type: 'string', length: 20)]
-    public string $severity;
+    protected string $severity;
 
     #[ORM\Column(type: 'string', length: 45, nullable: true)]
-    public ?string $ipAddress = null;
+    protected ?string $ipAddress = null;
 
     #[ORM\Column(type: 'text', nullable: true)]
-    public ?string $userAgent = null;
+    protected ?string $userAgent = null;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    public ?string $location = null;
+    protected ?string $location = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
-    public DateTimeImmutable $createdAt;
+    protected DateTimeImmutable $createdAt;
 
     #[ORM\Column(type: 'json', nullable: true)]
-    public ?array $details = null;
+    protected ?array $details = null;
+
+    public function __construct()
+    {
+        $this->createdAt = new DateTimeImmutable();
+    }
+
+    abstract public function getId(): string|int|null;
+
+    abstract public function setId(string|int $id): static;
+
+    abstract public function getUserId(): string|int;
+
+    abstract public function setUserId(string|int $userId): static;
+
+    public function getEventType(): string
+    {
+        return $this->eventType;
+    }
+
+    public function setEventType(string $eventType): static
+    {
+        $this->eventType = $eventType;
+
+        return $this;
+    }
+
+    public function getSeverity(): string
+    {
+        return $this->severity;
+    }
+
+    public function setSeverity(string $severity): static
+    {
+        $this->severity = $severity;
+
+        return $this;
+    }
+
+    public function getIpAddress(): ?string
+    {
+        return $this->ipAddress;
+    }
+
+    public function setIpAddress(?string $ipAddress): static
+    {
+        $this->ipAddress = $ipAddress;
+
+        return $this;
+    }
+
+    public function getUserAgent(): ?string
+    {
+        return $this->userAgent;
+    }
+
+    public function setUserAgent(?string $userAgent): static
+    {
+        $this->userAgent = $userAgent;
+
+        return $this;
+    }
+
+    public function getLocation(): ?string
+    {
+        return $this->location;
+    }
+
+    public function setLocation(?string $location): static
+    {
+        $this->location = $location;
+
+        return $this;
+    }
+
+    public function getCreatedAt(): DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function setCreatedAt(DateTimeImmutable $createdAt): static
+    {
+        $this->createdAt = $createdAt;
+
+        return $this;
+    }
+
+    public function getDetails(): ?array
+    {
+        return $this->details;
+    }
+
+    public function setDetails(?array $details): static
+    {
+        $this->details = $details;
+
+        return $this;
+    }
 }

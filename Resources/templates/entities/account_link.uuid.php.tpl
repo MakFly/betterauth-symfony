@@ -4,21 +4,19 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use BetterAuth\Symfony\Model\SecurityEvent as BaseSecurityEvent;
+use BetterAuth\Symfony\Model\AccountLink as BaseAccountLink;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Uid\Uuid;
 
 /**
- * SecurityEvent entity with UUID IDs.
+ * AccountLink entity with UUID IDs.
  */
 #[ORM\Entity]
-#[ORM\Table(name: 'security_events')]
-#[ORM\Index(columns: ['user_id'])]
-#[ORM\Index(columns: ['event_type'])]
-#[ORM\Index(columns: ['severity'])]
-#[ORM\Index(columns: ['created_at'])]
-class SecurityEvent extends BaseSecurityEvent
+#[ORM\Table(name: 'account_links')]
+#[ORM\UniqueConstraint(name: 'user_provider_unique', columns: ['user_id', 'provider'])]
+#[ORM\Index(columns: ['provider', 'provider_id'])]
+class AccountLink extends BaseAccountLink
 {
     #[ORM\Id]
     #[ORM\Column(type: UuidType::NAME)]

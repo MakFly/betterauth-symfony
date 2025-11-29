@@ -10,10 +10,19 @@ use BetterAuth\Symfony\Model\SuspiciousActivity;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 
+/**
+ * Doctrine repository for SuspiciousActivity entities.
+ *
+ * Requires an entity class that extends BetterAuth\Symfony\Model\SuspiciousActivity.
+ */
 final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousActivityRepositoryInterface
 {
+    /**
+     * @param string $suspiciousActivityClass FQCN of entity extending SuspiciousActivity
+     */
     public function __construct(
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private string $suspiciousActivityClass = 'App\\Entity\\SuspiciousActivity'
     ) {
     }
 
@@ -24,18 +33,20 @@ final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousA
 
     public function create(array $data): CoreSuspiciousActivity
     {
-        $activity = new SuspiciousActivity();
-        $activity->id = $data['id'];
-        $activity->userId = $data['user_id'];
-        $activity->activityType = $data['activity_type'];
-        $activity->riskLevel = $data['risk_level'];
-        $activity->ipAddress = $data['ip_address'] ?? null;
-        $activity->userAgent = $data['user_agent'] ?? null;
-        $activity->location = $data['location'] ?? null;
-        $activity->detectedAt = new DateTimeImmutable($data['detected_at'] ?? 'now');
-        $activity->status = $data['status'] ?? 'pending';
-        $activity->resolvedAt = isset($data['resolved_at']) ? new DateTimeImmutable($data['resolved_at']) : null;
-        $activity->details = $data['details'] ?? null;
+        $class = $this->suspiciousActivityClass;
+        /** @var SuspiciousActivity $activity */
+        $activity = new $class();
+        $activity->setId($data['id']);
+        $activity->setUserId($data['user_id']);
+        $activity->setActivityType($data['activity_type']);
+        $activity->setRiskLevel($data['risk_level']);
+        $activity->setIpAddress($data['ip_address'] ?? null);
+        $activity->setUserAgent($data['user_agent'] ?? null);
+        $activity->setLocation($data['location'] ?? null);
+        $activity->setDetectedAt(new DateTimeImmutable($data['detected_at'] ?? 'now'));
+        $activity->setStatus($data['status'] ?? 'pending');
+        $activity->setResolvedAt(isset($data['resolved_at']) ? new DateTimeImmutable($data['resolved_at']) : null);
+        $activity->setDetails($data['details'] ?? null);
 
         $this->entityManager->persist($activity);
         $this->entityManager->flush();
@@ -45,14 +56,14 @@ final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousA
 
     public function findById(string $id): ?CoreSuspiciousActivity
     {
-        $activity = $this->entityManager->find(SuspiciousActivity::class, $id);
+        $activity = $this->entityManager->find($this->suspiciousActivityClass, $id);
 
         return $activity ? $this->toCoreEntity($activity) : null;
     }
 
     public function findByUserId(string $userId, int $limit = 100): array
     {
-        $activities = $this->entityManager->getRepository(SuspiciousActivity::class)
+        $activities = $this->entityManager->getRepository($this->suspiciousActivityClass)
             ->findBy(['userId' => $userId], ['detectedAt' => 'DESC'], $limit);
 
         return array_map(fn ($activity) => $this->toCoreEntity($activity), $activities);
@@ -60,7 +71,7 @@ final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousA
 
     public function findByStatus(string $status, int $limit = 100): array
     {
-        $activities = $this->entityManager->getRepository(SuspiciousActivity::class)
+        $activities = $this->entityManager->getRepository($this->suspiciousActivityClass)
             ->findBy(['status' => $status], ['detectedAt' => 'DESC'], $limit);
 
         return array_map(fn ($activity) => $this->toCoreEntity($activity), $activities);
@@ -68,16 +79,17 @@ final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousA
 
     public function update(string $id, array $data): CoreSuspiciousActivity
     {
-        $activity = $this->entityManager->find(SuspiciousActivity::class, $id);
+        /** @var SuspiciousActivity|null $activity */
+        $activity = $this->entityManager->find($this->suspiciousActivityClass, $id);
         if ($activity === null) {
             throw new \RuntimeException("Suspicious activity not found: $id");
         }
 
         if (isset($data['status'])) {
-            $activity->status = $data['status'];
+            $activity->setStatus($data['status']);
         }
         if (isset($data['resolved_at'])) {
-            $activity->resolvedAt = new DateTimeImmutable($data['resolved_at']);
+            $activity->setResolvedAt(new DateTimeImmutable($data['resolved_at']));
         }
 
         $this->entityManager->flush();
@@ -87,7 +99,7 @@ final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousA
 
     public function delete(string $id): bool
     {
-        $activity = $this->entityManager->find(SuspiciousActivity::class, $id);
+        $activity = $this->entityManager->find($this->suspiciousActivityClass, $id);
         if ($activity === null) {
             return false;
         }
@@ -101,17 +113,17 @@ final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousA
     private function toCoreEntity(SuspiciousActivity $activity): CoreSuspiciousActivity
     {
         return CoreSuspiciousActivity::fromArray([
-            'id' => $activity->id,
-            'user_id' => $activity->userId,
-            'activity_type' => $activity->activityType,
-            'risk_level' => $activity->riskLevel,
-            'ip_address' => $activity->ipAddress,
-            'user_agent' => $activity->userAgent,
-            'location' => $activity->location,
-            'detected_at' => $activity->detectedAt->format('Y-m-d H:i:s'),
-            'status' => $activity->status,
-            'resolved_at' => $activity->resolvedAt?->format('Y-m-d H:i:s'),
-            'details' => $activity->details,
+            'id' => (string) $activity->getId(),
+            'user_id' => (string) $activity->getUserId(),
+            'activity_type' => $activity->getActivityType(),
+            'risk_level' => $activity->getRiskLevel(),
+            'ip_address' => $activity->getIpAddress(),
+            'user_agent' => $activity->getUserAgent(),
+            'location' => $activity->getLocation(),
+            'detected_at' => $activity->getDetectedAt()->format('Y-m-d H:i:s'),
+            'status' => $activity->getStatus(),
+            'resolved_at' => $activity->getResolvedAt()?->format('Y-m-d H:i:s'),
+            'details' => $activity->getDetails(),
         ]);
     }
 }

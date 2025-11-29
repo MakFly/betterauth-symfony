@@ -10,10 +10,19 @@ use BetterAuth\Symfony\Model\DeviceInfo;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
 
+/**
+ * Doctrine repository for DeviceInfo entities.
+ *
+ * Requires an entity class that extends BetterAuth\Symfony\Model\DeviceInfo.
+ */
 final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositoryInterface
 {
+    /**
+     * @param string $deviceInfoClass FQCN of entity extending DeviceInfo
+     */
     public function __construct(
-        private EntityManagerInterface $entityManager
+        private EntityManagerInterface $entityManager,
+        private string $deviceInfoClass = 'App\\Entity\\DeviceInfo'
     ) {
     }
 
@@ -24,21 +33,23 @@ final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositor
 
     public function create(array $data): CoreDeviceInfo
     {
-        $device = new DeviceInfo();
-        $device->id = $data['id'];
-        $device->userId = $data['user_id'];
-        $device->fingerprint = $data['fingerprint'];
-        $device->deviceType = $data['device_type'] ?? null;
-        $device->browser = $data['browser'] ?? null;
-        $device->browserVersion = $data['browser_version'] ?? null;
-        $device->os = $data['os'] ?? null;
-        $device->osVersion = $data['os_version'] ?? null;
-        $device->ipAddress = $data['ip_address'] ?? null;
-        $device->location = $data['location'] ?? null;
-        $device->isTrusted = $data['is_trusted'] ?? false;
-        $device->firstSeenAt = new DateTimeImmutable($data['first_seen_at'] ?? 'now');
-        $device->lastSeenAt = new DateTimeImmutable($data['last_seen_at'] ?? 'now');
-        $device->metadata = $data['metadata'] ?? null;
+        $class = $this->deviceInfoClass;
+        /** @var DeviceInfo $device */
+        $device = new $class();
+        $device->setId($data['id']);
+        $device->setUserId($data['user_id']);
+        $device->setFingerprint($data['fingerprint']);
+        $device->setDeviceType($data['device_type'] ?? null);
+        $device->setBrowser($data['browser'] ?? null);
+        $device->setBrowserVersion($data['browser_version'] ?? null);
+        $device->setOs($data['os'] ?? null);
+        $device->setOsVersion($data['os_version'] ?? null);
+        $device->setIpAddress($data['ip_address'] ?? null);
+        $device->setLocation($data['location'] ?? null);
+        $device->setIsTrusted($data['is_trusted'] ?? false);
+        $device->setFirstSeenAt(new DateTimeImmutable($data['first_seen_at'] ?? 'now'));
+        $device->setLastSeenAt(new DateTimeImmutable($data['last_seen_at'] ?? 'now'));
+        $device->setMetadata($data['metadata'] ?? null);
 
         $this->entityManager->persist($device);
         $this->entityManager->flush();
@@ -48,14 +59,14 @@ final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositor
 
     public function findById(string $id): ?CoreDeviceInfo
     {
-        $device = $this->entityManager->find(DeviceInfo::class, $id);
+        $device = $this->entityManager->find($this->deviceInfoClass, $id);
 
         return $device ? $this->toCoreEntity($device) : null;
     }
 
     public function findByFingerprint(string $userId, string $fingerprint): ?CoreDeviceInfo
     {
-        $device = $this->entityManager->getRepository(DeviceInfo::class)
+        $device = $this->entityManager->getRepository($this->deviceInfoClass)
             ->findOneBy(['userId' => $userId, 'fingerprint' => $fingerprint]);
 
         return $device ? $this->toCoreEntity($device) : null;
@@ -63,7 +74,7 @@ final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositor
 
     public function findByUserId(string $userId): array
     {
-        $devices = $this->entityManager->getRepository(DeviceInfo::class)
+        $devices = $this->entityManager->getRepository($this->deviceInfoClass)
             ->findBy(['userId' => $userId], ['lastSeenAt' => 'DESC']);
 
         return array_map(fn ($device) => $this->toCoreEntity($device), $devices);
@@ -71,22 +82,23 @@ final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositor
 
     public function update(string $id, array $data): CoreDeviceInfo
     {
-        $device = $this->entityManager->find(DeviceInfo::class, $id);
+        /** @var DeviceInfo|null $device */
+        $device = $this->entityManager->find($this->deviceInfoClass, $id);
         if ($device === null) {
             throw new \RuntimeException("Device not found: $id");
         }
 
         if (isset($data['ip_address'])) {
-            $device->ipAddress = $data['ip_address'];
+            $device->setIpAddress($data['ip_address']);
         }
         if (isset($data['location'])) {
-            $device->location = $data['location'];
+            $device->setLocation($data['location']);
         }
         if (isset($data['is_trusted'])) {
-            $device->isTrusted = $data['is_trusted'];
+            $device->setIsTrusted($data['is_trusted']);
         }
         if (isset($data['last_seen_at'])) {
-            $device->lastSeenAt = new DateTimeImmutable($data['last_seen_at']);
+            $device->setLastSeenAt(new DateTimeImmutable($data['last_seen_at']));
         }
 
         $this->entityManager->flush();
@@ -96,7 +108,7 @@ final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositor
 
     public function delete(string $id): bool
     {
-        $device = $this->entityManager->find(DeviceInfo::class, $id);
+        $device = $this->entityManager->find($this->deviceInfoClass, $id);
         if ($device === null) {
             return false;
         }
@@ -110,20 +122,20 @@ final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositor
     private function toCoreEntity(DeviceInfo $device): CoreDeviceInfo
     {
         return CoreDeviceInfo::fromArray([
-            'id' => $device->id,
-            'user_id' => $device->userId,
-            'fingerprint' => $device->fingerprint,
-            'device_type' => $device->deviceType,
-            'browser' => $device->browser,
-            'browser_version' => $device->browserVersion,
-            'os' => $device->os,
-            'os_version' => $device->osVersion,
-            'ip_address' => $device->ipAddress,
-            'location' => $device->location,
-            'is_trusted' => $device->isTrusted,
-            'first_seen_at' => $device->firstSeenAt->format('Y-m-d H:i:s'),
-            'last_seen_at' => $device->lastSeenAt->format('Y-m-d H:i:s'),
-            'metadata' => $device->metadata,
+            'id' => (string) $device->getId(),
+            'user_id' => (string) $device->getUserId(),
+            'fingerprint' => $device->getFingerprint(),
+            'device_type' => $device->getDeviceType(),
+            'browser' => $device->getBrowser(),
+            'browser_version' => $device->getBrowserVersion(),
+            'os' => $device->getOs(),
+            'os_version' => $device->getOsVersion(),
+            'ip_address' => $device->getIpAddress(),
+            'location' => $device->getLocation(),
+            'is_trusted' => $device->isTrusted(),
+            'first_seen_at' => $device->getFirstSeenAt()->format('Y-m-d H:i:s'),
+            'last_seen_at' => $device->getLastSeenAt()->format('Y-m-d H:i:s'),
+            'metadata' => $device->getMetadata(),
         ]);
     }
 }

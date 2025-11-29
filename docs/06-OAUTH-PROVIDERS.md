@@ -177,7 +177,7 @@ BetterAuth handles this automatically and returns:
   "user": {
     "id": "019ab13e-40f1-7b21-a672-f403d5277ec7",
     "email": "user@gmail.com",
-    "name": "John Doe",
+    "username": "John Doe",
     "emailVerified": true
   }
 }

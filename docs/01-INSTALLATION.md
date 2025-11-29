@@ -90,7 +90,7 @@ php bin/console better-auth:install \
 php bin/console better-auth:install \
   --id-strategy=uuid \
   --mode=api \
-  --exclude-fields=name,avatar
+  --exclude-fields=username,avatar
 ```
 
 ---
@@ -264,7 +264,7 @@ symfony server:start
 # Test registration
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"Password123","name":"Test User"}'
+  -d '{"email":"test@example.com","password":"Password123","username":"Test User"}'
 ```
 
 ---
@@ -273,7 +273,7 @@ curl -X POST http://localhost:8000/auth/register \
 
 ### Manage User Fields
 
-Add or remove optional fields (`name`, `avatar`) after installation:
+Add or remove optional fields (`username`, `avatar`) after installation:
 
 ```bash
 # Add the name field

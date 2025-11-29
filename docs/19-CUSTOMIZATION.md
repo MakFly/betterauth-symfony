@@ -974,7 +974,7 @@ curl -X POST https://api.example.com/acme-corp/auth/login \
 # Register on Beta Inc tenant (if allowed)
 curl -X POST https://api.example.com/beta-inc/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "new@beta.com", "password": "secret", "name": "New User"}'
+  -d '{"email": "new@beta.com", "password": "secret", "username": "New User"}'
 ```
 
 ---
@@ -1002,7 +1002,7 @@ trait ReactAdminResponseTrait
         return [
             'id' => $user->getId(),
             'email' => $user->getEmail(),
-            'fullName' => $user->getName(),
+            'fullName' => $user->getUsername(),
             'avatar' => $user->getAvatar(),
         ];
     }

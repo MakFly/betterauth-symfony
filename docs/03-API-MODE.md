@@ -72,7 +72,7 @@ curl -X POST http://localhost:8000/auth/login \
   "user": {
     "id": "019ab13e-40f1-7b21-a672-f403d5277ec7",
     "email": "user@example.com",
-    "name": "John Doe",
+    "username": "John Doe",
     "emailVerified": true
   }
 }
@@ -293,7 +293,7 @@ v4.local.eyJ...
 {
   "sub": "019ab13e-40f1-7b21-a672-f403d5277ec7",
   "email": "user@example.com",
-  "name": "John Doe",
+  "username": "John Doe",
   "iat": "2024-01-15T10:00:00Z",
   "exp": "2024-01-15T11:00:00Z"
 }

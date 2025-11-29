@@ -62,7 +62,7 @@ php bin/console better-auth:install \
 **Options:**
 - `--id-strategy=uuid|int` - Choose UUID v7 or INT IDs
 - `--mode=api|session|hybrid` - Authentication mode
-- `--exclude-fields=name,avatar` - Exclude optional User fields
+- `--exclude-fields=username,avatar` - Exclude optional User fields
 - `--minimal` - Generate minimal User entity (no name, avatar)
 - `--skip-migrations` - Skip migration generation
 - `--skip-controller` - Skip controller generation
@@ -70,7 +70,7 @@ php bin/console better-auth:install \
 
 ### Minimal Installation (without profile fields)
 
-If you don't need `name` and `avatar` fields:
+If you don't need `username` and `avatar` fields:
 
 ```bash
 php bin/console better-auth:install \
@@ -85,7 +85,7 @@ Or exclude specific fields:
 php bin/console better-auth:install \
   --id-strategy=uuid \
   --mode=api \
-  --exclude-fields=avatar  # Keep name, exclude avatar
+  --exclude-fields=avatar  # Keep username, exclude avatar
 ```
 
 ## 🚀 Quick Start
@@ -106,14 +106,14 @@ Test the endpoints:
 # Register a user
 curl -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"SecurePassword123","name":"John Doe"}'
+  -d '{"email":"user@example.com","password":"SecurePassword123","username":"John Doe"}'
 
 # Response (UUID v7 example):
 # {
 #   "user": {
 #     "id": "019ab13e-40f1-7b21-a672-f403d5277ec7",
 #     "email": "user@example.com",
-#     "name": "John Doe",
+#     "username": "John Doe",
 #     "emailVerified": false
 #   }
 # }
@@ -399,7 +399,7 @@ src/Controller/
 
 ### 👤 Managing User Fields
 
-After installation, you can add or remove optional fields (`name`, `avatar`):
+After installation, you can add or remove optional fields (`username`, `avatar`):
 
 ```bash
 # Add fields

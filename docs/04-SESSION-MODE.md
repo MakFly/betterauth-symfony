@@ -66,7 +66,7 @@ curl -X POST http://localhost:8000/auth/login \
   "user": {
     "id": "019ab13e-40f1-7b21-a672-f403d5277ec7",
     "email": "user@example.com",
-    "name": "John Doe"
+    "username": "John Doe"
   }
 }
 ```
@@ -171,7 +171,7 @@ security:
 ```twig
 {% if app.user %}
     <div class="user-info">
-        <p>Name: {{ app.user.name }}</p>
+        <p>Name: {{ app.user.username }}</p>
         <p>Email: {{ app.user.email }}</p>
         <p>Verified: {{ app.user.emailVerified ? 'Yes' : 'No' }}</p>
     </div>

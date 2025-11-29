@@ -49,7 +49,7 @@ curl -X POST http://localhost:8000/auth/register \
   -d '{
     "email": "user@example.com",
     "password": "SecurePassword123",
-    "name": "John Doe"
+    "username": "John Doe"
   }'
 ```
 
@@ -58,7 +58,7 @@ curl -X POST http://localhost:8000/auth/register \
 |-------|------|----------|-------------|
 | email | string | Yes | User email |
 | password | string | Yes | Password (min 8 chars) |
-| name | string | No | Display name |
+| username | string | No | Display name |
 
 **Response (201 Created):**
 ```json
@@ -70,7 +70,7 @@ curl -X POST http://localhost:8000/auth/register \
   "user": {
     "id": "019ab13e-40f1-7b21-a672-f403d5277ec7",
     "email": "user@example.com",
-    "name": "John Doe",
+    "username": "John Doe",
     "emailVerified": false,
     "createdAt": "2024-01-15T10:00:00+00:00"
   }
@@ -111,7 +111,7 @@ curl -X POST http://localhost:8000/auth/login \
   "user": {
     "id": "019ab13e-40f1-7b21-a672-f403d5277ec7",
     "email": "user@example.com",
-    "name": "John Doe",
+    "username": "John Doe",
     "emailVerified": true,
     "createdAt": "2024-01-15T10:00:00+00:00",
     "updatedAt": "2024-01-16T14:30:00+00:00"
@@ -199,7 +199,7 @@ curl -X GET http://localhost:8000/auth/me \
 {
   "id": "019ab13e-40f1-7b21-a672-f403d5277ec7",
   "email": "user@example.com",
-  "name": "John Doe",
+  "username": "John Doe",
   "emailVerified": true,
   "createdAt": "2024-01-15T10:00:00+00:00",
   "updatedAt": "2024-01-16T14:30:00+00:00"
@@ -404,7 +404,7 @@ GET /auth/oauth/google/callback?code=xxx&state=abc123xyz
   "user": {
     "id": "019ab13e-40f1-7b21-a672-f403d5277ec7",
     "email": "user@gmail.com",
-    "name": "John Doe",
+    "username": "John Doe",
     "emailVerified": true
   }
 }

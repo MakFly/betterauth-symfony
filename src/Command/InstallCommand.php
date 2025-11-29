@@ -747,7 +747,7 @@ HELP;
             $filesystem->mkdir($entitiesDir);
         }
 
-        $templatesDir = dirname(__DIR__) . '/Resources/templates/entities';
+        $templatesDir = dirname(__DIR__, 2) . '/Resources/templates/entities';
         $generatedFiles = [];
 
         foreach (self::ENTITY_TEMPLATES as $entityName => $templates) {

@@ -37,7 +37,7 @@
   },
   "require": {
     "php": "^8.2",
-    "betterauth/core": "^1.0|dev-main",
+    "betterauth/core": "^2.0|dev-main",
     "symfony/framework-bundle": "^6.0|^7.0",
     "symfony/config": "^6.0|^7.0",
     "symfony/dependency-injection": "^6.0|^7.0",
@@ -103,7 +103,7 @@
       "require": "^6.0|^7.0"
     },
     "branch-alias": {
-      "dev-main": "1.0-dev"
+      "dev-main": "2.0-dev"
     }
   }
 }

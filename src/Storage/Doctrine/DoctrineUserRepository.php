@@ -186,6 +186,7 @@ final class DoctrineUserRepository implements UserRepositoryInterface
             'password' => $doctrineUser->getPassword(),
             'username' => $doctrineUser->getUsername(),
             'avatar' => $doctrineUser->getAvatar(),
+            'roles' => $doctrineUser->getRoles(),
             'email_verified' => $doctrineUser->isEmailVerified(),
             'email_verified_at' => $doctrineUser->getEmailVerifiedAt()?->format('Y-m-d H:i:s'),
             'created_at' => $doctrineUser->getCreatedAt()->format('Y-m-d H:i:s'),

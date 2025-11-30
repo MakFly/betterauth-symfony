@@ -31,8 +31,7 @@ class BetterAuthUser implements UserInterface
      */
     public function getRoles(): array
     {
-        // Par défaut, tous les utilisateurs ont ROLE_USER
-        return ['ROLE_USER'];
+        return $this->user->getRoles();
     }
 
     /**

@@ -135,10 +135,12 @@ services:
 
     # Security integration for Symfony Security component
     # Dispatches 8 events compatible with LexikJWTAuthenticationBundle
+    # Returns the actual Doctrine User entity via UserProvider for seamless $security->getUser()
     BetterAuth\Symfony\Security\BetterAuthAuthenticator:
         arguments:
             $authManager: '@BetterAuth\Core\TokenAuthManager'
             $dispatcher: '@Symfony\Contracts\EventDispatcher\EventDispatcherInterface'
+            $userProvider: '@BetterAuth\Symfony\Security\BetterAuthUserProvider'
             $tokenService: '@BetterAuth\Core\TokenService'
             $debug: '%kernel.debug%'
             $tokenExtractor: '@BetterAuth\Symfony\TokenExtractor\TokenExtractorInterface'
@@ -148,7 +150,9 @@ services:
 
     BetterAuth\Symfony\Security\BetterAuthUserProvider:
         arguments:
-            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $entityManager: '@Doctrine\ORM\EntityManagerInterface'
+            $idConverter: '@BetterAuth\Symfony\Service\UserIdConverter'
+            $userClass: 'App\Entity\User'
         public: true
 
     # OAuth Manager - Manages OAuth providers (Google, GitHub, etc.)

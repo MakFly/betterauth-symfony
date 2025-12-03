@@ -16,6 +16,7 @@ use BetterAuth\Symfony\Event\TokenDecodedEvent;
 use BetterAuth\Symfony\Event\TokenExpiredEvent;
 use BetterAuth\Symfony\Event\TokenInvalidEvent;
 use BetterAuth\Symfony\Event\TokenNotFoundEvent;
+use BetterAuth\Symfony\Model\User as BetterAuthModelUser;
 use BetterAuth\Symfony\TokenExtractor\AuthorizationHeaderTokenExtractor;
 use BetterAuth\Symfony\TokenExtractor\TokenExtractorInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,6 +25,8 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
@@ -49,6 +52,9 @@ use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
  * - QueryParameterTokenExtractor
  * - ChainTokenExtractor (combines multiple)
  *
+ * Returns the actual Doctrine User entity (App\Entity\User) via the UserProvider,
+ * allowing $security->getUser() to return the real entity for seamless integration.
+ *
  * Usage dans security.yaml:
  * security:
  *     firewalls:
@@ -65,6 +71,7 @@ class BetterAuthAuthenticator extends AbstractAuthenticator
     public function __construct(
         private readonly TokenAuthManagerInterface $authManager,
         private readonly EventDispatcherInterface $dispatcher,
+        private readonly UserProviderInterface $userProvider,
         private readonly ?TokenSignerInterface $tokenService = null,
         private readonly bool $debug = false,
         ?TokenExtractorInterface $tokenExtractor = null,
@@ -120,24 +127,23 @@ class BetterAuthAuthenticator extends AbstractAuthenticator
                 }
             }
 
-            // Vérifier le token via TokenAuthManager
-            $user = $this->authManager->verify($token);
+            // Vérifier le token via TokenAuthManager (returns Core\Entities\User DTO)
+            $coreUser = $this->authManager->verify($token);
 
             // Event: TOKEN_AUTHENTICATED
             $authenticatedEvent = new TokenAuthenticatedEvent(
                 $this->tokenService?->decode($token) ?? [],
-                $user,
+                $coreUser,
                 $token
             );
             $this->dispatcher->dispatch($authenticatedEvent, BetterAuthEvents::TOKEN_AUTHENTICATED);
 
-            // Créer le Passport avec l'utilisateur vérifié
+            // Create Passport using UserProvider to load the actual Doctrine entity
+            // This ensures $security->getUser() returns App\Entity\User, not a wrapper
             return new SelfValidatingPassport(
                 new UserBadge(
-                    $user->getId(),
-                    function (string $userId) use ($user) {
-                        return new BetterAuthUser($user);
-                    }
+                    $coreUser->getId(),
+                    fn (string $userId): UserInterface => $this->userProvider->loadUserByIdentifier($userId)
                 )
             );
 
@@ -184,12 +190,12 @@ class BetterAuthAuthenticator extends AbstractAuthenticator
      */
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
     {
-        /** @var BetterAuthUser $user */
         $user = $token->getUser();
 
-        if ($user instanceof BetterAuthUser) {
+        // Dispatch success event if user is a BetterAuth model user
+        if ($user instanceof BetterAuthModelUser) {
             // Event: AUTHENTICATION_SUCCESS
-            $successEvent = new AuthenticationSuccessEvent($user->getBetterAuthUser());
+            $successEvent = new AuthenticationSuccessEvent($user);
             $this->dispatcher->dispatch($successEvent, BetterAuthEvents::AUTHENTICATION_SUCCESS);
 
             if ($successEvent->getResponse()) {

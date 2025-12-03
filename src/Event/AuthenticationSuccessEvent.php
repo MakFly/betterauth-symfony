@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace BetterAuth\Symfony\Event;
 
-use BetterAuth\Core\Entities\User;
+use BetterAuth\Core\Entities\User as CoreUser;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Contracts\EventDispatcher\Event;
 
 /**
@@ -16,18 +17,22 @@ use Symfony\Contracts\EventDispatcher\Event;
  * - Add custom data to response
  * - Log successful logins
  * - Track login statistics
+ *
+ * The user can be either:
+ * - BetterAuth\Core\Entities\User (DTO from TokenAuthManager)
+ * - App\Entity\User (Doctrine entity via Symfony Security)
  */
 final class AuthenticationSuccessEvent extends Event
 {
     private ?Response $response = null;
 
     public function __construct(
-        private readonly User $user,
+        private readonly UserInterface|CoreUser $user,
         private array $data = [],
     ) {
     }
 
-    public function getUser(): User
+    public function getUser(): UserInterface|CoreUser
     {
         return $this->user;
     }

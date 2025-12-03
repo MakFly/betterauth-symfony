@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace BetterAuth\Symfony\Security;
 
-use BetterAuth\Core\Interfaces\UserRepositoryInterface;
+use BetterAuth\Symfony\Model\User as BetterAuthModelUser;
+use BetterAuth\Symfony\Service\UserIdConverter;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
 /**
- * UserProvider pour Symfony Security
+ * UserProvider pour Symfony Security.
+ *
+ * Returns the actual Doctrine User entity (App\Entity\User) instead of a wrapper,
+ * allowing seamless integration with Symfony Security and API Platform.
  *
  * Usage dans security.yaml:
  * security:
@@ -20,9 +25,14 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
  */
 class BetterAuthUserProvider implements UserProviderInterface
 {
+    private string $userClass;
+
     public function __construct(
-        private readonly UserRepositoryInterface $userRepository
+        private readonly EntityManagerInterface $entityManager,
+        private readonly UserIdConverter $idConverter,
+        string $userClass = BetterAuthModelUser::class,
     ) {
+        $this->userClass = $userClass;
     }
 
     /**
@@ -30,18 +40,23 @@ class BetterAuthUserProvider implements UserProviderInterface
      */
     public function refreshUser(UserInterface $user): UserInterface
     {
-        if (!$user instanceof BetterAuthUser) {
-            throw new \InvalidArgumentException(sprintf('Instances of "%s" are not supported.', get_class($user)));
+        if (!$user instanceof BetterAuthModelUser) {
+            throw new \InvalidArgumentException(sprintf(
+                'Instances of "%s" are not supported. Expected instance of "%s".',
+                get_class($user),
+                BetterAuthModelUser::class
+            ));
         }
 
-        $betterAuthUser = $user->getBetterAuthUser();
-        $freshUser = $this->userRepository->findById($betterAuthUser->getId());
+        $freshUser = $this->entityManager
+            ->getRepository($this->userClass)
+            ->find($user->getId());
 
         if (!$freshUser) {
             throw new UserNotFoundException('User not found');
         }
 
-        return new BetterAuthUser($freshUser);
+        return $freshUser;
     }
 
     /**
@@ -49,7 +64,7 @@ class BetterAuthUserProvider implements UserProviderInterface
      */
     public function supportsClass(string $class): bool
     {
-        return BetterAuthUser::class === $class || is_subclass_of($class, BetterAuthUser::class);
+        return $class === $this->userClass || is_subclass_of($class, BetterAuthModelUser::class);
     }
 
     /**
@@ -57,12 +72,14 @@ class BetterAuthUserProvider implements UserProviderInterface
      */
     public function loadUserByIdentifier(string $identifier): UserInterface
     {
-        $user = $this->userRepository->findById($identifier);
+        $user = $this->entityManager
+            ->getRepository($this->userClass)
+            ->find($this->idConverter->toDatabaseId($identifier));
 
         if (!$user) {
             throw new UserNotFoundException(sprintf('User "%s" not found.', $identifier));
         }
 
-        return new BetterAuthUser($user);
+        return $user;
     }
 }

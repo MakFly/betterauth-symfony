@@ -17,10 +17,14 @@ trait AuthResponseTrait
         return [
             'id' => $user->getId(),
             'email' => $user->getEmail(),
+            'roles' => $user->getRoles(),
             'username' => $user->getUsername(),
+            'avatar' => $user->getAvatar(),
             'emailVerified' => $user->isEmailVerified(),
+            'emailVerifiedAt' => $user->getEmailVerifiedAt()?->format(\DateTimeInterface::ATOM),
             'createdAt' => $user->getCreatedAt()->format(\DateTimeInterface::ATOM),
             'updatedAt' => $user->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+            'metadata' => $user->getMetadata(),
         ];
     }
 

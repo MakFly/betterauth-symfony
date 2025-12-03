@@ -88,6 +88,11 @@ php bin/console better-auth:setup-features --enable=magic_link --with-controller
 php bin/console better-auth:configure            # Interactive configuration wizard
 php bin/console better-auth:switch-mode          # Switch authentication mode
 php bin/console better-auth:generate-config      # Generate config with presets
+php bin/console better-auth:cleanup:sessions     # Remove expired sessions
+php bin/console better-auth:cleanup:tokens       # Remove expired refresh tokens
+php bin/console better-auth:generate-secret      # Generate BETTER_AUTH_SECRET
+php bin/console better-auth:publish-templates    # Publish email templates
+php bin/console better-auth:user-fields          # Add/remove optional User fields
 
 # Setup
 php bin/console better-auth:setup:dependencies   # Install dependencies

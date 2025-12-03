@@ -113,82 +113,36 @@ src/Entity/
 
 ### Controllers
 
-**Core Controllers (installés automatiquement):**
+**Contrôleurs fournis :**
 
 ```
-src/Controller/Api/
+src/Controller/
 ├── Trait/
-│   └── ApiResponseTrait.php      # Trait for consistent API responses
-├── AuthController.php            # Authentication & 2FA (11 endpoints)
-├── PasswordController.php        # Password reset (3 endpoints)
-└── SessionsController.php        # Session management (2 endpoints)
+│   └── AuthResponseTrait.php        # Réponses API cohérentes
+├── CredentialsController.php       # register / login / login 2FA
+├── TokenController.php             # me / refresh / logout / revoke-all
+├── TwoFactorController.php         # setup / validate / verify / disable / backup codes
+├── PasswordResetController.php     # reset mot de passe
+├── EmailVerificationController.php # envoi + vérification email
+├── MagicLinkController.php         # login sans mot de passe
+├── SessionController.php           # liste/révocation des sessions
+├── GuestSessionController.php      # sessions invitées
+└── OAuthController.php             # OAuth (Google, GitHub, Facebook, Microsoft, Discord)
 ```
 
-**Optional Controllers (via `better-auth:add-controller`):**
-
-```
-src/Controller/Api/
-├── OAuthController.php           # OAuth providers (3 endpoints)
-├── EmailVerificationController.php # Email verification (4 endpoints)
-├── MagicLinkController.php       # Passwordless auth (3 endpoints)
-├── GuestSessionController.php    # Guest sessions (4 endpoints)
-├── AccountLinkController.php     # Account linking (4 endpoints)
-└── DeviceController.php          # Device management (6 endpoints)
-```
-
-### All Available Endpoints (40 total)
+### Endpoints principaux
 
 | Controller | Route | Description |
 |------------|-------|-------------|
-| **AuthController** (11) | | |
-| | `POST /auth/register` | Inscription |
-| | `POST /auth/login` | Connexion |
-| | `POST /auth/login/2fa` | Connexion avec 2FA |
-| | `GET /auth/me` | Utilisateur courant |
-| | `POST /auth/refresh` | Rafraîchir le token |
-| | `POST /auth/logout` | Déconnexion |
-| | `POST /auth/revoke-all` | Déconnecter tous les appareils |
-| | `POST /auth/2fa/setup` | Setup 2FA |
-| | `POST /auth/2fa/verify` | Vérifier et activer 2FA |
-| | `POST /auth/2fa/disable` | Désactiver 2FA |
-| | `GET /auth/2fa/status` | Statut 2FA |
-| **PasswordController** (3) | | |
-| | `POST /auth/password/forgot` | Demande reset |
-| | `POST /auth/password/reset` | Reset mot de passe |
-| | `POST /auth/password/verify-token` | Vérifier token |
-| **SessionsController** (2) | | |
-| | `GET /auth/sessions` | Lister sessions |
-| | `DELETE /auth/sessions/{id}` | Révoquer session |
-| **OAuthController** (3) | | |
-| | `GET /auth/oauth` | Lister providers OAuth |
-| | `GET /auth/oauth/{provider}` | Redirection OAuth |
-| | `GET /auth/oauth/{provider}/callback` | Callback OAuth |
-| **EmailVerificationController** (4) | | |
-| | `POST /auth/email/send-verification` | Envoyer email vérification |
-| | `POST /auth/email/verify` | Vérifier email |
-| | `POST /auth/email/resend` | Renvoyer email |
-| | `GET /auth/email/status` | Statut vérification |
-| **MagicLinkController** (3) | | |
-| | `POST /auth/magic-link/request` | Demander magic link |
-| | `POST /auth/magic-link/verify` | Vérifier magic link |
-| | `POST /auth/magic-link/check` | Valider token |
-| **GuestSessionController** (4) | | |
-| | `POST /auth/guest/create` | Créer session guest |
-| | `POST /auth/guest/convert` | Convertir en user |
-| | `GET /auth/guest/{token}` | Récupérer données guest |
-| | `PATCH /auth/guest/{token}` | Mettre à jour guest |
-| **AccountLinkController** (4) | | |
-| | `GET /auth/account/links` | Lister comptes liés |
-| | `GET /auth/account/link/{provider}` | Initier liaison |
-| | `GET /auth/account/link/{provider}/callback` | Callback liaison |
-| | `DELETE /auth/account/link/{provider}` | Délier compte |
-| **DeviceController** (6) | | |
-| | `GET /auth/devices` | Lister appareils |
-| | `GET /auth/devices/{id}` | Détails appareil |
-| | `DELETE /auth/devices/{id}` | Révoquer appareil |
-| | `POST /auth/devices/{id}/trust` | Marquer comme fiable |
-| | `DELETE /auth/devices/{id}/trust` | Retirer confiance |
-| | `POST /auth/devices/revoke-all` | Révoquer tous sauf actuel |
+| **CredentialsController** | `POST /auth/register`, `POST /auth/login`, `POST /auth/login/2fa` |
+| **TokenController** | `GET /auth/me`, `POST /auth/refresh`, `POST /auth/logout`, `POST /auth/revoke-all` |
+| **TwoFactorController** | `POST /auth/2fa/setup`, `POST /auth/2fa/validate`, `POST /auth/2fa/verify`, `POST /auth/2fa/disable`, `GET /auth/2fa/status`, `POST /auth/2fa/reset`, `POST /auth/2fa/backup-codes/regenerate` |
+| **PasswordResetController** | `POST /auth/password/forgot`, `POST /auth/password/reset`, `POST /auth/password/verify-token` |
+| **EmailVerificationController** | `POST /auth/email/send-verification`, `POST /auth/email/verify`, `GET /auth/email/verification-status` |
+| **MagicLinkController** | `POST /auth/magic-link/send`, `POST /auth/magic-link/verify`, `GET /auth/magic-link/verify/{token}` |
+| **SessionController** | `GET /auth/sessions`, `DELETE /auth/sessions/{sessionId}` |
+| **GuestSessionController** | `POST /auth/guest/create`, `GET /auth/guest/{token}`, `POST /auth/guest/convert`, `DELETE /auth/guest/{token}` |
+| **OAuthController** | `GET /auth/oauth/providers`, `GET /auth/oauth/{provider}`, `GET /auth/oauth/{provider}/url`, `GET /auth/oauth/{provider}/callback` |
 
 ### Configuration
 

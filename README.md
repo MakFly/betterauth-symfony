@@ -42,7 +42,7 @@ The installation wizard will:
 - ✅ Ask for authentication mode (api, session, or hybrid)
 - ✅ Ask for OAuth providers (Google, GitHub, etc.)
 - ✅ Generate User, Session, and RefreshToken entities
-- ✅ Generate AuthController with 8 endpoints
+- ✅ Génère les contrôleurs d’auth prêts à l’emploi (register/login/refresh/2FA/etc.)
 - ✅ Create configuration file (`config/packages/better_auth.yaml`)
 - ✅ Generate and run database migrations
 - ✅ Update .env with secrets
@@ -142,20 +142,20 @@ curl -X POST http://localhost:8000/auth/refresh \
   -d '{"refreshToken":"YOUR_REFRESH_TOKEN"}'
 ```
 
-## 🛣️ Generated Endpoints
+## 🛣️ Endpoints prêts à l’emploi
 
-The `better-auth:install` command generates an `AuthController` with **8 endpoints**:
+Les contrôleurs livrés par le bundle exposent les routes suivantes :
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/auth/register` | Register new user |
-| POST | `/auth/login` | Authenticate user (returns tokens) |
-| GET | `/auth/me` | Get current authenticated user |
-| POST | `/auth/refresh` | Refresh access token |
-| POST | `/auth/logout` | Logout current user |
-| POST | `/auth/revoke-all` | Revoke all refresh tokens |
-| GET | `/auth/oauth/{provider}` | Get OAuth authorization URL |
-| GET | `/auth/oauth/{provider}/callback` | OAuth callback handler |
+| Zone | Endpoints principaux |
+|------|----------------------|
+| Auth de base | `POST /auth/register`, `POST /auth/login`, `POST /auth/login/2fa`, `GET /auth/me`, `POST /auth/refresh`, `POST /auth/logout`, `POST /auth/revoke-all` |
+| Sessions | `GET /auth/sessions`, `DELETE /auth/sessions/{id}` |
+| 2FA/TOTP | `POST /auth/2fa/setup`, `POST /auth/2fa/validate`, `POST /auth/2fa/verify`, `POST /auth/2fa/disable`, `GET /auth/2fa/status`, `POST /auth/2fa/reset`, `POST /auth/2fa/backup-codes/regenerate` |
+| Magic link | `POST /auth/magic-link/send`, `POST /auth/magic-link/verify`, `GET /auth/magic-link/verify/{token}` |
+| Email | `POST /auth/email/send-verification`, `POST /auth/email/verify`, `GET /auth/email/verification-status` |
+| Mot de passe | `POST /auth/password/forgot`, `POST /auth/password/reset`, `POST /auth/password/verify-token` |
+| OAuth | `GET /auth/oauth/providers`, `GET /auth/oauth/{provider}`, `GET /auth/oauth/{provider}/url`, `GET /auth/oauth/{provider}/callback` |
+| Invité | `POST /auth/guest/create`, `GET /auth/guest/{token}`, `POST /auth/guest/convert`, `DELETE /auth/guest/{token}` |
 
 ## ⚙️ Configuration
 
@@ -384,17 +384,20 @@ php bin/console better-auth:add-controller oauth
 php bin/console better-auth:add-controller --all
 ```
 
-**Generated structure:**
+**Structure des contrôleurs fournis :**
 ```
 src/Controller/
 ├── Trait/
-│   └── ApiResponseTrait.php   # Shared response formatting
-├── AuthController.php         # Core auth (register, login, logout, etc.)
-├── PasswordController.php     # Password reset flow
-├── SessionsController.php     # Session management
-├── MagicLinkController.php    # Passwordless authentication
-├── OAuthController.php        # OAuth providers
-└── ...
+│   └── AuthResponseTrait.php      # Helpers de réponse JSON
+├── CredentialsController.php     # register/login/login 2FA
+├── TokenController.php           # me/refresh/logout/revoke-all
+├── TwoFactorController.php       # setup/validate/verify/disable/backup codes
+├── PasswordResetController.php   # forgot/reset/verify-token
+├── EmailVerificationController.php # send/verify/status
+├── MagicLinkController.php       # passwordless
+├── SessionController.php         # list/revoke sessions
+├── GuestSessionController.php    # sessions invitées
+└── OAuthController.php           # providers/oauth callback
 ```
 
 ### 👤 Managing User Fields
@@ -421,10 +424,20 @@ php bin/console doctrine:migrations:migrate
 # Generate a secure secret for BETTER_AUTH_SECRET
 php bin/console better-auth:generate-secret
 
+# Nettoyer les données expirées
+php bin/console better-auth:cleanup:sessions --dry-run
+php bin/console better-auth:cleanup:tokens
+
 # Switch authentication mode
 php bin/console better-auth:switch-mode api
 php bin/console better-auth:switch-mode session
 php bin/console better-auth:switch-mode hybrid
+
+# Publier les templates email
+php bin/console better-auth:publish-templates --force
+
+# Gérer les champs optionnels User
+php bin/console better-auth:user-fields add name,avatar
 
 # Interactive configuration wizard
 php bin/console better-auth:configure

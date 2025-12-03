@@ -28,10 +28,32 @@ Authorization: Bearer <access_token>
 | GET | `/auth/me` | Yes | Get current user |
 | POST | `/auth/refresh` | No | Refresh access token |
 | POST | `/auth/logout` | Yes | Logout user |
-| POST | `/auth/revoke-all` | Yes | Revoke all sessions |
+| POST | `/auth/revoke-all` | Yes | Revoke all sessions/tokens |
 | GET | `/auth/sessions` | Yes | List active sessions |
 | DELETE | `/auth/sessions/{id}` | Yes | Revoke specific session |
-| GET | `/auth/oauth/{provider}` | No | Get OAuth URL |
+| POST | `/auth/2fa/setup` | Yes | Init TOTP setup |
+| POST | `/auth/2fa/validate` | Yes | Validate first TOTP code |
+| POST | `/auth/2fa/verify` | Yes | Complete 2FA login |
+| POST | `/auth/2fa/disable` | Yes | Disable TOTP |
+| GET | `/auth/2fa/status` | Yes | 2FA status |
+| POST | `/auth/2fa/reset` | Yes | Reset TOTP |
+| POST | `/auth/2fa/backup-codes/regenerate` | Yes | Regenerate backup codes |
+| POST | `/auth/magic-link/send` | No | Send passwordless link |
+| POST | `/auth/magic-link/verify` | No | Verify magic link |
+| GET | `/auth/magic-link/verify/{token}` | No | Verify magic link (GET) |
+| POST | `/auth/email/send-verification` | Yes | Send verification email |
+| POST | `/auth/email/verify` | No | Verify email token |
+| GET | `/auth/email/verification-status` | Yes | Check verification status |
+| POST | `/auth/password/forgot` | No | Request password reset |
+| POST | `/auth/password/reset` | No | Reset password |
+| POST | `/auth/password/verify-token` | No | Check reset token |
+| POST | `/auth/guest/create` | No | Create guest session |
+| GET | `/auth/guest/{token}` | No | Get guest session |
+| POST | `/auth/guest/convert` | No | Convert guest to user |
+| DELETE | `/auth/guest/{token}` | No | Delete guest session |
+| GET | `/auth/oauth/providers` | No | List OAuth providers |
+| GET | `/auth/oauth/{provider}` | No | Get OAuth auth URL |
+| GET | `/auth/oauth/{provider}/url` | No | Alternate provider URL |
 | GET | `/auth/oauth/{provider}/callback` | No | OAuth callback |
 
 ---

@@ -186,10 +186,11 @@ jobs:
       fail-fast: false
       matrix:
         symfony: ['6.4.*', '7.3.*', '8.0.*']
-        php: ['8.3']
-        include:
+        php: ['8.3', '8.4']
+        exclude:
+          # Symfony 8.0 requires PHP 8.4+
           - symfony: '8.0.*'
-            php: '8.4'
+            php: '8.3'
 
     steps:
       - name: Checkout code

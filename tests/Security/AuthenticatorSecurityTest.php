@@ -18,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
+use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
@@ -33,12 +34,14 @@ class AuthenticatorSecurityTest extends TestCase
 {
     private MockObject $authManager;
     private MockObject|EventDispatcherInterface $dispatcher;
+    private MockObject|UserProviderInterface $userProvider;
     private MockObject|TokenSignerInterface $tokenService;
 
     protected function setUp(): void
     {
         $this->authManager = $this->createMock(TokenAuthManagerInterface::class);
         $this->dispatcher = $this->createMock(EventDispatcherInterface::class);
+        $this->userProvider = $this->createMock(UserProviderInterface::class);
         $this->tokenService = $this->createMock(TokenSignerInterface::class);
     }
 
@@ -55,6 +58,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             $this->tokenService,
             false
         );
@@ -81,6 +85,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             $this->tokenService,
             false
         );
@@ -116,6 +121,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             $this->tokenService,
             false
         );
@@ -152,6 +158,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             $this->tokenService,
             false // debug = false (production)
         );
@@ -185,6 +192,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             $this->tokenService,
             true // debug = true
         );
@@ -222,6 +230,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             null,
             false
         );
@@ -252,6 +261,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             null,
             false
         );
@@ -287,6 +297,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             null,
             false
         );
@@ -312,6 +323,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             null,
             false
         );
@@ -338,6 +350,7 @@ class AuthenticatorSecurityTest extends TestCase
         $authenticator = new BetterAuthAuthenticator(
             $this->authManager,
             $this->dispatcher,
+            $this->userProvider,
             null,
             false
         );

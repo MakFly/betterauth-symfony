@@ -113,15 +113,6 @@ class Configuration implements ConfigurationInterface
                         ->booleanNode('enabled')->defaultFalse()->info('Enable security monitoring and threat detection')->end()
                     ->end()
                 ->end()
-                ->arrayNode('passkeys')
-                    ->addDefaultsIfNotSet()
-                    ->children()
-                        ->booleanNode('enabled')->defaultFalse()->info('Enable WebAuthn/passkeys authentication')->end()
-                        ->scalarNode('rp_name')->defaultValue('%env(APP_NAME)%')->info('Relying party name')->end()
-                        ->scalarNode('rp_id')->defaultValue('%env(APP_DOMAIN)%')->info('Relying party ID (domain)')->end()
-                    ->end()
-                ->end()
-
                 // Simple controllers toggle - if false, user creates their own
                 ->arrayNode('controllers')
                     ->addDefaultsIfNotSet()

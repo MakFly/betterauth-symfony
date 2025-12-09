@@ -13,7 +13,6 @@ Modern, secure authentication for Symfony 6/7 applications with automatic setup.
 - 🔐 **Email/Password authentication**
 - 🔗 **Magic Link** passwordless auth
 - 🌍 **OAuth 2.0**: Google `[STABLE]`, GitHub, Facebook, Microsoft, Discord `[DRAFT]`
-- 🔑 **Passkeys/WebAuthn**
 - 📱 **TOTP** (Two-Factor Authentication)
 - 🔄 **SSO/OIDC Provider**
 - 👥 **Multi-Tenant**: Organizations, Teams, Members, Invitations
@@ -352,7 +351,6 @@ php bin/console better-auth:setup-features --enable=magic_link --dry-run
 | `device_tracking` | Track user devices | `Device` |
 | `security_monitoring` | Threat detection | `SecurityEvent` |
 | `guest_sessions` | Anonymous sessions | `GuestSession` |
-| `passkeys` | WebAuthn biometrics | `Passkey` |
 | `multi_tenant` | Organizations & teams | `Organization`, `OrganizationMember` |
 
 **Options:**

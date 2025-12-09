@@ -80,11 +80,6 @@ better_auth:
     security_monitoring:
         enabled: false
 
-    passkeys:
-        enabled: false
-        rp_name: '%env(APP_NAME)%'
-        rp_id: '%env(APP_DOMAIN)%'
-
     controllers:
         enabled: true
 
@@ -113,7 +108,7 @@ better_auth:
 - **token/session** : durées d’accès/refresh, durée des sessions et nom du cookie.
 - **oauth** : Google `[STABLE]`, GitHub/Facebook/Microsoft/Discord `[DRAFT]`; chaque provider a `enabled`, `client_id`, `client_secret`, `redirect_uri`.
 - **two_factor / magic_link / email_verification / password_reset** : activer/désactiver et régler les durées.
-- **guest_sessions / device_tracking / security_monitoring / passkeys** : activer les fonctionnalités avancées.
+- **guest_sessions / device_tracking / security_monitoring** : activer les fonctionnalités avancées.
 - **controllers.enabled** : désactiver si vous fournissez vos propres contrôleurs.
 - **security.auto_configure** : par défaut `false` pour ne pas écraser votre `security.yaml`; activez-le uniquement si vous laissez le bundle tout configurer.
 - **cors.auto_configure** et **routing.auto_configure** : configuration automatique de CORS et du préfixe des routes personnalisées.

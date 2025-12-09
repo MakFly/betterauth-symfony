@@ -49,7 +49,6 @@ This command will:
 | `Device` | Device Tracking | `--enable=device_tracking` |
 | `SecurityEvent` | Security Monitoring | `--enable=security_monitoring` |
 | `GuestSession` | Guest Sessions | `--enable=guest_sessions` |
-| `Passkey` | Passkeys/WebAuthn | `--enable=passkeys` |
 | `Organization` | Multi-Tenant | `--enable=multi_tenant` |
 | `OrganizationMember` | Multi-Tenant | `--enable=multi_tenant` |
 

@@ -310,7 +310,6 @@ php bin/console better-auth:setup-features --enable=magic_link --dry-run
 | `device_tracking` | Track user devices | `Device` | `devices` |
 | `security_monitoring` | Threat detection | `SecurityEvent` | - |
 | `guest_sessions` | Anonymous sessions | `GuestSession` | `guest` |
-| `passkeys` | WebAuthn biometrics | `Passkey` | `passkeys` |
 | `multi_tenant` | Organizations & teams | `Organization`, `OrganizationMember` | `organizations` |
 
 **Options:**

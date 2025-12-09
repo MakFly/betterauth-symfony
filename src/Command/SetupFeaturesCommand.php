@@ -102,14 +102,6 @@ class SetupFeaturesCommand extends Command
             'entities' => ['GuestSession'],
             'controllers' => ['guest'],
         ],
-        'passkeys' => [
-            'name' => 'Passkeys (WebAuthn)',
-            'description' => 'Passwordless login with biometrics or security keys',
-            'default' => false,
-            'required' => false,
-            'entities' => ['Passkey'],
-            'controllers' => ['passkeys'],
-        ],
         'multi_tenant' => [
             'name' => 'Multi-Tenant (Organizations)',
             'description' => 'Organizations, teams, and member management',
@@ -131,7 +123,6 @@ class SetupFeaturesCommand extends Command
         'Device' => 'device.uuid.php.tpl',
         'SecurityEvent' => 'security_event.uuid.php.tpl',
         'GuestSession' => 'guest_session.uuid.php.tpl',
-        'Passkey' => 'passkey.uuid.php.tpl',
         'Organization' => 'organization.uuid.php.tpl',
         'OrganizationMember' => 'organization_member.uuid.php.tpl',
     ];
@@ -245,7 +236,7 @@ class SetupFeaturesCommand extends Command
 
         // Group features by category
         $categories = [
-            'Authentication' => ['email_password', 'oauth', 'magic_link', 'passkeys'],
+            'Authentication' => ['email_password', 'oauth', 'magic_link'],
             'Security' => ['two_factor', 'security_monitoring', 'device_tracking'],
             'User Management' => ['email_verification', 'password_reset', 'session_management'],
             'Advanced' => ['guest_sessions', 'multi_tenant'],
@@ -885,7 +876,6 @@ class SetupFeaturesCommand extends Command
             'device_tracking' => ($betterAuth['device_tracking']['enabled'] ?? false) === true,
             'security_monitoring' => ($betterAuth['security_monitoring']['enabled'] ?? false) === true,
             'guest_sessions' => ($betterAuth['guest_sessions']['enabled'] ?? false) === true,
-            'passkeys' => ($betterAuth['passkeys']['enabled'] ?? false) === true,
             default => $featureConfig['default'],
         };
     }
@@ -984,13 +974,6 @@ class SetupFeaturesCommand extends Command
                 ];
                 break;
 
-            case 'passkeys':
-                $config['better_auth']['passkeys'] = [
-                    'enabled' => true,
-                    'rp_name' => '%env(APP_NAME)%',
-                    'rp_id' => '%env(APP_DOMAIN)%',
-                ];
-                break;
         }
 
         return $config;
@@ -1009,7 +992,6 @@ class SetupFeaturesCommand extends Command
             'device_tracking' => 'device_tracking',
             'security_monitoring' => 'security_monitoring',
             'guest_sessions' => 'guest_sessions',
-            'passkeys' => 'passkeys',
         ];
 
         $configKey = $featureKeys[$feature] ?? null;
@@ -1048,13 +1030,6 @@ class SetupFeaturesCommand extends Command
                 if (!str_contains($envContent, $clientSecretVar)) {
                     $additions[] = "$clientSecretVar=your_{$provider}_client_secret";
                 }
-            }
-        }
-
-        // Add passkeys env vars
-        if ($selectedFeatures['passkeys'] ?? false) {
-            if (!str_contains($envContent, 'APP_DOMAIN')) {
-                $additions[] = 'APP_DOMAIN=localhost';
             }
         }
 
@@ -1115,7 +1090,6 @@ The <info>better-auth:setup-features</info> command enables/disables features wi
     • email_password     - Classic email/password login (required)
     • oauth              - Google, GitHub, Facebook, etc.
     • magic_link         - Passwordless email links → <fg=cyan>MagicLinkToken</>
-    • passkeys           - WebAuthn biometrics → <fg=cyan>Passkey</>
 
   <info>Security</info>
     • two_factor         - TOTP 2FA → <fg=cyan>TotpData</>

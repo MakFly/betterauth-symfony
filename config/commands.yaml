@@ -71,5 +71,7 @@ services:
             - { name: 'console.command' }
 
     BetterAuth\Symfony\Command\GenerateSecretCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
         tags:
             - { name: 'console.command' }

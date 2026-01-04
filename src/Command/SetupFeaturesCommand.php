@@ -942,6 +942,7 @@ class SetupFeaturesCommand extends Command
                 $config['better_auth']['magic_link'] = [
                     'enabled' => true,
                     'lifetime' => 900, // 15 minutes
+                    'allow_user_creation' => false,
                 ];
                 break;
 

@@ -91,6 +91,29 @@ final class DoctrineRefreshTokenRepository implements RefreshTokenRepositoryInte
         return true;
     }
 
+    public function consume(string $token, ?string $replacedBy = null): ?RefreshToken
+    {
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->update($this->refreshTokenClass, 'rt')
+            ->set('rt.revoked', ':revoked')
+            ->set('rt.replacedBy', ':replacedBy')
+            ->where('rt.token = :token')
+            ->andWhere('rt.revoked = :currentRevoked')
+            ->andWhere('rt.expiresAt > :now')
+            ->setParameter('revoked', true)
+            ->setParameter('replacedBy', $replacedBy)
+            ->setParameter('token', $token)
+            ->setParameter('currentRevoked', false)
+            ->setParameter('now', new DateTimeImmutable());
+
+        $updated = $qb->getQuery()->execute();
+        if ($updated === 0) {
+            return null;
+        }
+
+        return $this->findByToken($token);
+    }
+
     public function revokeAllForUser(string $userId): int
     {
         $doctrineTokens = $this->entityManager->getRepository($this->refreshTokenClass)

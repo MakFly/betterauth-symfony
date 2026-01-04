@@ -8,6 +8,7 @@ use BetterAuth\Core\AuthManager;
 use BetterAuth\Providers\OAuthProvider\OAuthManager;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -22,10 +23,15 @@ class OAuthController extends AbstractController
 {
     use AuthResponseTrait;
 
+    private const OAUTH_STATE_CACHE_PREFIX = 'better_auth.oauth_state.';
+    private const OAUTH_STATE_TTL = 600;
+
     public function __construct(
         private readonly AuthManager $authManager,
         private readonly OAuthManager $oauthManager,
         private readonly TotpProvider $totpProvider,
+        #[Autowire(service: 'cache.app')]
+        private readonly CacheItemPoolInterface $cache,
         private readonly ?LoggerInterface $logger = null,
         #[Autowire(env: 'FRONTEND_URL')]
         private readonly string $frontendUrl = 'http://localhost:5173',
@@ -48,6 +54,7 @@ class OAuthController extends AbstractController
     {
         try {
             $result = $this->oauthManager->getAuthorizationUrl($provider);
+            $this->storeOAuthState($provider, $result['state']);
 
             // If redirect query param, redirect directly
             if ($request->query->get('redirect') === 'true') {
@@ -68,6 +75,7 @@ class OAuthController extends AbstractController
     {
         try {
             $result = $this->oauthManager->getAuthorizationUrl($provider);
+            $this->storeOAuthState($provider, $result['state']);
             return $this->json([
                 'url' => $result['url'],
                 'state' => $result['state'],
@@ -83,6 +91,16 @@ class OAuthController extends AbstractController
         $code = $request->query->get('code');
         if (!$code) {
             return $this->redirectToFrontend(['error' => 'Authorization code is required']);
+        }
+
+        $state = $request->query->get('state');
+        if (!$state || !$this->consumeOAuthState($provider, $state)) {
+            $this->logger?->warning('OAuth callback rejected due to invalid state', [
+                'provider' => $provider,
+                'has_state' => $state !== null,
+            ]);
+
+            return $this->redirectToFrontend(['error' => 'Invalid OAuth state']);
         }
 
         try {
@@ -144,5 +162,31 @@ class OAuthController extends AbstractController
     {
         $url = rtrim($this->frontendUrl, '/') . $path . '?' . http_build_query($params);
         return new RedirectResponse($url);
+    }
+
+    private function storeOAuthState(string $provider, string $state): void
+    {
+        $cacheKey = self::OAUTH_STATE_CACHE_PREFIX . hash('sha256', $state);
+        $item = $this->cache->getItem($cacheKey);
+        $item->set([
+            'provider' => $provider,
+            'created_at' => time(),
+        ]);
+        $item->expiresAfter(self::OAUTH_STATE_TTL);
+        $this->cache->save($item);
+    }
+
+    private function consumeOAuthState(string $provider, string $state): bool
+    {
+        $cacheKey = self::OAUTH_STATE_CACHE_PREFIX . hash('sha256', $state);
+        $item = $this->cache->getItem($cacheKey);
+        if (!$item->isHit()) {
+            return false;
+        }
+
+        $data = $item->get();
+        $this->cache->deleteItem($cacheKey);
+
+        return is_array($data) && ($data['provider'] ?? null) === $provider;
     }
 }

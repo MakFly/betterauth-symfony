@@ -72,6 +72,13 @@ services:
             $tokenAuthManager: '@BetterAuth\Core\TokenAuthManager'
         public: true
 
+    BetterAuth\Symfony\Service\CacheRateLimiter:
+        arguments:
+            $cache: '@cache.app'
+
+    BetterAuth\Core\Interfaces\RateLimiterInterface:
+        alias: BetterAuth\Symfony\Service\CacheRateLimiter
+
     # Interface aliases for dependency injection
     BetterAuth\Core\Interfaces\AuthManagerInterface:
         alias: BetterAuth\Core\AuthManager
@@ -358,6 +365,7 @@ services:
             $tokenManager: '@?BetterAuth\Core\Interfaces\TokenManagerInterface'
             $rateLimiter: '@?BetterAuth\Core\Interfaces\RateLimiterInterface'
             $logger: '@?logger'
+            $allowUserCreation: '%better_auth.magic_link_allow_user_creation%'
         public: true
         tags:
             - { name: 'monolog.logger', channel: 'better_auth' }

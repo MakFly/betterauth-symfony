@@ -276,6 +276,8 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $container->setParameter('better_auth.oauth', $config['oauth']);
         $container->setParameter('better_auth.multi_tenant', $config['multi_tenant']);
         $container->setParameter('better_auth.two_factor', $config['two_factor']);
+        $container->setParameter('better_auth.magic_link', $config['magic_link']);
+        $container->setParameter('better_auth.magic_link_allow_user_creation', $config['magic_link']['allow_user_creation']);
         $container->setParameter('better_auth.controllers', $config['controllers']);
         $container->setParameter('better_auth.security', $config['security']);
         $container->setParameter('better_auth.cors', $config['cors']);

@@ -1,0 +1,36 @@
+# Production cache configuration with Redis
+#
+# This enables Redis for betterauth rate limiting in production.
+# Make sure Redis is running on the configured host/port.
+#
+# Install Redis extension:
+#   composer require symfony/redis
+#
+# Or configure DSN in .env:
+#   REDIS_URL=redis://localhost:6379
+
+framework:
+    cache:
+        # Use Redis for app cache (rate limiting, etc.)
+        app: cache.adapter.redis
+        system: cache.adapter.redis
+
+        # Default Redis connection
+        default_redis_provider: redis://localhost:6379
+
+        # Alternative: use environment variable
+        # default_redis_provider: '%env(REDIS_URL)%'
+
+        # Optional: Use Redis pool for better performance
+        # redis:
+        #     url: '%env(REDIS_URL)%'
+        #     options:
+        #         replication: true
+        #         persistent: true
+
+    # Optional: Configure specific cache pools
+    # cache:
+    #     pools:
+    #         betterauth_rate_limit:
+    #             adapter: cache.adapter.redis
+    #             provider: redis://localhost:6379

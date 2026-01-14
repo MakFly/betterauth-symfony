@@ -1,0 +1,21 @@
+# Development cache configuration
+#
+# Uses APCu if available (fastest in-memory cache),
+# otherwise falls back to filesystem cache.
+
+framework:
+    cache:
+        # Try APCu first (fast in-memory cache for development)
+        app:
+            adapter: cache.adapter.apcu
+            # Fallback to filesystem if APCu not available
+            # You can also use: cache.adapter.filesystem
+
+        system:
+            adapter: cache.adapter.apcu
+
+    # Alternative: Use filesystem for development
+    # framework:
+    #     cache:
+    #         app: cache.adapter.filesystem
+    #         system: cache.adapter.filesystem

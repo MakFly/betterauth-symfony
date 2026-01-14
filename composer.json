@@ -106,5 +106,10 @@
     "branch-alias": {
       "dev-main": "3.0-dev"
     }
+  },
+  "suggest": {
+    "symfony/redis": "For Redis-based rate limiting (recommended for production)",
+    "ext-redis": "Redis extension for better performance",
+    "ext-apcu": "APCu extension for in-memory caching (development)"
   }
 }

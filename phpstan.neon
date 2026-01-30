@@ -12,3 +12,5 @@ parameters:
         - '#Readonly property .* is already assigned#'
         # Symfony Config Builder false positives
         - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition::children\(\)#'
+        # API Platform OpenAPI - responses parameter accepts array but PHPStan expects typed array
+        - '#Parameter \$responses of class ApiPlatform\\OpenApi\\Model\\Operation constructor expects array.*given#'

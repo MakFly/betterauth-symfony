@@ -14,11 +14,8 @@ use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpKernel\Attribute\MapQueryString;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
-use Symfony\Component\Validator\Exception\ValidationFailedException;
 
 #[Route('/auth', name: 'better_auth_')]
 class CredentialsController extends AbstractController
@@ -28,7 +25,6 @@ class CredentialsController extends AbstractController
     public function __construct(
         private readonly AuthManager $authManager,
         private readonly TotpProvider $totpProvider,
-        private readonly ValidatorInterface $validator,
         private readonly ?LoggerInterface $logger = null,
     ) {
     }

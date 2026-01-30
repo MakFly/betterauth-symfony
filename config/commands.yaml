@@ -82,7 +82,5 @@ services:
             - { name: 'console.command' }
 
     BetterAuth\Symfony\Command\UserFieldsCommand:
-        arguments:
-            $projectDir: '%kernel.project_dir%'
         tags:
             - { name: 'console.command' }

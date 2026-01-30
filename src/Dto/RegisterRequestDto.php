@@ -23,7 +23,6 @@ final class RegisterRequestDto
         )]
         public readonly string $password,
 
-        #[Assert\Optional]
         #[Assert\Length(
             max: 255,
             maxMessage: 'Name cannot exceed {{ limit }} characters'

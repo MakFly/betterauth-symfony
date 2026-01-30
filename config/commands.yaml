@@ -75,3 +75,14 @@ services:
             $projectDir: '%kernel.project_dir%'
         tags:
             - { name: 'console.command' }
+
+    # Controller Management Commands
+    BetterAuth\Symfony\Command\AddControllerCommand:
+        tags:
+            - { name: 'console.command' }
+
+    BetterAuth\Symfony\Command\UserFieldsCommand:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+        tags:
+            - { name: 'console.command' }

@@ -55,8 +55,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "symfony/framework-bundle:${{ matrix.symfony }}" --no-update --no-interaction
+          composer config --global extra.symfony.require "${{ matrix.symfony }}"
           composer install --prefer-dist --no-progress --no-interaction
+        env:
+          SYMFONY_REQUIRE: ${{ matrix.symfony }}
 
       - name: Run PHPUnit tests
         run: vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
@@ -208,8 +210,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer require "symfony/framework-bundle:${{ matrix.symfony }}" --no-update --no-interaction
+          composer config --global extra.symfony.require "${{ matrix.symfony }}"
           composer install --prefer-dist --no-progress --no-interaction
+        env:
+          SYMFONY_REQUIRE: ${{ matrix.symfony }}
 
       - name: Test bundle installation in blank Symfony project
         run: |

@@ -68,7 +68,7 @@ final class GoogleProvider extends AbstractOAuthProvider
             email: $response['email'] ?? '',
             name: $response['name'] ?? null,
             avatar: $response['picture'] ?? null,
-            emailVerified: $response['email_verified'] ?? false,
+            emailVerified: ($response['email_verified'] ?? $response['verified_email'] ?? false) === true,
             rawData: $response,
         );
     }

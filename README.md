@@ -670,9 +670,7 @@ composer test
 
 ## Security Issues
 
-If you discover a security vulnerability, please **do not** open a public issue.
-
-Instead, create a private security advisory on [GitHub](https://github.com/MakFly/betterauth-symfony/security/advisories) or email security@betterauth.dev.
+If you discover a security vulnerability, please **do not** open a public issue. Instead, create a private security advisory on [GitHub](https://github.com/MakFly/betterauth-symfony/security/advisories).
 
 ---
 

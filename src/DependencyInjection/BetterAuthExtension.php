@@ -279,9 +279,9 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-        // Validate secret key at boot time — unconditionally
+        // Validate secret key at boot time — skip env var expressions (resolved later at runtime)
         $secret = $config['secret'];
-        if (strlen($secret) < 32) {
+        if (!str_contains($secret, '%env(') && strlen($secret) < 32) {
             throw new \RuntimeException(
                 'BetterAuth: The secret key must be at least 32 characters long. '
                 . 'Current length: ' . strlen($secret) . '. '

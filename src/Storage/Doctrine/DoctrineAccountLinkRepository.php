@@ -26,15 +26,26 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
     ) {
     }
 
+    /**
+     * @return class-string<AccountLink>
+     */
+    private function getAccountLinkClass(): string
+    {
+        /** @var class-string<AccountLink> */
+        return $this->accountLinkClass;
+    }
+
     public function generateId(): ?string
     {
         return null;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): CoreAccountLink
     {
-        $class = $this->accountLinkClass;
-        /** @var AccountLink $link */
+        $class = $this->getAccountLinkClass();
         $link = new $class();
         $link->setId($data['id']);
         $link->setUserId($data['user_id']);
@@ -54,22 +65,27 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
 
     public function findById(string $id): ?CoreAccountLink
     {
-        $link = $this->entityManager->find($this->accountLinkClass, $id);
+        /** @var AccountLink|null $link */
+        $link = $this->entityManager->find($this->getAccountLinkClass(), $id);
 
         return $link ? $this->toCoreEntity($link) : null;
     }
 
+    /**
+     * @return array<CoreAccountLink>
+     */
     public function findByUserId(string $userId): array
     {
-        $links = $this->entityManager->getRepository($this->accountLinkClass)
+        $links = $this->entityManager->getRepository($this->getAccountLinkClass())
             ->findBy(['userId' => $userId], ['linkedAt' => 'DESC']);
 
-        return array_map(fn ($link) => $this->toCoreEntity($link), $links);
+        return array_map(fn (AccountLink $link) => $this->toCoreEntity($link), $links);
     }
 
     public function findByUserAndProvider(string $userId, string $provider): ?CoreAccountLink
     {
-        $link = $this->entityManager->getRepository($this->accountLinkClass)
+        /** @var AccountLink|null $link */
+        $link = $this->entityManager->getRepository($this->getAccountLinkClass())
             ->findOneBy(['userId' => $userId, 'provider' => $provider]);
 
         return $link ? $this->toCoreEntity($link) : null;
@@ -77,7 +93,8 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
 
     public function findByProvider(string $provider, string $providerId): ?CoreAccountLink
     {
-        $link = $this->entityManager->getRepository($this->accountLinkClass)
+        /** @var AccountLink|null $link */
+        $link = $this->entityManager->getRepository($this->getAccountLinkClass())
             ->findOneBy(['provider' => $provider, 'providerId' => $providerId]);
 
         return $link ? $this->toCoreEntity($link) : null;
@@ -85,7 +102,8 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
 
     public function getPrimaryLink(string $userId): ?CoreAccountLink
     {
-        $link = $this->entityManager->getRepository($this->accountLinkClass)
+        /** @var AccountLink|null $link */
+        $link = $this->entityManager->getRepository($this->getAccountLinkClass())
             ->findOneBy(['userId' => $userId, 'isPrimary' => true]);
 
         return $link ? $this->toCoreEntity($link) : null;
@@ -98,7 +116,7 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
 
     public function countForUser(string $userId): int
     {
-        return (int) $this->entityManager->getRepository($this->accountLinkClass)
+        return (int) $this->entityManager->getRepository($this->getAccountLinkClass())
             ->count(['userId' => $userId]);
     }
 
@@ -108,7 +126,7 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
 
         try {
             $qb = $this->entityManager->createQueryBuilder();
-            $qb->update($this->accountLinkClass, 'al')
+            $qb->update($this->getAccountLinkClass(), 'al')
                 ->set('al.isPrimary', ':false')
                 ->where('al.userId = :userId')
                 ->setParameter('false', false)
@@ -117,7 +135,7 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
                 ->execute();
 
             /** @var AccountLink|null $link */
-            $link = $this->entityManager->getRepository($this->accountLinkClass)
+            $link = $this->entityManager->getRepository($this->getAccountLinkClass())
                 ->findOneBy(['userId' => $userId, 'provider' => $provider]);
 
             if ($link === null) {
@@ -137,10 +155,13 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
         }
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function update(string $id, array $data): bool
     {
         /** @var AccountLink|null $link */
-        $link = $this->entityManager->find($this->accountLinkClass, $id);
+        $link = $this->entityManager->find($this->getAccountLinkClass(), $id);
         if ($link === null) {
             return false;
         }
@@ -165,7 +186,8 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
 
     public function delete(string $id): bool
     {
-        $link = $this->entityManager->find($this->accountLinkClass, $id);
+        /** @var AccountLink|null $link */
+        $link = $this->entityManager->find($this->getAccountLinkClass(), $id);
         if ($link === null) {
             return false;
         }
@@ -180,7 +202,7 @@ final readonly class DoctrineAccountLinkRepository implements AccountLinkReposit
     {
         $qb = $this->entityManager->createQueryBuilder();
 
-        return (int) $qb->delete($this->accountLinkClass, 'al')
+        return (int) $qb->delete($this->getAccountLinkClass(), 'al')
             ->where('al.userId = :userId')
             ->setParameter('userId', $userId)
             ->getQuery()

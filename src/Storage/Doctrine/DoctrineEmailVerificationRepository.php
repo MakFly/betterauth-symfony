@@ -16,12 +16,14 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class DoctrineEmailVerificationRepository implements EmailVerificationStorageInterface
 {
+    /** @var class-string<EmailVerificationToken> */
     private string $tokenClass;
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         string $tokenClass = EmailVerificationToken::class
     ) {
+        /** @var class-string<EmailVerificationToken> $tokenClass */
         $this->tokenClass = $tokenClass;
     }
 
@@ -50,6 +52,7 @@ final class DoctrineEmailVerificationRepository implements EmailVerificationStor
 
     public function findByToken(string $token): ?EmailVerificationToken
     {
+        /** @var EmailVerificationToken|null $doctrineToken */
         $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
 
         if ($doctrineToken === null) {
@@ -67,6 +70,7 @@ final class DoctrineEmailVerificationRepository implements EmailVerificationStor
 
     public function markAsUsed(string $token): bool
     {
+        /** @var EmailVerificationToken|null $doctrineToken */
         $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
 
         if ($doctrineToken === null) {
@@ -81,6 +85,7 @@ final class DoctrineEmailVerificationRepository implements EmailVerificationStor
 
     public function delete(string $token): bool
     {
+        /** @var EmailVerificationToken|null $doctrineToken */
         $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
 
         if ($doctrineToken === null) {

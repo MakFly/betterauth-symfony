@@ -55,7 +55,7 @@ class EmailVerificationController extends AbstractController
             ]);
 
             $result = $this->emailVerificationProvider->sendVerificationEmail(
-                $user->getId(),
+                (string) $user->getId(),
                 $user->getEmail(),
                 $callbackUrl
             );

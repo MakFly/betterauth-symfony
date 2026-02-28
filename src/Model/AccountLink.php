@@ -63,6 +63,7 @@ abstract class AccountLink
     #[ORM\Column(type: 'datetime_immutable')]
     protected DateTimeImmutable $linkedAt;
 
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     protected ?array $metadata = null;
 
@@ -163,11 +164,17 @@ abstract class AccountLink
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getMetadata(): ?array
     {
         return $this->metadata;
     }
 
+    /**
+     * @param array<string, mixed>|null $metadata
+     */
     public function setMetadata(?array $metadata): static
     {
         $this->metadata = $metadata;

@@ -105,7 +105,7 @@ class TokenController extends AbstractController
                 return $this->json(['error' => 'Invalid token'], 401);
             }
 
-            $count = $this->authManager->revokeAllTokens($user->getId());
+            $count = $this->authManager->revokeAllTokens((string) $user->getId());
 
             $this->logger?->info('All sessions revoked', [
                 'userId' => $user->getId(),

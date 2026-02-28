@@ -107,17 +107,17 @@ class GuestSessionController extends AbstractController
             $userData = [
                 'email' => $data['email'],
                 'name' => $data['name'] ?? null,
-                'password' => isset($data['password'])
-                    ? password_hash($data['password'], PASSWORD_ARGON2ID)
-                    : null,
+                'password' => $data['password'] ?? null, // Raw password — convertToUser handles hashing
             ];
 
             $user = $this->guestSessionProvider->convertToUser($data['guest_token'], $userData);
 
-            $tokens = $this->authManager->signUp(
+            $rawPassword = $data['password'] ?? bin2hex(random_bytes(16));
+            $tokens = $this->authManager->signIn(
                 $data['email'],
-                $data['password'] ?? bin2hex(random_bytes(16)),
-                $data['name'] ?? null,
+                $rawPassword,
+                $request->getClientIp() ?? '127.0.0.1',
+                $request->headers->get('User-Agent') ?? 'Unknown',
             );
 
             $this->logger?->info('Guest session converted to user', [

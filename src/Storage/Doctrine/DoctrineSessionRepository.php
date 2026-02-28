@@ -7,6 +7,7 @@ namespace BetterAuth\Symfony\Storage\Doctrine;
 use BetterAuth\Core\Entities\Session;
 use BetterAuth\Core\Entities\SimpleSession;
 use BetterAuth\Core\Interfaces\SessionRepositoryInterface;
+use BetterAuth\Symfony\Model\Session as SessionModel;
 use BetterAuth\Symfony\Service\UserIdConverter;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -18,6 +19,7 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class DoctrineSessionRepository implements SessionRepositoryInterface
 {
+    /** @var class-string<SessionModel> */
     private string $sessionClass;
 
     public function __construct(
@@ -25,11 +27,13 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
         private readonly UserIdConverter $idConverter,
         string $sessionClass = Session::class
     ) {
+        /** @var class-string<SessionModel> $sessionClass */
         $this->sessionClass = $sessionClass;
     }
 
     public function findByToken(string $token): ?Session
     {
+        /** @var SessionModel|null $doctrineSession */
         $doctrineSession = $this->entityManager->getRepository($this->sessionClass)->find($token);
 
         if ($doctrineSession === null) {
@@ -39,22 +43,29 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
         return $this->toEntity($doctrineSession);
     }
 
+    /**
+     * @return array<Session>
+     */
     public function findByUserId(string $userId): array
     {
+        /** @var array<SessionModel> $doctrineSessions */
         $doctrineSessions = $this->entityManager->getRepository($this->sessionClass)
             ->findBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
 
         return array_map(
-            fn ($session) => $this->toEntity($session),
+            fn (object $session) => $this->toEntity($session),
             $doctrineSessions
         );
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): Session
     {
         $doctrineSession = new ($this->sessionClass)();
         $doctrineSession->setToken($data['token']);
-        $doctrineSession->setUserId($this->idConverter->toDatabaseId($data['user_id']));
+        $doctrineSession->setUserId((string) $this->idConverter->toDatabaseId($data['user_id']));
         $doctrineSession->setExpiresAt(
             $data['expires_at'] instanceof DateTimeImmutable
                 ? $data['expires_at']
@@ -72,8 +83,12 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
         return $this->toEntity($doctrineSession);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function update(string $token, array $data): Session
     {
+        /** @var SessionModel|null $doctrineSession */
         $doctrineSession = $this->entityManager->getRepository($this->sessionClass)->find($token);
 
         if ($doctrineSession === null) {
@@ -106,6 +121,7 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
 
     public function delete(string $token): bool
     {
+        /** @var SessionModel|null $doctrineSession */
         $doctrineSession = $this->entityManager->getRepository($this->sessionClass)->find($token);
 
         if ($doctrineSession === null) {
@@ -120,18 +136,12 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
 
     public function deleteByUserId(string $userId): int
     {
-        $doctrineSessions = $this->entityManager->getRepository($this->sessionClass)
-            ->findBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->delete($this->sessionClass, 's')
+            ->where('s.userId = :userId')
+            ->setParameter('userId', $this->idConverter->toDatabaseId($userId));
 
-        $count = count($doctrineSessions);
-
-        foreach ($doctrineSessions as $session) {
-            $this->entityManager->remove($session);
-        }
-
-        $this->entityManager->flush();
-
-        return $count;
+        return $qb->getQuery()->execute();
     }
 
     public function deleteExpired(): int
@@ -144,7 +154,8 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
         return $qb->getQuery()->execute();
     }
 
-    private function toEntity($doctrineSession): Session
+    /** @param SessionModel $doctrineSession */
+    private function toEntity(object $doctrineSession): Session
     {
         return SimpleSession::fromArray([
             'token' => $doctrineSession->getToken(),

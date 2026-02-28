@@ -88,7 +88,9 @@ final readonly class LicenseInfo
         $now = new \DateTimeImmutable();
         $diff = $now->diff($this->expiresAt);
 
-        return $diff->invert ? -$diff->days : $diff->days;
+        $days = $diff->days !== false ? $diff->days : 0;
+
+        return $diff->invert ? -$days : $days;
     }
 
     /**

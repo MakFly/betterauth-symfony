@@ -7,6 +7,7 @@ namespace BetterAuth\Symfony\Storage\Doctrine;
 use BetterAuth\Core\Entities\SimpleUser;
 use BetterAuth\Core\Entities\User;
 use BetterAuth\Core\Interfaces\UserRepositoryInterface;
+use BetterAuth\Symfony\Model\User as UserModel;
 use BetterAuth\Symfony\Service\UserIdConverter;
 use DateTimeImmutable;
 use Doctrine\ORM\EntityManagerInterface;
@@ -18,6 +19,7 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class DoctrineUserRepository implements UserRepositoryInterface
 {
+    /** @var class-string<UserModel> */
     private string $userClass;
 
     public function __construct(
@@ -25,11 +27,13 @@ final class DoctrineUserRepository implements UserRepositoryInterface
         private readonly UserIdConverter $idConverter,
         string $userClass = User::class
     ) {
+        /** @var class-string<UserModel> $userClass */
         $this->userClass = $userClass;
     }
 
     public function findById(string $id): ?User
     {
+        /** @var UserModel|null $doctrineUser */
         $doctrineUser = $this->entityManager->getRepository($this->userClass)->find($this->idConverter->toDatabaseId($id));
 
         if ($doctrineUser === null) {
@@ -41,6 +45,7 @@ final class DoctrineUserRepository implements UserRepositoryInterface
 
     public function findByEmail(string $email): ?User
     {
+        /** @var UserModel|null $doctrineUser */
         $doctrineUser = $this->entityManager->getRepository($this->userClass)
             ->findOneBy(['email' => $email]);
 
@@ -53,23 +58,33 @@ final class DoctrineUserRepository implements UserRepositoryInterface
 
     public function findByProvider(string $provider, string $providerId): ?User
     {
-        // For now, we'll use metadata to store provider info
-        // In a production app, you might want a separate OAuthAccount table
-        $users = $this->entityManager->getRepository($this->userClass)->findAll();
-
-        foreach ($users as $user) {
-            $metadata = $user->getMetadata();
-            if (
-                isset($metadata['oauth'][$provider]) &&
-                $metadata['oauth'][$provider]['id'] === $providerId
-            ) {
-                return $this->toEntity($user);
-            }
+        // Validate provider name to prevent injection in LIKE pattern
+        if (!preg_match('/^[a-zA-Z0-9_]+$/', $provider)) {
+            throw new \InvalidArgumentException('Invalid provider name');
         }
 
-        return null;
+        // Use a parameterized DQL query instead of findAll() to avoid loading all users
+        // The LIKE pattern matches the JSON structure stored in the metadata column
+        $qb = $this->entityManager->createQueryBuilder();
+        $qb->select('u')
+            ->from($this->userClass, 'u')
+            ->where("u.metadata LIKE :pattern")
+            ->setParameter('pattern', '%"' . $provider . '":{"id":"' . $providerId . '"%')
+            ->setMaxResults(1);
+
+        /** @var UserModel|null $doctrineUser */
+        $doctrineUser = $qb->getQuery()->getOneOrNullResult();
+
+        if ($doctrineUser === null) {
+            return null;
+        }
+
+        return $this->toEntity($doctrineUser);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): User
     {
         $doctrineUser = new ($this->userClass)();
@@ -82,8 +97,12 @@ final class DoctrineUserRepository implements UserRepositoryInterface
 
         $doctrineUser->setEmail($data['email']);
         $doctrineUser->setPassword($data['password'] ?? null);
-        $doctrineUser->setUsername($data['username'] ?? null);
-        $doctrineUser->setAvatar($data['avatar'] ?? null);
+        if (method_exists($doctrineUser, 'setUsername')) {
+            $doctrineUser->setUsername($data['username'] ?? null);
+        }
+        if (method_exists($doctrineUser, 'setAvatar')) {
+            $doctrineUser->setAvatar($data['avatar'] ?? null);
+        }
         $doctrineUser->setEmailVerified($data['email_verified'] ?? false);
         $doctrineUser->setMetadata($data['metadata'] ?? null);
 
@@ -101,8 +120,12 @@ final class DoctrineUserRepository implements UserRepositoryInterface
         return $this->toEntity($doctrineUser);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function update(string $id, array $data): User
     {
+        /** @var UserModel|null $doctrineUser */
         $doctrineUser = $this->entityManager->getRepository($this->userClass)->find($this->idConverter->toDatabaseId($id));
 
         if ($doctrineUser === null) {
@@ -115,10 +138,10 @@ final class DoctrineUserRepository implements UserRepositoryInterface
         if (isset($data['password'])) {
             $doctrineUser->setPassword($data['password']);
         }
-        if (isset($data['username'])) {
+        if (isset($data['username']) && method_exists($doctrineUser, 'setUsername')) {
             $doctrineUser->setUsername($data['username']);
         }
-        if (isset($data['avatar'])) {
+        if (isset($data['avatar']) && method_exists($doctrineUser, 'setAvatar')) {
             $doctrineUser->setAvatar($data['avatar']);
         }
         if (isset($data['email_verified'])) {
@@ -144,6 +167,7 @@ final class DoctrineUserRepository implements UserRepositoryInterface
 
     public function delete(string $id): bool
     {
+        /** @var UserModel|null $doctrineUser */
         $doctrineUser = $this->entityManager->getRepository($this->userClass)->find($this->idConverter->toDatabaseId($id));
 
         if ($doctrineUser === null) {
@@ -158,6 +182,7 @@ final class DoctrineUserRepository implements UserRepositoryInterface
 
     public function verifyEmail(string $id): bool
     {
+        /** @var UserModel|null $doctrineUser */
         $doctrineUser = $this->entityManager->getRepository($this->userClass)->find($this->idConverter->toDatabaseId($id));
 
         if ($doctrineUser === null) {
@@ -178,7 +203,8 @@ final class DoctrineUserRepository implements UserRepositoryInterface
         return $this->idConverter->generateId();
     }
 
-    private function toEntity($doctrineUser): User
+    /** @param UserModel $doctrineUser */
+    private function toEntity(object $doctrineUser): User
     {
         return SimpleUser::fromArray([
             'id' => $this->idConverter->toAuthId($doctrineUser->getId()), // Convert to string for Core Entity

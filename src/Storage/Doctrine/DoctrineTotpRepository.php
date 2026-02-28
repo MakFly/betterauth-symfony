@@ -16,6 +16,7 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class DoctrineTotpRepository implements TotpStorageInterface
 {
+    /** @var class-string<TotpData> */
     private string $totpClass;
 
     public function __construct(
@@ -23,17 +24,19 @@ final class DoctrineTotpRepository implements TotpStorageInterface
         private readonly UserIdConverter $idConverter,
         string $totpClass = TotpData::class
     ) {
+        /** @var class-string<TotpData> $totpClass */
         $this->totpClass = $totpClass;
     }
 
     public function store(string $userId, string $secret, array $metadata = []): bool
     {
+        /** @var TotpData|null $doctrineTotp */
         $doctrineTotp = $this->entityManager->getRepository($this->totpClass)
             ->findOneBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
 
         if ($doctrineTotp === null) {
             $doctrineTotp = new ($this->totpClass)();
-            $doctrineTotp->setUserId($this->idConverter->toDatabaseId($userId));
+            $doctrineTotp->setUserId((string) $this->idConverter->toDatabaseId($userId));
         }
 
         $doctrineTotp->setSecret($secret);
@@ -48,8 +51,12 @@ final class DoctrineTotpRepository implements TotpStorageInterface
         return true;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function findByUserId(string $userId): ?array
     {
+        /** @var TotpData|null $doctrineTotp */
         $doctrineTotp = $this->entityManager->getRepository($this->totpClass)
             ->findOneBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
 
@@ -67,6 +74,7 @@ final class DoctrineTotpRepository implements TotpStorageInterface
 
     public function isEnabled(string $userId): bool
     {
+        /** @var TotpData|null $doctrineTotp */
         $doctrineTotp = $this->entityManager->getRepository($this->totpClass)
             ->findOneBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
 
@@ -76,7 +84,7 @@ final class DoctrineTotpRepository implements TotpStorageInterface
     public function enable(string $userId): bool
     {
         $dbUserId = $this->idConverter->toDatabaseId($userId);
-        
+
         // Use DQL update query to ensure the change is persisted directly in the database
         $qb = $this->entityManager->createQueryBuilder();
         $qb->update($this->totpClass, 't')
@@ -84,16 +92,16 @@ final class DoctrineTotpRepository implements TotpStorageInterface
             ->where('t.userId = :userId')
             ->setParameter('enabled', true)
             ->setParameter('userId', $dbUserId);
-        
+
         $result = $qb->getQuery()->execute();
-        
+
         return $result > 0;
     }
 
     public function disable(string $userId): bool
     {
         $dbUserId = $this->idConverter->toDatabaseId($userId);
-        
+
         // Use DQL update query to ensure the change is persisted directly in the database
         $qb = $this->entityManager->createQueryBuilder();
         $qb->update($this->totpClass, 't')
@@ -101,14 +109,15 @@ final class DoctrineTotpRepository implements TotpStorageInterface
             ->where('t.userId = :userId')
             ->setParameter('enabled', false)
             ->setParameter('userId', $dbUserId);
-        
+
         $result = $qb->getQuery()->execute();
-        
+
         return $result > 0;
     }
 
     public function delete(string $userId): bool
     {
+        /** @var TotpData|null $doctrineTotp */
         $doctrineTotp = $this->entityManager->getRepository($this->totpClass)
             ->findOneBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
 
@@ -124,6 +133,7 @@ final class DoctrineTotpRepository implements TotpStorageInterface
 
     public function useBackupCode(string $userId, string $code): bool
     {
+        /** @var TotpData|null $doctrineTotp */
         $doctrineTotp = $this->entityManager->getRepository($this->totpClass)
             ->findOneBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
 
@@ -151,6 +161,7 @@ final class DoctrineTotpRepository implements TotpStorageInterface
      */
     public function updateLast2faVerifiedAt(string $userId): bool
     {
+        /** @var TotpData|null $doctrineTotp */
         $doctrineTotp = $this->entityManager->getRepository($this->totpClass)
             ->findOneBy(['userId' => $this->idConverter->toDatabaseId($userId)]);
 

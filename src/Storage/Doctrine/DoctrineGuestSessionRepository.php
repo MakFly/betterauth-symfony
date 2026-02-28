@@ -22,6 +22,9 @@ final readonly class DoctrineGuestSessionRepository implements GuestSessionRepos
         return null;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): CoreGuestSession
     {
         $session = new GuestSession();

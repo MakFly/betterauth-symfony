@@ -87,11 +87,11 @@ class MagicLinkController extends AbstractController
             }
 
             return $this->json([
-                'access_token' => $result['access_token'],
-                'refresh_token' => $result['refresh_token'],
-                'expires_in' => $result['expires_in'],
+                'access_token' => $result['access_token'] ?? null,
+                'refresh_token' => $result['refresh_token'] ?? null,
+                'expires_in' => $result['expires_in'] ?? null,
                 'token_type' => 'Bearer',
-                'user' => $result['user'],
+                'user' => $result['user'] ?? null,
             ]);
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);
@@ -115,11 +115,11 @@ class MagicLinkController extends AbstractController
             }
 
             return $this->json([
-                'access_token' => $result['access_token'],
-                'refresh_token' => $result['refresh_token'],
-                'expires_in' => $result['expires_in'],
+                'access_token' => $result['access_token'] ?? null,
+                'refresh_token' => $result['refresh_token'] ?? null,
+                'expires_in' => $result['expires_in'] ?? null,
                 'token_type' => 'Bearer',
-                'user' => $result['user'],
+                'user' => $result['user'] ?? null,
             ]);
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);

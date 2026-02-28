@@ -39,7 +39,7 @@ class TwoFactorController extends AbstractController
                 return $this->json(['error' => 'Invalid token'], 401);
             }
 
-            $result = $this->totpProvider->generateSecret($user->getId(), $user->getEmail());
+            $result = $this->totpProvider->generateSecret((string) $user->getId(), $user->getEmail());
 
             $this->logger?->info('2FA setup initiated', [
                 'userId' => $user->getId(),
@@ -78,7 +78,7 @@ class TwoFactorController extends AbstractController
                 return $this->json(['error' => 'Verification code is required'], 400);
             }
 
-            $verified = $this->totpProvider->verifyAndEnable($user->getId(), $data['code']);
+            $verified = $this->totpProvider->verifyAndEnable((string) $user->getId(), $data['code']);
 
             if (!$verified) {
                 $this->logger?->warning('2FA validation failed - invalid code', [
@@ -122,7 +122,7 @@ class TwoFactorController extends AbstractController
                 return $this->json(['error' => 'Verification code is required'], 400);
             }
 
-            $verified = $this->totpProvider->verify($user->getId(), $data['code']);
+            $verified = $this->totpProvider->verify((string) $user->getId(), $data['code']);
 
             if (!$verified) {
                 $this->logger?->warning('2FA verification failed - invalid code', [
@@ -166,7 +166,7 @@ class TwoFactorController extends AbstractController
                 return $this->json(['error' => 'Backup code is required to disable 2FA'], 400);
             }
 
-            $disabled = $this->totpProvider->disable($user->getId(), $data['backupCode']);
+            $disabled = $this->totpProvider->disable((string) $user->getId(), $data['backupCode']);
 
             if (!$disabled) {
                 $this->logger?->warning('2FA disable failed - invalid backup code', [
@@ -210,7 +210,7 @@ class TwoFactorController extends AbstractController
                 return $this->json(['error' => 'Verification code is required'], 400);
             }
 
-            $result = $this->totpProvider->regenerateBackupCodes($user->getId(), $data['code']);
+            $result = $this->totpProvider->regenerateBackupCodes((string) $user->getId(), $data['code']);
 
             if (!$result['success']) {
                 $this->logger?->warning('Backup codes regeneration failed - invalid code', [
@@ -225,7 +225,7 @@ class TwoFactorController extends AbstractController
 
             return $this->json([
                 'message' => 'Backup codes regenerated successfully',
-                'backupCodes' => $result['backupCodes'],
+                'backupCodes' => $result['backupCodes'] ?? [],
             ]);
         } catch (\Exception $e) {
             $this->logger?->error('Backup codes regeneration failed', [
@@ -249,7 +249,7 @@ class TwoFactorController extends AbstractController
                 return $this->json(['error' => 'Invalid token'], 401);
             }
 
-            $status = $this->totpProvider->getStatus($user->getId());
+            $status = $this->totpProvider->getStatus((string) $user->getId());
 
             return $this->json([
                 'enabled' => $status['enabled'],
@@ -284,7 +284,7 @@ class TwoFactorController extends AbstractController
                 return $this->json(['error' => 'Backup code is required to reset 2FA'], 400);
             }
 
-            $result = $this->totpProvider->resetWithBackupCode($user->getId(), $data['backupCode'], $user->getEmail());
+            $result = $this->totpProvider->resetWithBackupCode((string) $user->getId(), $data['backupCode'], $user->getEmail());
 
             if (!$result['success']) {
                 $this->logger?->warning('2FA reset failed - invalid backup code', [
@@ -299,10 +299,10 @@ class TwoFactorController extends AbstractController
 
             return $this->json([
                 'message' => '2FA reset successfully. Please validate the new setup.',
-                'secret' => $result['secret'],
-                'qrCode' => $result['qrCode'],
-                'manualEntryKey' => $result['manualEntryKey'],
-                'backupCodes' => $result['backupCodes'],
+                'secret' => $result['secret'] ?? null,
+                'qrCode' => $result['qrCode'] ?? null,
+                'manualEntryKey' => $result['manualEntryKey'] ?? null,
+                'backupCodes' => $result['backupCodes'] ?? [],
             ]);
         } catch (\Exception $e) {
             $this->logger?->error('2FA reset failed', [

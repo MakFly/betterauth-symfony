@@ -336,6 +336,10 @@ class SetupFeaturesCommand extends Command
         return $this->applyConfiguration($io, $input, $selectedFeatures, $withControllers, $withMigrations, $runMigrate);
     }
 
+    /**
+     * @param array<int, string> $enable
+     * @param array<int, string> $disable
+     */
     private function toggleFeatures(SymfonyStyle $io, InputInterface $input, array $enable, array $disable): int
     {
         $currentConfig = $this->loadCurrentConfig();
@@ -378,6 +382,9 @@ class SetupFeaturesCommand extends Command
         return $this->applyConfiguration($io, $input, $selectedFeatures, $withControllers, $withMigrations, $runMigrate);
     }
 
+    /**
+     * @param array<string, mixed> $selectedFeatures
+     */
     private function applyConfiguration(
         SymfonyStyle $io,
         InputInterface $input,
@@ -454,6 +461,10 @@ class SetupFeaturesCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * @param array<string, mixed> $selectedFeatures
+     * @return array<int, string>
+     */
     private function generateRequiredEntities(SymfonyStyle $io, array $selectedFeatures, bool $dryRun, bool $force): array
     {
         $requiredEntities = $this->getRequiredEntities($selectedFeatures);
@@ -467,7 +478,11 @@ class SetupFeaturesCommand extends Command
         $generatedEntities = [];
         // Find bundle path using ReflectionClass
         $reflection = new \ReflectionClass(self::class);
-        $bundlePath = dirname($reflection->getFileName(), 3); // Go up from Command/ to bundle root
+        $reflectionFile = $reflection->getFileName();
+        if ($reflectionFile === false) {
+            throw new \RuntimeException('Unable to determine bundle path via reflection.');
+        }
+        $bundlePath = dirname($reflectionFile, 3); // Go up from Command/ to bundle root
         $templatesDir = $bundlePath . '/Resources/templates/entities';
         $entitiesDir = $this->projectDir . '/src/Entity';
 
@@ -501,6 +516,9 @@ class SetupFeaturesCommand extends Command
                 }
 
                 $content = file_get_contents($templatePath);
+                if ($content === false) {
+                    throw new \RuntimeException(sprintf('Unable to read template file: %s', $templatePath));
+                }
                 $this->filesystem->dumpFile($targetPath, $content);
                 $io->text("  <fg=green>✓</> Generated: $entityName.php");
             }
@@ -511,6 +529,9 @@ class SetupFeaturesCommand extends Command
         return $generatedEntities;
     }
 
+    /**
+     * @param array<string, mixed> $selectedFeatures
+     */
     private function updateConfiguration(SymfonyStyle $io, array $selectedFeatures, bool $dryRun): void
     {
         $configFile = $this->projectDir . '/config/packages/better_auth.yaml';
@@ -563,6 +584,9 @@ class SetupFeaturesCommand extends Command
         $this->updateEnvFile($io, $selectedFeatures, $dryRun);
     }
 
+    /**
+     * @param array<string, mixed> $selectedFeatures
+     */
     private function generateRequiredControllers(SymfonyStyle $io, array $selectedFeatures, bool $dryRun, bool $force): void
     {
         // Determine which controllers are needed for NEW features only
@@ -590,7 +614,11 @@ class SetupFeaturesCommand extends Command
         $traitDir = $controllersDir . '/Trait';
         // Find bundle path using ReflectionClass
         $reflection = new \ReflectionClass(self::class);
-        $bundlePath = dirname($reflection->getFileName(), 3); // Go up from Command/ to bundle root
+        $reflectionFile = $reflection->getFileName();
+        if ($reflectionFile === false) {
+            throw new \RuntimeException('Unable to determine bundle path via reflection.');
+        }
+        $bundlePath = dirname($reflectionFile, 3); // Go up from Command/ to bundle root
         $templatesDir = $bundlePath . '/Resources/templates/controller';
 
         // Controller name mapping
@@ -657,6 +685,10 @@ class SetupFeaturesCommand extends Command
     /**
      * Generate a single controller file.
      */
+    /**
+     * @param array<string, array<int, string>> $controllerMapping
+     * @param array<string, string> $existingControllers
+     */
     private function generateSingleController(
         SymfonyStyle $io,
         string $templatesDir,
@@ -704,6 +736,9 @@ class SetupFeaturesCommand extends Command
             }
 
             $content = file_get_contents($templatePath);
+            if ($content === false) {
+                throw new \RuntimeException(sprintf('Unable to read template file: %s', $templatePath));
+            }
             $this->filesystem->dumpFile($targetPath, $content);
             $io->text("  <fg=green>✓</> Generated: $targetFile");
         }
@@ -711,6 +746,9 @@ class SetupFeaturesCommand extends Command
 
     /**
      * Detect existing controllers in both standard and legacy locations.
+     */
+    /**
+     * @return array<string, string>
      */
     private function detectExistingControllers(): array
     {
@@ -813,6 +851,10 @@ class SetupFeaturesCommand extends Command
         }
     }
 
+    /**
+     * @param array<string, mixed> $selectedFeatures
+     * @return array<int, string>
+     */
     private function getRequiredEntities(array $selectedFeatures): array
     {
         $entities = [];
@@ -828,6 +870,10 @@ class SetupFeaturesCommand extends Command
         return array_keys($entities);
     }
 
+    /**
+     * @param array<int, string> $entities
+     * @return array<int, string>
+     */
     private function getMissingEntities(array $entities): array
     {
         $missing = [];
@@ -843,6 +889,9 @@ class SetupFeaturesCommand extends Command
         return $missing;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function loadCurrentConfig(): array
     {
         $configFile = $this->projectDir . '/config/packages/better_auth.yaml';
@@ -854,6 +903,9 @@ class SetupFeaturesCommand extends Command
         return Yaml::parseFile($configFile) ?? [];
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function isFeatureEnabled(string $feature, array $config): bool
     {
         $featureConfig = self::FEATURES[$feature];
@@ -880,6 +932,9 @@ class SetupFeaturesCommand extends Command
         };
     }
 
+    /**
+     * @param array<string, mixed> $selectedFeatures
+     */
     private function showFeatureSummary(SymfonyStyle $io, array $selectedFeatures): void
     {
         $io->section('📊 Feature Summary');
@@ -907,6 +962,10 @@ class SetupFeaturesCommand extends Command
         }
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function enableFeatureInConfig(array $config, string $feature): array
     {
         switch ($feature) {
@@ -980,6 +1039,10 @@ class SetupFeaturesCommand extends Command
         return $config;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function disableFeatureInConfig(array $config, string $feature): array
     {
         $featureKeys = [
@@ -1008,6 +1071,9 @@ class SetupFeaturesCommand extends Command
         return $config;
     }
 
+    /**
+     * @param array<string, mixed> $selectedFeatures
+     */
     private function updateEnvFile(SymfonyStyle $io, array $selectedFeatures, bool $dryRun): void
     {
         $envFile = $this->projectDir . '/.env';
@@ -1017,6 +1083,9 @@ class SetupFeaturesCommand extends Command
         }
 
         $envContent = file_get_contents($envFile);
+        if ($envContent === false) {
+            throw new \RuntimeException(sprintf('Unable to read file: %s', $envFile));
+        }
         $additions = [];
 
         // Add OAuth env vars

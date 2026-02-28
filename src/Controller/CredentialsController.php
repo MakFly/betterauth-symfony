@@ -30,7 +30,7 @@ class CredentialsController extends AbstractController
     }
 
     #[Route('/register', name: 'register', methods: ['POST'])]
-    public function register(#[MapRequestPayload] RegisterRequestDto $dto): JsonResponse
+    public function register(#[MapRequestPayload] RegisterRequestDto $dto, Request $request): JsonResponse
     {
         try {
             $additionalData = $dto->name !== null ? ['name' => $dto->name] : [];
@@ -44,8 +44,8 @@ class CredentialsController extends AbstractController
             $result = $this->authManager->signIn(
                 $dto->email,
                 $dto->password,
-                '127.0.0.1', // IP will be set in middleware
-                'Unknown'   // User agent will be set in middleware
+                $request->getClientIp() ?? '127.0.0.1',
+                $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
             return $this->json($result, 201);

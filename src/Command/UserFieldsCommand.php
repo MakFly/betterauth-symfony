@@ -161,6 +161,9 @@ HELP;
         $io->title(sprintf('BetterAuth - %s User Fields', ucfirst($action)));
 
         $content = file_get_contents($userFile);
+        if ($content === false) {
+            throw new \RuntimeException(sprintf('Unable to read file: %s', $userFile));
+        }
 
         if ($action === 'add') {
             return $this->addFields($io, $filesystem, $userFile, $content, $validFields, $force);
@@ -169,6 +172,9 @@ HELP;
         return $this->removeFields($io, $filesystem, $userFile, $content, $validFields, $force);
     }
 
+    /**
+     * @param array<int, string> $fields
+     */
     private function addFields(SymfonyStyle $io, Filesystem $filesystem, string $userFile, string $content, array $fields, bool $force): int
     {
         $io->section('Adding Fields');
@@ -249,7 +255,9 @@ HELP;
         } else {
             // Insert before the final closing brace
             $lastBracePos = strrpos($content, '}');
-            $content = substr($content, 0, $lastBracePos) . $codeToInsert . substr($content, $lastBracePos);
+            if ($lastBracePos !== false) {
+                $content = substr($content, 0, $lastBracePos) . $codeToInsert . substr($content, $lastBracePos);
+            }
         }
 
         $filesystem->dumpFile($userFile, $content);
@@ -268,6 +276,9 @@ HELP;
         return Command::SUCCESS;
     }
 
+    /**
+     * @param array<int, string> $fields
+     */
     private function removeFields(SymfonyStyle $io, Filesystem $filesystem, string $userFile, string $content, array $fields, bool $force): int
     {
         $io->section('Removing Fields');
@@ -350,7 +361,9 @@ HELP;
 
                 // Insert before final brace
                 $lastBracePos = strrpos($content, '}');
-                $content = substr($content, 0, $lastBracePos) . $codeToInsert . substr($content, $lastBracePos);
+                if ($lastBracePos !== false) {
+                    $content = substr($content, 0, $lastBracePos) . $codeToInsert . substr($content, $lastBracePos);
+                }
 
                 $filesystem->dumpFile($userFile, $content);
 
@@ -410,7 +423,7 @@ HELP;
 
     private function getProjectDir(): string
     {
-        $dir = getcwd();
+        $dir = (string) getcwd();
 
         while ($dir !== dirname($dir)) {
             if (file_exists($dir . '/composer.json')) {
@@ -419,6 +432,6 @@ HELP;
             $dir = dirname($dir);
         }
 
-        return getcwd();
+        return (string) getcwd();
     }
 }

@@ -140,6 +140,9 @@ final class SymfonyMailerEmailSender implements EmailSenderInterface
      * 1. templates/emails/betterauth/{template}  (user override)
      * 2. @BetterAuth/emails/{template}           (default template)
      */
+    /**
+     * @param array<string, mixed> $context
+     */
     private function renderTemplate(string $template, array $context = []): string
     {
         $userTemplate = sprintf('emails/betterauth/%s', $template);

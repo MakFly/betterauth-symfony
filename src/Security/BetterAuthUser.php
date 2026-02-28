@@ -20,10 +20,14 @@ class BetterAuthUser implements UserInterface
 
     /**
      * {@inheritdoc}
+     *
+     * @return non-empty-string
      */
     public function getUserIdentifier(): string
     {
-        return $this->user->getId();
+        $id = (string) $this->user->getId();
+        assert($id !== '');
+        return $id;
     }
 
     /**
@@ -60,6 +64,8 @@ class BetterAuthUser implements UserInterface
 
     /**
      * Forward method calls to BetterAuth user
+     *
+     * @param array<int, mixed> $args
      */
     public function __call(string $method, array $args): mixed
     {

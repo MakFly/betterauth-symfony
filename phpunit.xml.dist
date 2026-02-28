@@ -14,11 +14,13 @@
         <server name="SHELL_VERBOSITY" value="-1"/>
         <server name="SYMFONY_PHPUNIT_REMOVE" value=""/>
         <server name="SYMFONY_PHPUNIT_VERSION" value="10.5"/>
+        <env name="FRONTEND_URL" value="http://localhost:5173"/>
     </php>
 
     <testsuites>
         <testsuite name="BetterAuth Symfony Bundle Test Suite">
             <directory>tests</directory>
+            <exclude>tests/Functional/AbstractFunctionalTest.php</exclude>
         </testsuite>
     </testsuites>
 

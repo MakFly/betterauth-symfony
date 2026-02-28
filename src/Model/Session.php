@@ -37,6 +37,7 @@ abstract class Session
     #[ORM\Column(name: 'updated_at', type: Types::DATETIME_IMMUTABLE)]
     protected DateTimeImmutable $updatedAt;
 
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     protected ?array $metadata = null;
 
@@ -136,11 +137,17 @@ abstract class Session
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getMetadata(): ?array
     {
         return $this->metadata;
     }
 
+    /**
+     * @param array<string, mixed>|null $metadata
+     */
     public function setMetadata(?array $metadata): self
     {
         $this->metadata = $metadata;

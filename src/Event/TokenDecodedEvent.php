@@ -20,12 +20,18 @@ final class TokenDecodedEvent extends Event
 {
     private bool $valid = true;
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     public function __construct(
         private array $payload,
         private readonly string $token,
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getPayload(): array
     {
         return $this->payload;

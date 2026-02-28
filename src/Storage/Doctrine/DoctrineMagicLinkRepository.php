@@ -16,12 +16,14 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
 {
+    /** @var class-string<MagicLinkToken> */
     private string $tokenClass;
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         string $tokenClass = MagicLinkToken::class
     ) {
+        /** @var class-string<MagicLinkToken> $tokenClass */
         $this->tokenClass = $tokenClass;
     }
 
@@ -50,6 +52,7 @@ final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
 
     public function findByToken(string $token): ?MagicLinkToken
     {
+        /** @var MagicLinkToken|null $doctrineToken */
         $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
 
         if ($doctrineToken === null) {
@@ -67,6 +70,7 @@ final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
 
     public function markAsUsed(string $token): bool
     {
+        /** @var MagicLinkToken|null $doctrineToken */
         $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
 
         if ($doctrineToken === null) {
@@ -81,6 +85,7 @@ final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
 
     public function delete(string $token): bool
     {
+        /** @var MagicLinkToken|null $doctrineToken */
         $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
 
         if ($doctrineToken === null) {

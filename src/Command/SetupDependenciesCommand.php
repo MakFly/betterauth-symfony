@@ -88,7 +88,11 @@ class SetupDependenciesCommand extends Command
             return Command::FAILURE;
         }
 
-        $composer = json_decode(file_get_contents($composerPath), true);
+        $composerContent = file_get_contents($composerPath);
+        if ($composerContent === false) {
+            throw new \RuntimeException(sprintf('Unable to read file: %s', $composerPath));
+        }
+        $composer = json_decode($composerContent, true);
         $installed = array_merge(
             $composer['require'] ?? [],
             $composer['require-dev'] ?? []
@@ -166,6 +170,10 @@ class SetupDependenciesCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * @param array<string, string> $packages
+     * @param array<string, string> $installed
+     */
     private function showPackageStatus(SymfonyStyle $io, array $packages, array $installed, string $title): void
     {
         $rows = [];
@@ -178,6 +186,9 @@ class SetupDependenciesCommand extends Command
         $io->table(['Package', 'Required', 'Current', 'Status'], $rows);
     }
 
+    /**
+     * @param array<string, string> $packages
+     */
     private function installPackages(SymfonyStyle $io, array $packages, bool $dev = false): bool
     {
         $packagesStr = implode(' ', array_map(

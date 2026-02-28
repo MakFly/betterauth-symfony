@@ -430,6 +430,9 @@ HELP;
 
         // Copy template
         $content = file_get_contents($templatePath);
+        if ($content === false) {
+            throw new \RuntimeException(sprintf('Unable to read template file: %s', $templatePath));
+        }
         $filesystem->dumpFile($targetPath, $content);
 
         $io->writeln(sprintf('  <fg=green>✓</> Generated %s', $config['target']));
@@ -467,7 +470,7 @@ HELP;
 
     private function getProjectDir(): string
     {
-        $dir = getcwd();
+        $dir = (string) getcwd();
 
         while ($dir !== dirname($dir)) {
             if (file_exists($dir . '/composer.json')) {
@@ -476,7 +479,7 @@ HELP;
             $dir = dirname($dir);
         }
 
-        return getcwd();
+        return (string) getcwd();
     }
 }
 

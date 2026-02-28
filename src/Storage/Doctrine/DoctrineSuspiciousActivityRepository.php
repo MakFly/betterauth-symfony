@@ -26,15 +26,26 @@ final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousA
     ) {
     }
 
+    /**
+     * @return class-string<SuspiciousActivity>
+     */
+    private function getSuspiciousActivityClass(): string
+    {
+        /** @var class-string<SuspiciousActivity> */
+        return $this->suspiciousActivityClass;
+    }
+
     public function generateId(): ?string
     {
         return null;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): CoreSuspiciousActivity
     {
-        $class = $this->suspiciousActivityClass;
-        /** @var SuspiciousActivity $activity */
+        $class = $this->getSuspiciousActivityClass();
         $activity = new $class();
         $activity->setId($data['id']);
         $activity->setUserId($data['user_id']);
@@ -56,31 +67,41 @@ final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousA
 
     public function findById(string $id): ?CoreSuspiciousActivity
     {
-        $activity = $this->entityManager->find($this->suspiciousActivityClass, $id);
+        /** @var SuspiciousActivity|null $activity */
+        $activity = $this->entityManager->find($this->getSuspiciousActivityClass(), $id);
 
         return $activity ? $this->toCoreEntity($activity) : null;
     }
 
+    /**
+     * @return array<CoreSuspiciousActivity>
+     */
     public function findByUserId(string $userId, int $limit = 100): array
     {
-        $activities = $this->entityManager->getRepository($this->suspiciousActivityClass)
+        $activities = $this->entityManager->getRepository($this->getSuspiciousActivityClass())
             ->findBy(['userId' => $userId], ['detectedAt' => 'DESC'], $limit);
 
-        return array_map(fn ($activity) => $this->toCoreEntity($activity), $activities);
+        return array_map(fn (SuspiciousActivity $activity) => $this->toCoreEntity($activity), $activities);
     }
 
+    /**
+     * @return array<CoreSuspiciousActivity>
+     */
     public function findByStatus(string $status, int $limit = 100): array
     {
-        $activities = $this->entityManager->getRepository($this->suspiciousActivityClass)
+        $activities = $this->entityManager->getRepository($this->getSuspiciousActivityClass())
             ->findBy(['status' => $status], ['detectedAt' => 'DESC'], $limit);
 
-        return array_map(fn ($activity) => $this->toCoreEntity($activity), $activities);
+        return array_map(fn (SuspiciousActivity $activity) => $this->toCoreEntity($activity), $activities);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function update(string $id, array $data): CoreSuspiciousActivity
     {
         /** @var SuspiciousActivity|null $activity */
-        $activity = $this->entityManager->find($this->suspiciousActivityClass, $id);
+        $activity = $this->entityManager->find($this->getSuspiciousActivityClass(), $id);
         if ($activity === null) {
             throw new \RuntimeException("Suspicious activity not found: $id");
         }
@@ -99,7 +120,8 @@ final readonly class DoctrineSuspiciousActivityRepository implements SuspiciousA
 
     public function delete(string $id): bool
     {
-        $activity = $this->entityManager->find($this->suspiciousActivityClass, $id);
+        /** @var SuspiciousActivity|null $activity */
+        $activity = $this->entityManager->find($this->getSuspiciousActivityClass(), $id);
         if ($activity === null) {
             return false;
         }

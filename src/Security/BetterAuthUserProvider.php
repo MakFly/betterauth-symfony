@@ -22,11 +22,17 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
  *     providers:
  *         better_auth:
  *             id: BetterAuth\Symfony\Security\BetterAuthUserProvider
+ *
+ * @implements UserProviderInterface<BetterAuthModelUser>
  */
 class BetterAuthUserProvider implements UserProviderInterface
 {
+    /** @var class-string<BetterAuthModelUser> */
     private string $userClass;
 
+    /**
+     * @param class-string<BetterAuthModelUser> $userClass
+     */
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserIdConverter $idConverter,
@@ -52,7 +58,7 @@ class BetterAuthUserProvider implements UserProviderInterface
             ->getRepository($this->userClass)
             ->find($user->getId());
 
-        if (!$freshUser) {
+        if (!$freshUser instanceof UserInterface) {
             throw new UserNotFoundException('User not found');
         }
 
@@ -76,7 +82,7 @@ class BetterAuthUserProvider implements UserProviderInterface
             ->getRepository($this->userClass)
             ->find($this->idConverter->toDatabaseId($identifier));
 
-        if (!$user) {
+        if (!$user instanceof UserInterface) {
             throw new UserNotFoundException(sprintf('User "%s" not found.', $identifier));
         }
 

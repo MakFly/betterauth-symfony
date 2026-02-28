@@ -32,6 +32,7 @@ class GuestSession
     #[ORM\Column(type: 'datetime_immutable')]
     public DateTimeImmutable $expiresAt;
 
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     public ?array $metadata = null;
 }

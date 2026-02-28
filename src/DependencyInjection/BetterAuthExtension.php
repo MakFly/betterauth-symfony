@@ -22,17 +22,17 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $this->prependDoctrineConfig($container);
 
         // Security auto-configuration
-        if ($config['security']['auto_configure'] ?? true) {
+        if ($config['security']['auto_configure']) {
             $this->prependSecurityConfig($container, $config);
         }
 
         // CORS auto-configuration
-        if ($config['cors']['auto_configure'] ?? true) {
+        if ($config['cors']['auto_configure']) {
             $this->prependCorsConfig($container, $config);
         }
 
         // Routing auto-configuration
-        if ($config['routing']['auto_configure'] ?? true) {
+        if ($config['routing']['auto_configure']) {
             $this->prependRoutingConfig($container, $config);
         }
     }
@@ -44,10 +44,13 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         }
 
         $projectDir = $container->getParameter('kernel.project_dir');
+        if (!is_string($projectDir)) {
+            return;
+        }
 
         $possiblePaths = [
-            dirname($projectDir) . '/betterauth-core/src/core',
-            $projectDir . '/vendor/betterauth/core/src/core',
+            dirname(__DIR__, 2) . '/core-embedded/core',
+            $projectDir . '/vendor/betterauth/symfony-bundle/core-embedded/core',
         ];
 
         $betterAuthCorePath = null;
@@ -95,6 +98,9 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function prependSecurityConfig(ContainerBuilder $container, array $config): void
     {
         if (!$container->hasExtension('security')) {
@@ -200,6 +206,9 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         ]);
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function prependCorsConfig(ContainerBuilder $container, array $config): void
     {
         if (!$container->hasExtension('nelmio_cors')) {
@@ -237,6 +246,9 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         }
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function prependRoutingConfig(ContainerBuilder $container, array $config): void
     {
         $securityConfig = $config['security'] ?? [];
@@ -267,6 +279,24 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
+        // Validate secret key at boot time
+        $secret = $config['secret'];
+        if ($secret === 'change_me_in_production') {
+            $env = $container->getParameter('kernel.environment');
+            if ($env === 'prod') {
+                throw new \RuntimeException(
+                    'BetterAuth: The secret key must be changed from the default value in production. ' .
+                    'Set BETTER_AUTH_SECRET environment variable or configure better_auth.secret.'
+                );
+            }
+        }
+        if ($secret !== 'change_me_in_production' && strlen($secret) < 32) {
+            throw new \RuntimeException(
+                'BetterAuth: The secret key must be at least 32 characters long. ' .
+                'Current length: ' . strlen($secret) . '. Use a strong random value.'
+            );
+        }
+
         // Store config parameters
         $container->setParameter('better_auth.config', $config);
         $container->setParameter('better_auth.mode', $config['mode']);
@@ -294,9 +324,11 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         // Configure AuthConfig based on mode
         $authConfigDefinition = $container->getDefinition(\BetterAuth\Core\Config\AuthConfig::class);
 
-        $factory = $config['mode'] === 'api'
-            ? [\BetterAuth\Core\Config\AuthConfig::class, 'forApi']
-            : [\BetterAuth\Core\Config\AuthConfig::class, 'forMonolith'];
+        $factory = match ($config['mode']) {
+            'api' => [\BetterAuth\Core\Config\AuthConfig::class, 'forApi'],
+            'hybrid' => [\BetterAuth\Core\Config\AuthConfig::class, 'forHybrid'],
+            default => [\BetterAuth\Core\Config\AuthConfig::class, 'forMonolith'],
+        };
 
         $authConfigDefinition->setFactory($factory);
         $authConfigDefinition->setArguments([
@@ -321,6 +353,9 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $this->configureOpenApiDecorator($container, $config);
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function configureOpenApiDecorator(ContainerBuilder $container, array $config): void
     {
         if (!$container->hasDefinition(\BetterAuth\Symfony\OpenApi\AuthenticationDecorator::class)) {
@@ -346,6 +381,9 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         // If null, the decorator will use the router to auto-detect the prefix
     }
 
+    /**
+     * @param array<string, mixed> $providers
+     */
     private function registerOAuthProviders(ContainerBuilder $container, array $providers): void
     {
         $oauthManagerDefinition = $container->getDefinition(\BetterAuth\Providers\OAuthProvider\OAuthManager::class);

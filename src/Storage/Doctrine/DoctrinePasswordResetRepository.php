@@ -16,12 +16,14 @@ use Doctrine\ORM\EntityManagerInterface;
  */
 final class DoctrinePasswordResetRepository implements PasswordResetStorageInterface
 {
+    /** @var class-string<PasswordResetToken> */
     private string $tokenClass;
 
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         string $tokenClass = PasswordResetToken::class
     ) {
+        /** @var class-string<PasswordResetToken> $tokenClass */
         $this->tokenClass = $tokenClass;
     }
 
@@ -50,6 +52,7 @@ final class DoctrinePasswordResetRepository implements PasswordResetStorageInter
 
     public function findByToken(string $token): ?PasswordResetToken
     {
+        /** @var PasswordResetToken|null $doctrineToken */
         $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
 
         if ($doctrineToken === null) {
@@ -67,6 +70,7 @@ final class DoctrinePasswordResetRepository implements PasswordResetStorageInter
 
     public function markAsUsed(string $token): bool
     {
+        /** @var PasswordResetToken|null $doctrineToken */
         $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
 
         if ($doctrineToken === null) {
@@ -81,6 +85,7 @@ final class DoctrinePasswordResetRepository implements PasswordResetStorageInter
 
     public function delete(string $token): bool
     {
+        /** @var PasswordResetToken|null $doctrineToken */
         $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
 
         if ($doctrineToken === null) {

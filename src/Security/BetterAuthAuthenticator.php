@@ -68,6 +68,9 @@ class BetterAuthAuthenticator extends AbstractAuthenticator
 {
     private readonly TokenExtractorInterface $tokenExtractor;
 
+    /**
+     * @param UserProviderInterface<UserInterface> $userProvider
+     */
     public function __construct(
         private readonly TokenAuthManagerInterface $authManager,
         private readonly EventDispatcherInterface $dispatcher,
@@ -142,7 +145,7 @@ class BetterAuthAuthenticator extends AbstractAuthenticator
             // This ensures $security->getUser() returns App\Entity\User, not a wrapper
             return new SelfValidatingPassport(
                 new UserBadge(
-                    $coreUser->getId(),
+                    (string) $coreUser->getId(),
                     fn (string $userId): UserInterface => $this->userProvider->loadUserByIdentifier($userId)
                 )
             );

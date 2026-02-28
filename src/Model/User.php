@@ -75,6 +75,7 @@ abstract class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(name: 'updated_at', type: Types::DATETIME_IMMUTABLE)]
     protected DateTimeImmutable $updatedAt;
 
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     protected ?array $metadata = null;
 
@@ -129,8 +130,13 @@ abstract class User implements UserInterface, PasswordAuthenticatedUserInterface
      *
      * @see UserInterface
      */
+    /**
+     * @return non-empty-string
+     */
     public function getUserIdentifier(): string
     {
+        assert($this->email !== '');
+
         return $this->email;
     }
 
@@ -214,11 +220,17 @@ abstract class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getMetadata(): ?array
     {
         return $this->metadata;
     }
 
+    /**
+     * @param array<string, mixed>|null $metadata
+     */
     public function setMetadata(?array $metadata): static
     {
         $this->metadata = $metadata;
@@ -252,64 +264,4 @@ abstract class User implements UserInterface, PasswordAuthenticatedUserInterface
         return null;
     }
 
-    /**
-     * Magic getter to allow read access to protected properties.
-     *
-     * This enables convenient property access like $user->email
-     * while maintaining encapsulation (properties remain protected).
-     *
-     * @param string $name Property name
-     *
-     * @return mixed Property value
-     *
-     * @throws \InvalidArgumentException If property doesn't exist
-     */
-    public function __get(string $name): mixed
-    {
-        $allowedProperties = [
-            'id', 'email', 'password', 'roles', 'username', 'avatar',
-            'emailVerified', 'emailVerifiedAt', 'createdAt', 'updatedAt', 'metadata',
-        ];
-
-        if (in_array($name, $allowedProperties, true)) {
-            // Use getter if available (for overridden properties like username/avatar)
-            $getter = 'get' . ucfirst($name);
-            if (method_exists($this, $getter)) {
-                return $this->$getter();
-            }
-            // Special case for boolean emailVerified
-            if ($name === 'emailVerified' && method_exists($this, 'isEmailVerified')) {
-                return $this->isEmailVerified();
-            }
-
-            return $this->$name ?? null;
-        }
-
-        throw new \InvalidArgumentException(sprintf('Property "%s" does not exist on %s', $name, static::class));
-    }
-
-    /**
-     * Magic isset to support property_exists checks.
-     *
-     * @param string $name Property name
-     */
-    public function __isset(string $name): bool
-    {
-        $allowedProperties = [
-            'id', 'email', 'password', 'roles', 'username', 'avatar',
-            'emailVerified', 'emailVerifiedAt', 'createdAt', 'updatedAt', 'metadata',
-        ];
-
-        if (!in_array($name, $allowedProperties, true)) {
-            return false;
-        }
-
-        // Use getter if available
-        $getter = 'get' . ucfirst($name);
-        if (method_exists($this, $getter)) {
-            return $this->$getter() !== null;
-        }
-
-        return isset($this->$name);
-    }
 }

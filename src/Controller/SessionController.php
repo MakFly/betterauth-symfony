@@ -37,7 +37,7 @@ class SessionController extends AbstractController
                 return $this->json(['error' => 'Invalid token'], 401);
             }
 
-            $sessions = $this->authManager->getUserSessions($user->getId());
+            $sessions = $this->authManager->getUserSessions((string) $user->getId());
 
             $this->logger?->debug('Sessions listed', [
                 'userId' => $user->getId(),
@@ -82,7 +82,7 @@ class SessionController extends AbstractController
                 return $this->json(['error' => 'Invalid token'], 401);
             }
 
-            $this->authManager->revokeSession($user->getId(), $sessionId);
+            $this->authManager->revokeSession((string) $user->getId(), $sessionId);
 
             $this->logger?->info('Session revoked', [
                 'userId' => $user->getId(),

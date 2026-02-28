@@ -15,17 +15,26 @@ use Symfony\Contracts\EventDispatcher\Event;
  */
 final class TokenCreatedEvent extends Event
 {
+    /**
+     * @param array<string, mixed> $payload
+     */
     public function __construct(
         private array $payload,
         private readonly ?User $user
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getPayload(): array
     {
         return $this->payload;
     }
 
+    /**
+     * @param array<string, mixed> $payload
+     */
     public function setPayload(array $payload): void
     {
         $this->payload = $payload;

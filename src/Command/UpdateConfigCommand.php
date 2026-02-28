@@ -101,6 +101,9 @@ class UpdateConfigCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * @return array<int, array<string, mixed>>
+     */
     private function getConfigsToUpdate(string $type): array
     {
         $all = [
@@ -133,6 +136,9 @@ class UpdateConfigCommand extends Command
         return array_filter($all, fn ($c) => $c['name'] === $type);
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function updateConfig(SymfonyStyle $io, array $config, bool $dryRun, bool $force): void
     {
         $io->section($config['name'] . '.yaml');
@@ -166,6 +172,9 @@ class UpdateConfigCommand extends Command
         $io->writeln('✅ ' . ($exists ? 'Updated' : 'Created') . ": {$config['path']}");
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function generateSecurityConfig(): array
     {
         return [
@@ -209,6 +218,9 @@ class UpdateConfigCommand extends Command
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function generateBetterAuthConfig(): array
     {
         return [
@@ -249,6 +261,9 @@ class UpdateConfigCommand extends Command
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function generateMonologConfig(): array
     {
         return [
@@ -299,6 +314,9 @@ class UpdateConfigCommand extends Command
         ];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     private function generateServicesConfig(): array
     {
         return [

@@ -34,6 +34,7 @@ abstract class SecurityEvent
     #[ORM\Column(type: 'datetime_immutable')]
     protected DateTimeImmutable $createdAt;
 
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     protected ?array $details = null;
 
@@ -122,11 +123,17 @@ abstract class SecurityEvent
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getDetails(): ?array
     {
         return $this->details;
     }
 
+    /**
+     * @param array<string, mixed>|null $details
+     */
     public function setDetails(?array $details): static
     {
         $this->details = $details;

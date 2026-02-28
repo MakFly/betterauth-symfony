@@ -152,7 +152,7 @@ final class LicenseValidator
         $duration = $gracePeriodData['duration'] ?? self::DEFAULT_GRACE_PERIOD;
         $elapsed = time() - $startedAt;
 
-        return max(0, $duration - $elapsed);
+        return (int) max(0, $duration - $elapsed);
     }
 
     /**

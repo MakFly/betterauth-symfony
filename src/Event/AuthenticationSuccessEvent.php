@@ -26,6 +26,9 @@ final class AuthenticationSuccessEvent extends Event
 {
     private ?Response $response = null;
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function __construct(
         private readonly UserInterface|CoreUser $user,
         private array $data = [],
@@ -37,11 +40,17 @@ final class AuthenticationSuccessEvent extends Event
         return $this->user;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getData(): array
     {
         return $this->data;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function setData(array $data): void
     {
         $this->data = $data;

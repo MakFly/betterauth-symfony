@@ -152,6 +152,10 @@ HELP;
         return Command::SUCCESS;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function configureSection(SymfonyStyle $io, array $config, string $section): array
     {
         switch ($section) {
@@ -173,6 +177,10 @@ HELP;
         }
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function runFullWizard(SymfonyStyle $io, array $config): array
     {
         $io->section('Step 1/6: Authentication Mode');
@@ -206,6 +214,10 @@ HELP;
         return $config;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function configureMode(SymfonyStyle $io, array $config): array
     {
         $currentMode = $config['better_auth']['mode'] ?? 'api';
@@ -229,6 +241,10 @@ HELP;
         return $config;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function configureTokens(SymfonyStyle $io, array $config): array
     {
         $currentAccessLifetime = $config['better_auth']['token']['lifetime'] ?? 3600;
@@ -269,6 +285,10 @@ HELP;
         return $config;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function configureSession(SymfonyStyle $io, array $config): array
     {
         $currentLifetime = $config['better_auth']['session']['lifetime'] ?? 604800;
@@ -299,6 +319,10 @@ HELP;
         return $config;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function configureOAuth(SymfonyStyle $io, array $config): array
     {
         $io->writeln('<info>OAuth Providers</info> allow users to sign in with their existing accounts.');
@@ -353,6 +377,10 @@ HELP;
         return $config;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function configure2FA(SymfonyStyle $io, array $config): array
     {
         $current2FA = $config['better_auth']['two_factor'] ?? [];
@@ -390,6 +418,10 @@ HELP;
         return $config;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function configureMultiTenant(SymfonyStyle $io, array $config): array
     {
         $currentMultiTenant = $config['better_auth']['multi_tenant'] ?? [];
@@ -420,6 +452,9 @@ HELP;
         return $config;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function showSummary(SymfonyStyle $io, array $config): void
     {
         $io->section('Configuration Summary');

@@ -3,15 +3,6 @@
   "description": "Symfony bundle for BetterAuth - Modern authentication library",
   "type": "symfony-bundle",
   "license": "MIT",
-  "repositories": [
-    {
-      "type": "path",
-      "url": "../betterauth-core",
-      "options": {
-        "symlink": true
-      }
-    }
-  ],
   "keywords": [
     "symfony",
     "bundle",
@@ -37,7 +28,12 @@
   },
   "require": {
     "php": "^8.2",
-    "betterauth/core": "^0.0.2|dev-main",
+    "bacon/bacon-qr-code": "^2.0",
+    "geoip2/geoip2": "^3.0",
+    "mobiledetect/mobiledetectlib": "^4.8",
+    "paragonie/paseto": "^3.1",
+    "psr/cache": "^3.0",
+    "ramsey/uuid": "^4.7",
     "symfony/framework-bundle": "^6.4|^7.0|^8.0",
     "symfony/config": "^6.4|^7.0|^8.0",
     "symfony/dependency-injection": "^6.4|^7.0|^8.0",
@@ -55,7 +51,6 @@
     "symfony/property-info": "^6.4|^7.0|^8.0",
     "symfony/mailer": "^6.4|^7.0|^8.0",
     "symfony/mime": "^6.4|^7.0|^8.0",
-    "symfony/http-client": "^6.4|^7.0|^8.0",
     "monolog/monolog": "^3.0",
     "api-platform/core": "^4.0",
     "nelmio/cors-bundle": "^2.0",
@@ -64,23 +59,33 @@
     "doctrine/doctrine-migrations-bundle": "^3.0"
   },
   "require-dev": {
-    "phpunit/phpunit": "^10.5",
+    "dg/bypass-finals": "^1.9",
+    "doctrine/doctrine-fixtures-bundle": "^4.3",
+    "liip/test-fixtures-bundle": "^3.8",
     "phpstan/phpstan": "^1.10",
-    "symfony/phpunit-bridge": "^6.4|^7.0|^8.0",
-    "symfony/web-profiler-bundle": "^6.4|^7.0|^8.0",
-    "symfony/maker-bundle": "^1.0",
+    "phpunit/phpunit": "^10.5",
+    "symfony/browser-kit": "^8.0",
     "symfony/debug-bundle": "^6.4|^7.0|^8.0",
+    "symfony/http-client": "^8.0",
+    "symfony/maker-bundle": "^1.0",
     "symfony/monolog-bundle": "^3.0",
-    "symfony/stopwatch": "^6.4|^7.0|^8.0"
+    "symfony/phpunit-bridge": "^6.4|^7.0|^8.0",
+    "symfony/stopwatch": "^6.4|^7.0|^8.0",
+    "symfony/web-profiler-bundle": "^6.4|^7.0|^8.0"
   },
   "autoload": {
     "psr-4": {
-      "BetterAuth\\Symfony\\": "src/"
+      "BetterAuth\\Symfony\\": "src/",
+      "BetterAuth\\Core\\": "core-embedded/core/",
+      "BetterAuth\\Providers\\": "core-embedded/providers/",
+      "BetterAuth\\Contracts\\": "core-embedded/contracts/"
     }
   },
   "autoload-dev": {
     "psr-4": {
-      "BetterAuth\\Symfony\\Tests\\": "tests/"
+      "BetterAuth\\Symfony\\Tests\\": "tests/",
+      "BetterAuth\\Tests\\": "tests/Core/",
+      "App\\": "tests/App/src/"
     }
   },
   "scripts": {

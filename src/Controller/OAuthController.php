@@ -158,9 +158,14 @@ class OAuthController extends AbstractController
         }
     }
 
+    /**
+     * @param array<string, string> $params
+     */
     private function redirectToFrontend(array $params, string $path = '/login'): RedirectResponse
     {
-        $url = rtrim($this->frontendUrl, '/') . $path . '?' . http_build_query($params);
+        // Use URL fragment (#) for tokens to prevent them from appearing in server logs
+        // and from being sent to the server in subsequent requests
+        $url = rtrim($this->frontendUrl, '/') . $path . '#' . http_build_query($params);
         return new RedirectResponse($url);
     }
 

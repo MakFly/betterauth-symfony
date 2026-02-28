@@ -18,6 +18,9 @@ use Symfony\Contracts\EventDispatcher\Event;
  */
 final class TokenAuthenticatedEvent extends Event
 {
+    /**
+     * @param array<string, mixed> $payload
+     */
     public function __construct(
         private readonly array $payload,
         private readonly User $user,
@@ -25,6 +28,9 @@ final class TokenAuthenticatedEvent extends Event
     ) {
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function getPayload(): array
     {
         return $this->payload;

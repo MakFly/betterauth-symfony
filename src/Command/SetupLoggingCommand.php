@@ -142,6 +142,10 @@ class SetupLoggingCommand extends Command
         return Command::SUCCESS;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     * @return array<string, mixed>
+     */
     private function addBetterAuthLogging(array $config, string $channel, string $level, string $path): array
     {
         // Initialize monolog config if not exists

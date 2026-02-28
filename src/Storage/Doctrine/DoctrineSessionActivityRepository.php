@@ -26,15 +26,26 @@ final readonly class DoctrineSessionActivityRepository implements SessionActivit
     ) {
     }
 
+    /**
+     * @return class-string<SessionActivity>
+     */
+    private function getSessionActivityClass(): string
+    {
+        /** @var class-string<SessionActivity> */
+        return $this->sessionActivityClass;
+    }
+
     public function generateId(): ?string
     {
         return null;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): CoreSessionActivity
     {
-        $class = $this->sessionActivityClass;
-        /** @var SessionActivity $activity */
+        $class = $this->getSessionActivityClass();
         $activity = new $class();
         $activity->setId($data['id']);
         $activity->setSessionId($data['session_id']);
@@ -53,24 +64,31 @@ final readonly class DoctrineSessionActivityRepository implements SessionActivit
 
     public function findById(string $id): ?CoreSessionActivity
     {
-        $activity = $this->entityManager->find($this->sessionActivityClass, $id);
+        /** @var SessionActivity|null $activity */
+        $activity = $this->entityManager->find($this->getSessionActivityClass(), $id);
 
         return $activity ? $this->toCoreEntity($activity) : null;
     }
 
+    /**
+     * @return array<CoreSessionActivity>
+     */
     public function findBySessionId(string $sessionId, int $limit = 50): array
     {
-        $activities = $this->entityManager->getRepository($this->sessionActivityClass)
+        $activities = $this->entityManager->getRepository($this->getSessionActivityClass())
             ->findBy(['sessionId' => $sessionId], ['createdAt' => 'DESC'], $limit);
 
-        return array_map(fn ($activity) => $this->toCoreEntity($activity), $activities);
+        return array_map(fn (SessionActivity $activity) => $this->toCoreEntity($activity), $activities);
     }
 
+    /**
+     * @return array<CoreSessionActivity>
+     */
     public function findByUserId(string $userId, int $limit = 100): array
     {
         $qb = $this->entityManager->createQueryBuilder();
         $activities = $qb->select('sa')
-            ->from($this->sessionActivityClass, 'sa')
+            ->from($this->getSessionActivityClass(), 'sa')
             ->join('App\\Entity\\Session', 's', 'WITH', 'sa.sessionId = s.token')
             ->where('s.userId = :userId')
             ->setParameter('userId', $userId)
@@ -79,12 +97,13 @@ final readonly class DoctrineSessionActivityRepository implements SessionActivit
             ->getQuery()
             ->getResult();
 
-        return array_map(fn ($activity) => $this->toCoreEntity($activity), $activities);
+        return array_map(fn (SessionActivity $activity) => $this->toCoreEntity($activity), $activities);
     }
 
     public function delete(string $id): bool
     {
-        $activity = $this->entityManager->find($this->sessionActivityClass, $id);
+        /** @var SessionActivity|null $activity */
+        $activity = $this->entityManager->find($this->getSessionActivityClass(), $id);
         if ($activity === null) {
             return false;
         }
@@ -99,7 +118,7 @@ final readonly class DoctrineSessionActivityRepository implements SessionActivit
     {
         $qb = $this->entityManager->createQueryBuilder();
 
-        return $qb->delete($this->sessionActivityClass, 'sa')
+        return $qb->delete($this->getSessionActivityClass(), 'sa')
             ->where('sa.sessionId = :sessionId')
             ->setParameter('sessionId', $sessionId)
             ->getQuery()

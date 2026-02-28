@@ -26,15 +26,26 @@ final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositor
     ) {
     }
 
+    /**
+     * @return class-string<DeviceInfo>
+     */
+    private function getDeviceInfoClass(): string
+    {
+        /** @var class-string<DeviceInfo> */
+        return $this->deviceInfoClass;
+    }
+
     public function generateId(): ?string
     {
         return null;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): CoreDeviceInfo
     {
-        $class = $this->deviceInfoClass;
-        /** @var DeviceInfo $device */
+        $class = $this->getDeviceInfoClass();
         $device = new $class();
         $device->setId($data['id']);
         $device->setUserId($data['user_id']);
@@ -59,31 +70,39 @@ final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositor
 
     public function findById(string $id): ?CoreDeviceInfo
     {
-        $device = $this->entityManager->find($this->deviceInfoClass, $id);
+        /** @var DeviceInfo|null $device */
+        $device = $this->entityManager->find($this->getDeviceInfoClass(), $id);
 
         return $device ? $this->toCoreEntity($device) : null;
     }
 
     public function findByFingerprint(string $userId, string $fingerprint): ?CoreDeviceInfo
     {
-        $device = $this->entityManager->getRepository($this->deviceInfoClass)
+        /** @var DeviceInfo|null $device */
+        $device = $this->entityManager->getRepository($this->getDeviceInfoClass())
             ->findOneBy(['userId' => $userId, 'fingerprint' => $fingerprint]);
 
         return $device ? $this->toCoreEntity($device) : null;
     }
 
+    /**
+     * @return array<CoreDeviceInfo>
+     */
     public function findByUserId(string $userId): array
     {
-        $devices = $this->entityManager->getRepository($this->deviceInfoClass)
+        $devices = $this->entityManager->getRepository($this->getDeviceInfoClass())
             ->findBy(['userId' => $userId], ['lastSeenAt' => 'DESC']);
 
-        return array_map(fn ($device) => $this->toCoreEntity($device), $devices);
+        return array_map(fn (DeviceInfo $device) => $this->toCoreEntity($device), $devices);
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function update(string $id, array $data): CoreDeviceInfo
     {
         /** @var DeviceInfo|null $device */
-        $device = $this->entityManager->find($this->deviceInfoClass, $id);
+        $device = $this->entityManager->find($this->getDeviceInfoClass(), $id);
         if ($device === null) {
             throw new \RuntimeException("Device not found: $id");
         }
@@ -108,7 +127,8 @@ final readonly class DoctrineDeviceInfoRepository implements DeviceInfoRepositor
 
     public function delete(string $id): bool
     {
-        $device = $this->entityManager->find($this->deviceInfoClass, $id);
+        /** @var DeviceInfo|null $device */
+        $device = $this->entityManager->find($this->getDeviceInfoClass(), $id);
         if ($device === null) {
             return false;
         }

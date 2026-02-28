@@ -40,6 +40,7 @@ abstract class SuspiciousActivity
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     protected ?DateTimeImmutable $resolvedAt = null;
 
+    /** @var array<string, mixed>|null */
     #[ORM\Column(type: 'json', nullable: true)]
     protected ?array $details = null;
 
@@ -152,11 +153,17 @@ abstract class SuspiciousActivity
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getDetails(): ?array
     {
         return $this->details;
     }
 
+    /**
+     * @param array<string, mixed>|null $details
+     */
     public function setDetails(?array $details): static
     {
         $this->details = $details;

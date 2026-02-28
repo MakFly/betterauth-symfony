@@ -12,6 +12,9 @@ use BetterAuth\Core\Entities\User;
  */
 trait AuthResponseTrait
 {
+    /**
+     * @return array<string, mixed>
+     */
     protected function formatUser(User $user): array
     {
         return [
@@ -30,6 +33,7 @@ trait AuthResponseTrait
 
     /**
      * @param array<string, mixed> $result
+     * @return array<string, mixed>
      */
     protected function formatAuthResponse(array $result, User $user): array
     {
@@ -39,7 +43,8 @@ trait AuthResponseTrait
             return [
                 'access_token' => $session->getToken(),
                 'refresh_token' => $session->getToken(),
-                'expires_in' => 604800,
+                // Use expires_in from result if available; fallback to 7-day default (604800s)
+                'expires_in' => $result['expires_in'] ?? 604800,
                 'token_type' => 'Bearer',
                 'user' => $this->formatUser($user),
             ];
@@ -61,6 +66,6 @@ trait AuthResponseTrait
         if ($authHeader && str_starts_with($authHeader, 'Bearer ')) {
             return substr($authHeader, 7);
         }
-        return $request->cookies->get('access_token');
+        return null;
     }
 }

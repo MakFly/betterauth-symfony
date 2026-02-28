@@ -45,7 +45,7 @@ final class CacheRateLimiter implements RateLimiterInterface
 
         $data['attempts']++;
 
-        $ttl = max(1, $data['reset'] - $now);
+        $ttl = (int) max(1, $data['reset'] - $now);
         $this->saveData($key, $data, $ttl);
 
         return $data['attempts'];
@@ -87,6 +87,9 @@ final class CacheRateLimiter implements RateLimiterInterface
         return $availableIn;
     }
 
+    /**
+     * @return array{attempts: int, reset: int}|null
+     */
     private function getData(string $key): ?array
     {
         $item = $this->cache->getItem($this->getCacheKey($key));
@@ -102,6 +105,9 @@ final class CacheRateLimiter implements RateLimiterInterface
         return $data;
     }
 
+    /**
+     * @param array{attempts: int, reset: int} $data
+     */
     private function saveData(string $key, array $data, int $ttl): void
     {
         $item = $this->cache->getItem($this->getCacheKey($key));

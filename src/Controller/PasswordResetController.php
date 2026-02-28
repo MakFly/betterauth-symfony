@@ -53,6 +53,7 @@ class PasswordResetController extends AbstractController
             // Don't expose internal errors for security
             return $this->json([
                 'message' => 'If an account exists with this email, a password reset link has been sent',
+                'expiresIn' => 3600,
             ]);
         }
     }

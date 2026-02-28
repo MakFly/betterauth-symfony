@@ -26,15 +26,26 @@ final readonly class DoctrineSecurityEventRepository implements SecurityEventRep
     ) {
     }
 
+    /**
+     * @return class-string<SecurityEvent>
+     */
+    private function getSecurityEventClass(): string
+    {
+        /** @var class-string<SecurityEvent> */
+        return $this->securityEventClass;
+    }
+
     public function generateId(): ?string
     {
         return null;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     */
     public function create(array $data): CoreSecurityEvent
     {
-        $class = $this->securityEventClass;
-        /** @var SecurityEvent $event */
+        $class = $this->getSecurityEventClass();
         $event = new $class();
         $event->setId($data['id']);
         $event->setUserId($data['user_id']);
@@ -54,30 +65,38 @@ final readonly class DoctrineSecurityEventRepository implements SecurityEventRep
 
     public function findById(string $id): ?CoreSecurityEvent
     {
-        $event = $this->entityManager->find($this->securityEventClass, $id);
+        /** @var SecurityEvent|null $event */
+        $event = $this->entityManager->find($this->getSecurityEventClass(), $id);
 
         return $event ? $this->toCoreEntity($event) : null;
     }
 
+    /**
+     * @return array<CoreSecurityEvent>
+     */
     public function findByUserId(string $userId, int $limit = 100): array
     {
-        $events = $this->entityManager->getRepository($this->securityEventClass)
+        $events = $this->entityManager->getRepository($this->getSecurityEventClass())
             ->findBy(['userId' => $userId], ['createdAt' => 'DESC'], $limit);
 
-        return array_map(fn ($event) => $this->toCoreEntity($event), $events);
+        return array_map(fn (SecurityEvent $event) => $this->toCoreEntity($event), $events);
     }
 
+    /**
+     * @return array<CoreSecurityEvent>
+     */
     public function findBySeverity(string $severity, int $limit = 100): array
     {
-        $events = $this->entityManager->getRepository($this->securityEventClass)
+        $events = $this->entityManager->getRepository($this->getSecurityEventClass())
             ->findBy(['severity' => $severity], ['createdAt' => 'DESC'], $limit);
 
-        return array_map(fn ($event) => $this->toCoreEntity($event), $events);
+        return array_map(fn (SecurityEvent $event) => $this->toCoreEntity($event), $events);
     }
 
     public function delete(string $id): bool
     {
-        $event = $this->entityManager->find($this->securityEventClass, $id);
+        /** @var SecurityEvent|null $event */
+        $event = $this->entityManager->find($this->getSecurityEventClass(), $id);
         if ($event === null) {
             return false;
         }

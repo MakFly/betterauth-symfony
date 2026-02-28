@@ -343,6 +343,9 @@ HELP;
         return Command::SUCCESS;
     }
 
+    /**
+     * @param array<string, mixed> $config
+     */
     private function generateYamlWithComments(array $config, string $preset): string
     {
         $lines = [];
@@ -421,6 +424,9 @@ HELP;
         return implode("\n", $lines) . "\n";
     }
 
+    /**
+     * @param array<string, string> $envVars
+     */
     private function updateEnvFile(SymfonyStyle $io, Filesystem $filesystem, array $envVars): void
     {
         $envPath = $this->projectDir . '/.env';
@@ -431,7 +437,7 @@ HELP;
 
         $io->section('Updating Environment Variables');
 
-        $existingContent = $filesystem->exists($targetPath) ? file_get_contents($targetPath) : '';
+        $existingContent = $filesystem->exists($targetPath) ? (string) file_get_contents($targetPath) : '';
         $newVars = [];
 
         foreach ($envVars as $key => $value) {

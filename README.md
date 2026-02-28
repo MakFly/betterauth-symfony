@@ -13,16 +13,151 @@ Modern, secure authentication for **Symfony 6.4 / 7.x / 8.0** applications with 
 
 ---
 
-## Why BetterAuth?
+## BetterAuth vs LexikJWT
 
-| Feature | BetterAuth | Traditional Bundles |
-|---------|------------|---------------------|
-| **Setup time** | 2 minutes (automated) | Hours of configuration |
-| **Token security** | Paseto V4 (encrypted) | JWT (signing only) |
-| **API-first** | Built-in stateless mode | Requires extra setup |
-| **OAuth** | 5 providers ready | Manual integration |
-| **2FA** | TOTP + backup codes | External packages |
+[LexikJWTAuthenticationBundle](https://github.com/lexik/LexikJWTAuthenticationBundle) is the most popular JWT bundle for Symfony. Here's an honest comparison:
+
+### Quick Comparison
+
+| Feature | BetterAuth | LexikJWT |
+|---------|------------|----------|
+| **Token Type** | Paseto V4 (encrypted) | JWT (signed only) |
+| **Setup** | 1 command (`better-auth:install`) | Manual configuration |
+| **Refresh Tokens** | Built-in with rotation | Requires extra bundle |
+| **Registration** | Built-in | Manual implementation |
+| **OAuth 2.0** | 5 providers ready | Manual integration |
+| **2FA / TOTP** | Built-in | External packages |
+| **Magic Link** | Built-in | Manual implementation |
+| **Email Verification** | Built-in | Manual implementation |
+| **Password Reset** | Built-in | Manual implementation |
+| **Session Management** | Built-in | Not supported |
 | **Multi-tenant** | Organizations & teams | Not supported |
+| **Rate Limiting** | Built-in | Manual implementation |
+| **Entity Generation** | Automatic | Manual |
+| **Controller Generation** | Automatic | Manual |
+| **Symfony Versions** | 6.4, 7.x, 8.0 | 5.4, 6.x, 7.x |
+| **PHP Versions** | 8.2+ | 7.4+ |
+
+### Token Security: Paseto vs JWT
+
+| Aspect | Paseto V4 (BetterAuth) | JWT (LexikJWT) |
+|--------|------------------------|----------------|
+| **Encryption** | XChaCha20-Poly1305 | None (plaintext payload) |
+| **Authentication** | Ed25519 signatures | HMAC or RSA |
+| **Payload Visibility** | Encrypted, not readable | Base64, anyone can read |
+| **Algorithm Confusion** | Not possible | Known vulnerability class |
+| **Key Compromise Impact** | Encrypted payload protected | All tokens readable |
+
+**JWT payloads are base64-encoded, not encrypted.** Anyone with the token can read user IDs, emails, roles, etc.:
+
+```bash
+# JWT payload is readable without the secret
+echo "eyJzdWIiOiJ1c2VyLTEyMyIsInJvbGUiOiJhZG1pbiJ9" | base64 -d
+# Output: {"sub":"user-123","role":"admin"}
+```
+
+**Paseto V4 encrypts the payload.** Even with the token, no one can read the contents without the secret key.
+
+### Feature Comparison Details
+
+#### What you get with BetterAuth
+
+```
+✅ Registration endpoint
+✅ Login endpoint
+✅ Token refresh with rotation
+✅ Logout (single + all sessions)
+✅ Password reset flow
+✅ Email verification flow
+✅ OAuth 2.0 (Google, GitHub, etc.)
+✅ TOTP 2FA with backup codes
+✅ Magic link authentication
+✅ Session management
+✅ Device tracking
+✅ Rate limiting
+✅ Multi-tenant organizations
+```
+
+#### What you need to build with LexikJWT
+
+```
+❌ Registration endpoint → Build yourself
+❌ Token refresh → Install gesdinet/jwt-refresh-token-bundle
+❌ Logout → Build yourself (JWT cannot be revoked)
+❌ Password reset → Build yourself
+❌ Email verification → Build yourself
+❌ OAuth 2.0 → Install knpuniversity/oauth2-client-bundle + configure
+❌ 2FA → Install scheb/2fa-bundle + configure
+❌ Magic link → Build yourself
+❌ Session management → Build yourself
+❌ Device tracking → Build yourself
+❌ Rate limiting → Install symfony/rate-limiter + configure
+❌ Multi-tenant → Build yourself
+```
+
+### Setup Comparison
+
+#### BetterAuth (2 minutes)
+
+```bash
+composer require betterauth/symfony-bundle
+php bin/console better-auth:install
+# Done! All entities, controllers, config generated.
+```
+
+#### LexikJWT (30+ minutes)
+
+```bash
+composer require lexik/jwt-authentication-bundle
+# Generate SSH keys
+mkdir -p config/jwt
+openssl genpkey -out config/jwt/private.pem -algorithm RSA -pkeyopt rsa_keygen_bits:4096
+openssl pkey -in config/jwt/private.pem -out config/jwt/public.pem -pubout
+
+# Configure security.yaml
+# Configure lexik_jwt_authentication.yaml
+# Create User entity
+# Create registration controller
+# Create login controller
+# Install refresh token bundle
+# Configure refresh tokens
+# Build password reset
+# Build email verification
+# ...and more
+```
+
+### When to Choose LexikJWT
+
+LexikJWT is a great choice if you:
+- Need **maximum simplicity** for basic API auth
+- Want **JWT interoperability** with other services
+- Already have user management built
+- Only need **token generation**, not a full auth system
+- Prefer **minimal dependencies**
+
+### When to Choose BetterAuth
+
+BetterAuth is a better choice if you:
+- Want **encrypted tokens** (sensitive data in payload)
+- Need **OAuth 2.0** social login
+- Need **2FA / TOTP** authentication
+- Want **magic link** passwordless login
+- Need **session management** with device tracking
+- Want **multi-tenant** organizations
+- Prefer **automated setup** over manual configuration
+- Need **password reset** and **email verification** flows
+- Want **everything in one package**
+
+### Migration from LexikJWT
+
+If you're already using LexikJWT and want to migrate:
+
+1. Install BetterAuth alongside LexikJWT
+2. Run `php bin/console better-auth:install` (use existing User entity)
+3. Update your frontend to use new endpoints
+4. Remove LexikJWT once migration is complete
+
+Both can coexist during migration.
 
 ---
 
@@ -506,18 +641,6 @@ Full documentation available at [betterauth.dev](https://betterauth.dev)
 - [Magic Link](https://betterauth.dev/docs/features/magic-link)
 - [Multi-Tenant](https://betterauth.dev/docs/features/multi-tenant)
 - [Security Best Practices](https://betterauth.dev/docs/advanced/security)
-
----
-
-## Ecosystem
-
-| Package | Description | Status |
-|---------|-------------|--------|
-| [betterauth-symfony](https://github.com/MakFly/betterauth-symfony) | Symfony bundle (this repo) | Active |
-| [betterauth-laravel](https://github.com/MakFly/betterauth-laravel) | Laravel package | Active |
-| [betterauth-core](https://github.com/MakFly/betterauth-core) | Core library (embedded) | Active |
-| [betterauth-docs](https://github.com/MakFly/betterauth-docs) | Documentation site | Active |
-| [betterauth-examples](https://github.com/MakFly/betterauth-examples) | Example applications | Active |
 
 ---
 

@@ -54,9 +54,7 @@ jobs:
             ${{ runner.os }}-composer-
 
       - name: Install dependencies
-        run: |
-          composer config --global extra.symfony.require "${{ matrix.symfony }}"
-          composer install --prefer-dist --no-progress --no-interaction
+        run: composer install --prefer-dist --no-progress --no-interaction
         env:
           SYMFONY_REQUIRE: ${{ matrix.symfony }}
 
@@ -209,9 +207,7 @@ jobs:
           tools: composer:v2, symfony-cli
 
       - name: Install dependencies
-        run: |
-          composer config --global extra.symfony.require "${{ matrix.symfony }}"
-          composer install --prefer-dist --no-progress --no-interaction
+        run: composer install --prefer-dist --no-progress --no-interaction
         env:
           SYMFONY_REQUIRE: ${{ matrix.symfony }}
 

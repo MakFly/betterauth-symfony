@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Providers\PasswordResetProvider\PasswordResetProvider;
+use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -15,6 +16,8 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/auth/password', name: 'better_auth_password_')]
 class PasswordResetController extends AbstractController
 {
+    use SafeErrorResponseTrait;
+
     public function __construct(
         private readonly PasswordResetProvider $passwordResetProvider,
         private readonly ?LoggerInterface $logger = null,
@@ -91,10 +94,7 @@ class PasswordResetController extends AbstractController
                 'success' => true,
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('Password reset failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Password reset failed', 'resetPassword');
         }
     }
 
@@ -123,10 +123,7 @@ class PasswordResetController extends AbstractController
                 'email' => $result['email'] ?? null,
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('Password reset token verification failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Token verification failed', 'verifyResetToken');
         }
     }
 }

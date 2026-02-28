@@ -7,6 +7,7 @@ namespace BetterAuth\Symfony\Controller;
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Providers\EmailVerificationProvider\EmailVerificationProvider;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -18,6 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class EmailVerificationController extends AbstractController
 {
     use AuthResponseTrait;
+    use SafeErrorResponseTrait;
 
     public function __construct(
         private readonly AuthManager $authManager,
@@ -65,10 +67,7 @@ class EmailVerificationController extends AbstractController
                 'expiresIn' => $result['expiresIn'],
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('Failed to send verification email', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Failed to send verification email', 'sendVerification');
         }
     }
 
@@ -93,7 +92,7 @@ class EmailVerificationController extends AbstractController
                 'verified' => true,
             ]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Email verification failed', 'verify');
         }
     }
 
@@ -116,7 +115,7 @@ class EmailVerificationController extends AbstractController
                 'email' => $user->getEmail(),
             ]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Failed to get verification status', 'verificationStatus');
         }
     }
 }

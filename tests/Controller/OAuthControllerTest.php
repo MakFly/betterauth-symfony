@@ -11,10 +11,10 @@ use BetterAuth\Symfony\Controller\OAuthController;
 use BetterAuth\Symfony\Tests\Controller\Trait\ControllerTestTrait;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Psr\Cache\CacheItemInterface;
-use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
 
 /**
  * Unit tests for OAuthController.
@@ -28,7 +28,6 @@ class OAuthControllerTest extends TestCase
     private MockObject&AuthManager $authManager;
     private MockObject&OAuthManager $oauthManager;
     private MockObject&TotpProvider $totpProvider;
-    private MockObject&CacheItemPoolInterface $cache;
     private OAuthController $controller;
 
     protected function setUp(): void
@@ -36,34 +35,30 @@ class OAuthControllerTest extends TestCase
         $this->authManager = $this->createMock(AuthManager::class);
         $this->oauthManager = $this->createMock(OAuthManager::class);
         $this->totpProvider = $this->createMock(TotpProvider::class);
-        $this->cache = $this->createMock(CacheItemPoolInterface::class);
 
         $this->controller = new OAuthController(
             $this->authManager,
             $this->oauthManager,
             $this->totpProvider,
-            $this->cache,
             null,
             'http://localhost:5173',
         );
         $this->setUpControllerContainer($this->controller);
     }
 
-    private function createCacheItem(bool $isHit = false, mixed $value = null): MockObject&CacheItemInterface
+    private function createRequestWithSession(array $query = []): Request
     {
-        $item = $this->createMock(CacheItemInterface::class);
-        $item->method('isHit')->willReturn($isHit);
-        $item->method('get')->willReturn($value);
-        return $item;
+        $request = new Request($query);
+        $request->setSession(new Session(new MockArraySessionStorage()));
+        return $request;
     }
 
-    private function setupCacheStore(): void
+    private function storeStateInSession(Request $request, string $provider, string $state): void
     {
-        $item = $this->createCacheItem(false);
-        $item->method('set')->willReturnSelf();
-        $item->method('expiresAfter')->willReturnSelf();
-        $this->cache->method('getItem')->willReturn($item);
-        $this->cache->method('save')->willReturn(true);
+        $request->getSession()->set('better_auth.oauth_state.' . $provider, [
+            'state' => hash('sha256', $state),
+            'created_at' => time(),
+        ]);
     }
 
     // ========================================
@@ -78,7 +73,6 @@ class OAuthControllerTest extends TestCase
         $this->oauthManager->method('getAvailableProviders')
             ->willReturn(['google', 'github', 'facebook']);
 
-        $request = new Request();
         $response = $this->controller->providers();
 
         $this->assertSame(200, $response->getStatusCode());
@@ -115,9 +109,7 @@ class OAuthControllerTest extends TestCase
                 'state' => 'abc123',
             ]);
 
-        $this->setupCacheStore();
-
-        $request = new Request();
+        $request = $this->createRequestWithSession();
         $response = $this->controller->redirectToProvider('google', $request);
 
         $this->assertSame(200, $response->getStatusCode());
@@ -137,9 +129,7 @@ class OAuthControllerTest extends TestCase
                 'state' => 'abc123',
             ]);
 
-        $this->setupCacheStore();
-
-        $request = new Request(['redirect' => 'true']);
+        $request = $this->createRequestWithSession(['redirect' => 'true']);
         $response = $this->controller->redirectToProvider('google', $request);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
@@ -154,7 +144,7 @@ class OAuthControllerTest extends TestCase
         $this->oauthManager->method('getAuthorizationUrl')
             ->willThrowException(new \Exception('Provider not found: unknown'));
 
-        $request = new Request();
+        $request = $this->createRequestWithSession();
         $response = $this->controller->redirectToProvider('unknown', $request);
 
         $this->assertSame(400, $response->getStatusCode());
@@ -176,9 +166,8 @@ class OAuthControllerTest extends TestCase
                 'state' => 'xyz',
             ]);
 
-        $this->setupCacheStore();
-
-        $response = $this->controller->url('github');
+        $request = $this->createRequestWithSession();
+        $response = $this->controller->url('github', $request);
 
         $this->assertSame(200, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
@@ -195,12 +184,6 @@ class OAuthControllerTest extends TestCase
     public function callback_redirects_to_frontend_with_tokens_on_success(): void
     {
         $state = 'valid-state-123';
-        $stateHash = hash('sha256', $state);
-        $cacheKey = 'better_auth.oauth_state.' . $stateHash;
-
-        $cacheItem = $this->createCacheItem(true, ['provider' => 'google', 'created_at' => time()]);
-        $this->cache->method('getItem')->with($cacheKey)->willReturn($cacheItem);
-        $this->cache->method('deleteItem')->willReturn(true);
 
         $this->oauthManager->method('handleCallback')
             ->willReturn([
@@ -212,7 +195,9 @@ class OAuthControllerTest extends TestCase
 
         $this->totpProvider->method('requires2fa')->willReturn(false);
 
-        $request = new Request(['code' => 'valid-code', 'state' => $state]);
+        $request = $this->createRequestWithSession(['code' => 'valid-code', 'state' => $state]);
+        $this->storeStateInSession($request, 'google', $state);
+
         $response = $this->controller->callback('google', $request);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
@@ -226,7 +211,7 @@ class OAuthControllerTest extends TestCase
      */
     public function callback_redirects_with_error_when_no_code(): void
     {
-        $request = new Request(['state' => 'some-state']);
+        $request = $this->createRequestWithSession(['state' => 'some-state']);
         $response = $this->controller->callback('google', $request);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
@@ -238,10 +223,7 @@ class OAuthControllerTest extends TestCase
      */
     public function callback_redirects_with_error_when_state_invalid(): void
     {
-        $cacheItem = $this->createCacheItem(false);
-        $this->cache->method('getItem')->willReturn($cacheItem);
-
-        $request = new Request(['code' => 'some-code', 'state' => 'invalid-state']);
+        $request = $this->createRequestWithSession(['code' => 'some-code', 'state' => 'invalid-state']);
         $response = $this->controller->callback('google', $request);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
@@ -254,11 +236,6 @@ class OAuthControllerTest extends TestCase
     public function callback_redirects_with_2fa_required_when_totp_enabled(): void
     {
         $state = 'valid-state';
-        $stateHash = hash('sha256', $state);
-
-        $cacheItem = $this->createCacheItem(true, ['provider' => 'google', 'created_at' => time()]);
-        $this->cache->method('getItem')->with('better_auth.oauth_state.' . $stateHash)->willReturn($cacheItem);
-        $this->cache->method('deleteItem')->willReturn(true);
 
         $this->oauthManager->method('handleCallback')
             ->willReturn([
@@ -268,7 +245,9 @@ class OAuthControllerTest extends TestCase
 
         $this->totpProvider->method('requires2fa')->with('uuid-1')->willReturn(true);
 
-        $request = new Request(['code' => 'auth-code', 'state' => $state]);
+        $request = $this->createRequestWithSession(['code' => 'auth-code', 'state' => $state]);
+        $this->storeStateInSession($request, 'google', $state);
+
         $response = $this->controller->callback('google', $request);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
@@ -281,16 +260,13 @@ class OAuthControllerTest extends TestCase
     public function callback_redirects_with_error_on_provider_exception(): void
     {
         $state = 'valid-state';
-        $stateHash = hash('sha256', $state);
-
-        $cacheItem = $this->createCacheItem(true, ['provider' => 'google', 'created_at' => time()]);
-        $this->cache->method('getItem')->with('better_auth.oauth_state.' . $stateHash)->willReturn($cacheItem);
-        $this->cache->method('deleteItem')->willReturn(true);
 
         $this->oauthManager->method('handleCallback')
             ->willThrowException(new \Exception('OAuth token exchange failed'));
 
-        $request = new Request(['code' => 'invalid-code', 'state' => $state]);
+        $request = $this->createRequestWithSession(['code' => 'invalid-code', 'state' => $state]);
+        $this->storeStateInSession($request, 'google', $state);
+
         $response = $this->controller->callback('google', $request);
 
         $this->assertInstanceOf(RedirectResponse::class, $response);

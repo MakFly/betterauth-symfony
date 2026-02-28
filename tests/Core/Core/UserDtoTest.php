@@ -32,7 +32,7 @@ class UserDtoTest extends TestCase
         $this->assertArrayHasKey('emailVerified', $array);
     }
 
-    public function testToArrayIncludesPasswordWhenExplicitlyRequested(): void
+    public function testPasswordIsNeverCopiedToDto(): void
     {
         $user = SimpleUser::fromArray([
             'id' => 'user-123',
@@ -43,10 +43,14 @@ class UserDtoTest extends TestCase
         ]);
 
         $dto = UserDto::fromUser($user);
-        $array = $dto->toArray(includeFields: ['password']);
 
-        $this->assertArrayHasKey('password', $array, 'Password should be included when explicitly requested');
-        $this->assertSame('$2y$10$hashedpassword', $array['password']);
+        // Password hash should never be copied into the DTO, even internally
+        $this->assertNull($dto->password, 'Password should never be copied to DTO');
+
+        // Even when explicitly requesting password field, it should be null
+        $array = $dto->toArray(includeFields: ['password']);
+        $this->assertArrayHasKey('password', $array);
+        $this->assertNull($array['password']);
     }
 
     public function testToArrayExcludesPasswordWhenExplicitlyExcluded(): void

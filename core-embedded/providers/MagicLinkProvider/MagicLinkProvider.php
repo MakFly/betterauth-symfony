@@ -262,7 +262,6 @@ final class MagicLinkProvider
                 'token' => substr($token, 0, 10) . '...',
                 'ip_address' => $ipAddress,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;

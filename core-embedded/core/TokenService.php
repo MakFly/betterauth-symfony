@@ -45,7 +45,7 @@ final class TokenService implements TokenSignerInterface
         $this->issuer = $issuer;
 
         // Create symmetric key from secret (32 bytes for V4) using HKDF for proper key derivation
-        $keyMaterial = \BetterAuth\Core\Utils\Crypto::deriveKey($secretKey);
+        $keyMaterial = \BetterAuth\Core\Utils\Crypto::deriveKey($secretKey, 32, 'betterauth-token-key');
         $this->key = new SymmetricKey($keyMaterial);
     }
 

@@ -7,6 +7,7 @@ namespace BetterAuth\Symfony\Controller;
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -17,6 +18,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class TwoFactorController extends AbstractController
 {
     use AuthResponseTrait;
+    use SafeErrorResponseTrait;
 
     public function __construct(
         private readonly AuthManager $authManager,
@@ -52,10 +54,7 @@ class TwoFactorController extends AbstractController
                 'backupCodes' => $result['backupCodes'],
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('2FA setup failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Two-factor setup failed', 'setup');
         }
     }
 
@@ -96,10 +95,7 @@ class TwoFactorController extends AbstractController
                 'enabled' => true,
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('2FA validation failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Two-factor validation failed', 'validate');
         }
     }
 
@@ -140,10 +136,7 @@ class TwoFactorController extends AbstractController
                 'success' => true,
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('2FA verification failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Two-factor verification failed', 'verify');
         }
     }
 
@@ -184,10 +177,7 @@ class TwoFactorController extends AbstractController
                 'enabled' => false,
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('2FA disable failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Two-factor disable failed', 'disable');
         }
     }
 
@@ -228,10 +218,7 @@ class TwoFactorController extends AbstractController
                 'backupCodes' => $result['backupCodes'] ?? [],
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('Backup codes regeneration failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Backup codes regeneration failed', 'regenerateBackupCodes');
         }
     }
 
@@ -258,10 +245,7 @@ class TwoFactorController extends AbstractController
                 'last2faVerifiedAt' => $status['last2faVerifiedAt'] ?? null,
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('Failed to get 2FA status', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Failed to get 2FA status', 'status');
         }
     }
 
@@ -305,10 +289,7 @@ class TwoFactorController extends AbstractController
                 'backupCodes' => $result['backupCodes'] ?? [],
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('2FA reset failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Two-factor reset failed', 'reset');
         }
     }
 }

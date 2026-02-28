@@ -8,7 +8,7 @@ use BetterAuth\Core\AuthManager;
 use BetterAuth\Providers\OAuthProvider\OAuthManager;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
-use Psr\Cache\CacheItemPoolInterface;
+use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -22,16 +22,14 @@ use Symfony\Component\Routing\Attribute\Route;
 class OAuthController extends AbstractController
 {
     use AuthResponseTrait;
+    use SafeErrorResponseTrait;
 
-    private const OAUTH_STATE_CACHE_PREFIX = 'better_auth.oauth_state.';
     private const OAUTH_STATE_TTL = 600;
 
     public function __construct(
         private readonly AuthManager $authManager,
         private readonly OAuthManager $oauthManager,
         private readonly TotpProvider $totpProvider,
-        #[Autowire(service: 'cache.app')]
-        private readonly CacheItemPoolInterface $cache,
         private readonly ?LoggerInterface $logger = null,
         #[Autowire(env: 'FRONTEND_URL')]
         private readonly string $frontendUrl = 'http://localhost:5173',
@@ -45,7 +43,7 @@ class OAuthController extends AbstractController
             $providers = $this->oauthManager->getAvailableProviders();
             return $this->json(['providers' => $providers]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Failed to retrieve providers', 'providers');
         }
     }
 
@@ -54,7 +52,7 @@ class OAuthController extends AbstractController
     {
         try {
             $result = $this->oauthManager->getAuthorizationUrl($provider);
-            $this->storeOAuthState($provider, $result['state']);
+            $this->storeOAuthState($provider, $result['state'], $request);
 
             // If redirect query param, redirect directly
             if ($request->query->get('redirect') === 'true') {
@@ -66,22 +64,22 @@ class OAuthController extends AbstractController
                 'state' => $result['state'],
             ]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'OAuth redirect failed', 'redirectToProvider');
         }
     }
 
     #[Route('/{provider}/url', name: 'url', methods: ['GET'])]
-    public function url(string $provider): JsonResponse
+    public function url(string $provider, Request $request): JsonResponse
     {
         try {
             $result = $this->oauthManager->getAuthorizationUrl($provider);
-            $this->storeOAuthState($provider, $result['state']);
+            $this->storeOAuthState($provider, $result['state'], $request);
             return $this->json([
                 'url' => $result['url'],
                 'state' => $result['state'],
             ]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'OAuth URL generation failed', 'url');
         }
     }
 
@@ -94,7 +92,7 @@ class OAuthController extends AbstractController
         }
 
         $state = $request->query->get('state');
-        if (!$state || !$this->consumeOAuthState($provider, $state)) {
+        if (!$state || !$this->consumeOAuthState($provider, $state, $request)) {
             $this->logger?->warning('OAuth callback rejected due to invalid state', [
                 'provider' => $provider,
                 'has_state' => $state !== null,
@@ -136,7 +134,6 @@ class OAuthController extends AbstractController
             if ($session) {
                 $params = [
                     'access_token' => $session->getToken(),
-                    'refresh_token' => $session->getToken(),
                     'expires_in' => '604800',
                 ];
             } else {
@@ -154,7 +151,7 @@ class OAuthController extends AbstractController
                 'provider' => $provider,
                 'error' => $e->getMessage(),
             ]);
-            return $this->redirectToFrontend(['error' => $e->getMessage()]);
+            return $this->redirectToFrontend(['error' => 'OAuth authentication failed']);
         }
     }
 
@@ -169,29 +166,29 @@ class OAuthController extends AbstractController
         return new RedirectResponse($url);
     }
 
-    private function storeOAuthState(string $provider, string $state): void
+    private function storeOAuthState(string $provider, string $state, Request $request): void
     {
-        $cacheKey = self::OAUTH_STATE_CACHE_PREFIX . hash('sha256', $state);
-        $item = $this->cache->getItem($cacheKey);
-        $item->set([
-            'provider' => $provider,
+        $request->getSession()->set('better_auth.oauth_state.' . $provider, [
+            'state' => hash('sha256', $state),
             'created_at' => time(),
         ]);
-        $item->expiresAfter(self::OAUTH_STATE_TTL);
-        $this->cache->save($item);
     }
 
-    private function consumeOAuthState(string $provider, string $state): bool
+    private function consumeOAuthState(string $provider, string $state, Request $request): bool
     {
-        $cacheKey = self::OAUTH_STATE_CACHE_PREFIX . hash('sha256', $state);
-        $item = $this->cache->getItem($cacheKey);
-        if (!$item->isHit()) {
+        $key = 'better_auth.oauth_state.' . $provider;
+        $data = $request->getSession()->get($key);
+        $request->getSession()->remove($key);
+
+        if (!is_array($data)) {
             return false;
         }
 
-        $data = $item->get();
-        $this->cache->deleteItem($cacheKey);
+        // Check expiration (10 minutes)
+        if (time() - ($data['created_at'] ?? 0) > self::OAUTH_STATE_TTL) {
+            return false;
+        }
 
-        return is_array($data) && ($data['provider'] ?? null) === $provider;
+        return hash_equals($data['state'] ?? '', hash('sha256', $state));
     }
 }

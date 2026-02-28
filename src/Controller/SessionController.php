@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,6 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class SessionController extends AbstractController
 {
     use AuthResponseTrait;
+    use SafeErrorResponseTrait;
 
     public function __construct(
         private readonly AuthManager $authManager,
@@ -61,10 +63,7 @@ class SessionController extends AbstractController
                 }, $sessions),
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('Failed to list sessions', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Failed to list sessions', 'list');
         }
     }
 
@@ -91,11 +90,7 @@ class SessionController extends AbstractController
 
             return $this->json(['message' => 'Session revoked successfully']);
         } catch (\Exception $e) {
-            $this->logger?->error('Failed to revoke session', [
-                'sessionId' => $sessionId,
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Failed to revoke session', 'revoke');
         }
     }
 }

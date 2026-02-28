@@ -421,6 +421,16 @@ services:
         tags:
             - { name: controller.argument_value_resolver, priority: 150 }
 
+    # CsrfProtectionSubscriber - CSRF protection for session/hybrid modes
+    # Only active when mode is 'session' or 'hybrid'; no-op in 'api' mode
+    BetterAuth\Symfony\EventSubscriber\CsrfProtectionSubscriber:
+        arguments:
+            $csrfTokenManager: '@Symfony\Component\Security\Csrf\CsrfTokenManagerInterface'
+            $authMode: '%better_auth.mode%'
+            $authRoutePrefix: '/auth'
+        tags:
+            - { name: kernel.event_subscriber }
+
     # AuthExceptionListener - Converts auth exceptions to JSON responses
     # Handles: AuthenticationException (401), ValidationException (400)
     BetterAuth\Symfony\EventListener\AuthExceptionListener:
@@ -439,6 +449,8 @@ services:
         arguments:
             $authManager: '@BetterAuth\Core\AuthManager'
             $totpProvider: '@BetterAuth\Providers\TotpProvider\TotpProvider'
+            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
+            $passwordHasher: '@BetterAuth\Core\PasswordHasher'
             $logger: '@?logger'
         tags: ['controller.service_arguments']
 

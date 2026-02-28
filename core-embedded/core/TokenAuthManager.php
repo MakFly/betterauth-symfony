@@ -332,7 +332,6 @@ final class TokenAuthManager implements TokenAuthManagerInterface
             $this->logger->error('Failed to create token pair', [
                 'user_id' => $user->getId(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;

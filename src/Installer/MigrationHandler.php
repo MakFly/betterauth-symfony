@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Installer;
 
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\Process\Process;
 
 /**
  * Handles Doctrine migration generation and execution, and displays the final installation summary.
@@ -37,14 +38,20 @@ class MigrationHandler
 
         // Generate migration
         $io->writeln('  Generating migration...');
-        exec("php $consolePath doctrine:migrations:diff --no-interaction 2>&1", $output, $returnVar);
+        $process = new Process(['php', $consolePath, 'doctrine:migrations:diff', '--no-interaction']);
+        $process->run();
+        $returnVar = $process->getExitCode();
+        $output = explode("\n", $process->getOutput() . $process->getErrorOutput());
 
         if ($returnVar === 0) {
             $io->writeln('  <fg=green>✓</> Migration generated');
 
             if ($io->confirm('  Execute migration now?', true)) {
                 $io->writeln('  Running migration...');
-                exec("php $consolePath doctrine:migrations:migrate --no-interaction 2>&1", $output, $returnVar);
+                $process = new Process(['php', $consolePath, 'doctrine:migrations:migrate', '--no-interaction']);
+                $process->run();
+                $returnVar = $process->getExitCode();
+                $output = explode("\n", $process->getOutput() . $process->getErrorOutput());
 
                 if ($returnVar === 0) {
                     $io->writeln('  <fg=green>✓</> Migration executed successfully');

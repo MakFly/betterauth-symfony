@@ -22,12 +22,11 @@ class TokenSecurityTest extends TestCase
 {
     private const SECRET_KEY = 'this-is-a-very-secure-secret-key-32chars!';
     private const DIFFERENT_KEY = 'another-completely-different-key-32chars';
-
     private TokenService $tokenService;
 
     protected function setUp(): void
     {
-        $this->tokenService = new TokenService(self::SECRET_KEY);
+        $this->tokenService = new TokenService(self::SECRET_KEY, 'betterauth');
     }
 
     // ========================================
@@ -86,7 +85,7 @@ class TokenSecurityTest extends TestCase
      */
     public function token_signed_with_different_key_is_rejected(): void
     {
-        $otherService = new TokenService(self::DIFFERENT_KEY);
+        $otherService = new TokenService(self::DIFFERENT_KEY, 'betterauth');
         $token = $otherService->sign(['sub' => 'user123'], 3600);
 
         $result = $this->tokenService->verify($token);
@@ -198,7 +197,7 @@ class TokenSecurityTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('at least 32 characters');
 
-        new TokenService('short_key');
+        new TokenService('short_key', 'betterauth');
     }
 
     /**
@@ -209,7 +208,7 @@ class TokenSecurityTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        new TokenService('');
+        new TokenService('', 'betterauth');
     }
 
     /**
@@ -219,7 +218,7 @@ class TokenSecurityTest extends TestCase
     public function minimum_key_length_is_accepted(): void
     {
         $minKey = str_repeat('a', 32);
-        $service = new TokenService($minKey);
+        $service = new TokenService($minKey, 'betterauth');
 
         $token = $service->sign(['sub' => 'test'], 3600);
 

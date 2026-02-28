@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Providers\GuestSessionProvider\GuestSessionProvider;
+use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -15,6 +16,8 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/auth/guest', name: 'better_auth_guest_')]
 class GuestSessionController extends AbstractController
 {
+    use SafeErrorResponseTrait;
+
     public function __construct(
         private readonly GuestSessionProvider $guestSessionProvider,
         private readonly AuthManager $authManager,
@@ -45,10 +48,7 @@ class GuestSessionController extends AbstractController
                 'created_at' => $guestSession->createdAt,
             ], 201);
         } catch (\Exception $e) {
-            $this->logger?->error('Failed to create guest session', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 500);
+            return $this->safeError($e, 500, 'Failed to create guest session', 'createGuestSession');
         }
     }
 
@@ -83,10 +83,7 @@ class GuestSessionController extends AbstractController
                 'metadata' => $guestSession->metadata,
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('Failed to get guest session', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 500);
+            return $this->safeError($e, 500, 'Failed to get guest session', 'getGuestSession');
         }
     }
 
@@ -138,15 +135,9 @@ class GuestSessionController extends AbstractController
                 'token_type' => 'Bearer',
             ], 201);
         } catch (\RuntimeException $e) {
-            $this->logger?->warning('Guest session conversion failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Guest session conversion failed', 'convertToUser');
         } catch (\Exception $e) {
-            $this->logger?->error('Guest session conversion failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 500);
+            return $this->safeError($e, 500, 'Guest session conversion failed', 'convertToUser');
         }
     }
 
@@ -175,10 +166,7 @@ class GuestSessionController extends AbstractController
 
             return $this->json(['message' => 'Guest session deleted successfully']);
         } catch (\Exception $e) {
-            $this->logger?->error('Failed to delete guest session', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 500);
+            return $this->safeError($e, 500, 'Failed to delete guest session', 'deleteGuestSession');
         }
     }
 }

@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,6 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class TokenController extends AbstractController
 {
     use AuthResponseTrait;
+    use SafeErrorResponseTrait;
 
     public function __construct(
         private readonly AuthManager $authManager,
@@ -39,10 +41,7 @@ class TokenController extends AbstractController
 
             return $this->json($this->formatUser($user));
         } catch (\Exception $e) {
-            $this->logger?->warning('Failed to get current user', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 401);
+            return $this->safeError($e, 401, 'Authentication failed', 'me');
         }
     }
 
@@ -62,10 +61,7 @@ class TokenController extends AbstractController
 
             return $this->json($result);
         } catch (\Exception $e) {
-            $this->logger?->warning('Token refresh failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 401);
+            return $this->safeError($e, 401, 'Token refresh failed', 'refresh');
         }
     }
 
@@ -84,10 +80,7 @@ class TokenController extends AbstractController
 
             return $this->json(['message' => 'Logged out successfully']);
         } catch (\Exception $e) {
-            $this->logger?->error('Logout failed', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Logout failed', 'logout');
         }
     }
 
@@ -117,10 +110,7 @@ class TokenController extends AbstractController
                 'count' => $count,
             ]);
         } catch (\Exception $e) {
-            $this->logger?->error('Failed to revoke all sessions', [
-                'error' => $e->getMessage(),
-            ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Failed to revoke all sessions', 'revokeAll');
         }
     }
 }

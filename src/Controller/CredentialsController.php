@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
+use BetterAuth\Core\Interfaces\UserRepositoryInterface;
+use BetterAuth\Core\PasswordHasher;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use BetterAuth\Symfony\Dto\Login2faRequestDto;
 use BetterAuth\Symfony\Dto\LoginRequestDto;
 use BetterAuth\Symfony\Dto\RegisterRequestDto;
@@ -21,10 +24,13 @@ use Symfony\Component\Routing\Attribute\Route;
 class CredentialsController extends AbstractController
 {
     use AuthResponseTrait;
+    use SafeErrorResponseTrait;
 
     public function __construct(
         private readonly AuthManager $authManager,
         private readonly TotpProvider $totpProvider,
+        private readonly UserRepositoryInterface $userRepository,
+        private readonly PasswordHasher $passwordHasher,
         private readonly ?LoggerInterface $logger = null,
     ) {
     }
@@ -54,7 +60,7 @@ class CredentialsController extends AbstractController
                 'email' => $dto->email,
                 'error' => $e->getMessage(),
             ]);
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Registration failed', 'register');
         }
     }
 
@@ -62,23 +68,32 @@ class CredentialsController extends AbstractController
     public function login(#[MapRequestPayload] LoginRequestDto $dto, Request $request): JsonResponse
     {
         try {
+            // Step 1: Verify credentials WITHOUT creating any session or token
+            $user = $this->userRepository->findByEmail($dto->email);
+            if ($user === null || !$user->hasPassword()) {
+                return $this->json(['error' => 'Invalid credentials'], 401);
+            }
+
+            $passwordHash = $user->getPassword();
+            if ($passwordHash === null || !$this->passwordHasher->verify($dto->password, $passwordHash)) {
+                return $this->json(['error' => 'Invalid credentials'], 401);
+            }
+
+            // Step 2: Check 2FA BEFORE creating any session or tokens
+            if ($this->totpProvider->requires2fa((string) $user->getId())) {
+                return $this->json([
+                    'requires2fa' => true,
+                    'message' => 'Two-factor authentication required',
+                ]);
+            }
+
+            // Step 3: No 2FA required — proceed with normal sign-in to create session/tokens
             $result = $this->authManager->signIn(
                 $dto->email,
                 $dto->password,
                 $request->getClientIp() ?? '127.0.0.1',
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
-
-            $userData = $result['user'];
-            $userId = $userData['id'];
-
-            if ($this->totpProvider->requires2fa($userId)) {
-                return $this->json([
-                    'requires2fa' => true,
-                    'message' => 'Two-factor authentication required',
-                    'user' => $userData,
-                ]);
-            }
 
             return $this->json($result);
         } catch (\Exception $e) {
@@ -86,7 +101,7 @@ class CredentialsController extends AbstractController
                 'email' => $dto->email,
                 'error' => $e->getMessage(),
             ]);
-            return $this->json(['error' => $e->getMessage()], 401);
+            return $this->json(['error' => 'Authentication failed'], 401);
         }
     }
 
@@ -94,6 +109,24 @@ class CredentialsController extends AbstractController
     public function login2fa(#[MapRequestPayload] Login2faRequestDto $dto, Request $request): JsonResponse
     {
         try {
+            // Step 1: Verify credentials WITHOUT creating any session or token
+            $user = $this->userRepository->findByEmail($dto->email);
+            if ($user === null || !$user->hasPassword()) {
+                return $this->json(['error' => 'Invalid credentials'], 401);
+            }
+
+            $passwordHash = $user->getPassword();
+            if ($passwordHash === null || !$this->passwordHasher->verify($dto->password, $passwordHash)) {
+                return $this->json(['error' => 'Invalid credentials'], 401);
+            }
+
+            // Step 2: Verify TOTP code before creating any session or tokens
+            $verified = $this->totpProvider->verify((string) $user->getId(), $dto->code);
+            if (!$verified) {
+                return $this->json(['error' => 'Invalid 2FA code'], 401);
+            }
+
+            // Step 3: Credentials and TOTP are valid — NOW create session/tokens
             $result = $this->authManager->signIn(
                 $dto->email,
                 $dto->password,
@@ -101,22 +134,9 @@ class CredentialsController extends AbstractController
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
-            $userData = $result['user'];
-            $userId = $userData['id'];
-
-            $verified = $this->totpProvider->verify($userId, $dto->code);
-            if (!$verified) {
-                if (isset($result['session'])) {
-                    $this->authManager->signOut($result['session']->getToken());
-                } elseif (isset($result['access_token'])) {
-                    $this->authManager->revokeAllTokens($userId);
-                }
-                return $this->json(['error' => 'Invalid 2FA code'], 401);
-            }
-
             return $this->json($result);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], 401);
+            return $this->json(['error' => 'Authentication failed'], 401);
         }
     }
 }

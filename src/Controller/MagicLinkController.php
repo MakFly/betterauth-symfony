@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\Exceptions\RateLimitException;
 use BetterAuth\Providers\MagicLinkProvider\MagicLinkProvider;
+use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -17,6 +18,8 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/auth/magic-link', name: 'better_auth_magic_link_')]
 class MagicLinkController extends AbstractController
 {
+    use SafeErrorResponseTrait;
+
     public function __construct(
         private readonly MagicLinkProvider $magicLinkProvider,
         private readonly ?LoggerInterface $logger = null,
@@ -59,8 +62,7 @@ class MagicLinkController extends AbstractController
                 'error' => 'Failed to send email. Please check mailer configuration.',
             ], 500);
         } catch (\Exception $e) {
-            $this->logger?->error('Magic link error', ['error' => $e->getMessage()]);
-            return $this->json(['error' => $e->getMessage()], 500);
+            return $this->safeError($e, 500, 'Failed to send magic link', 'sendMagicLink');
         }
     }
 
@@ -94,7 +96,7 @@ class MagicLinkController extends AbstractController
                 'user' => $result['user'] ?? null,
             ]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Magic link verification failed', 'verifyMagicLink');
         }
     }
 
@@ -122,7 +124,7 @@ class MagicLinkController extends AbstractController
                 'user' => $result['user'] ?? null,
             ]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], 400);
+            return $this->safeError($e, 400, 'Magic link verification failed', 'verifyMagicLinkGet');
         }
     }
 }

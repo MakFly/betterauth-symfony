@@ -441,6 +441,11 @@ HELP;
         $newVars = [];
 
         foreach ($envVars as $key => $value) {
+            // Generate a real random secret instead of a placeholder
+            if ($key === 'BETTER_AUTH_SECRET' && $value === 'change_me_in_production_use_32_chars_min') {
+                $value = bin2hex(random_bytes(32));
+            }
+
             // Check if variable already exists
             if (preg_match('/^' . preg_quote($key, '/') . '=/m', $existingContent)) {
                 $io->writeln(sprintf('<comment>⚠</comment> %s already exists (skipped)', $key));

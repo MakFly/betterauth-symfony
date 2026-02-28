@@ -28,9 +28,7 @@
   },
   "require": {
     "php": "^8.2",
-    "bacon/bacon-qr-code": "^2.0",
-    "geoip2/geoip2": "^3.0",
-    "mobiledetect/mobiledetectlib": "^4.8",
+    "bacon/bacon-qr-code": "^2.0|^3.0",
     "paragonie/paseto": "^3.1",
     "psr/cache": "^3.0",
     "ramsey/uuid": "^4.7",
@@ -115,6 +113,8 @@
   "suggest": {
     "symfony/redis": "For Redis-based rate limiting (recommended for production)",
     "ext-redis": "Redis extension for better performance",
-    "ext-apcu": "APCu extension for in-memory caching (development)"
+    "ext-apcu": "APCu extension for in-memory caching (development)",
+    "geoip2/geoip2": "For IP geolocation in device tracking",
+    "mobiledetect/mobiledetectlib": "For device detection in device tracking"
   }
 }

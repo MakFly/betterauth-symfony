@@ -93,7 +93,6 @@ final class SessionAuthManager implements SessionAuthManagerInterface
             $this->logger->error('Sign up failed with exception', [
                 'email' => $email,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;
@@ -192,7 +191,6 @@ final class SessionAuthManager implements SessionAuthManagerInterface
                 'user_id' => $user->getId(),
                 'ip_address' => $ipAddress,
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
 
             throw $e;

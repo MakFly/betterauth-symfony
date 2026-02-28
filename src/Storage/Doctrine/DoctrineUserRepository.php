@@ -65,11 +65,12 @@ final class DoctrineUserRepository implements UserRepositoryInterface
 
         // Use a parameterized DQL query instead of findAll() to avoid loading all users
         // The LIKE pattern matches the JSON structure stored in the metadata column
+        $escapedProviderId = str_replace(['%', '_', '\\'], ['\\%', '\\_', '\\\\'], $providerId);
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('u')
             ->from($this->userClass, 'u')
             ->where("u.metadata LIKE :pattern")
-            ->setParameter('pattern', '%"' . $provider . '":{"id":"' . $providerId . '"%')
+            ->setParameter('pattern', '%"' . $provider . '":{"id":"' . $escapedProviderId . '"%')
             ->setMaxResults(1);
 
         /** @var UserModel|null $doctrineUser */

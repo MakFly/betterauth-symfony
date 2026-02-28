@@ -64,7 +64,6 @@ class UserDto
         $dto = new self();
         $dto->id = $user->getId();
         $dto->email = $user->getEmail();
-        $dto->password = $user->getPassword();
         $dto->roles = $user->getRoles();
         $dto->username = $user->getUsername();
         $dto->avatar = $user->getAvatar();

@@ -279,21 +279,13 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
         $configuration = new Configuration();
         $config = $this->processConfiguration($configuration, $configs);
 
-        // Validate secret key at boot time
+        // Validate secret key at boot time — unconditionally
         $secret = $config['secret'];
-        if ($secret === 'change_me_in_production') {
-            $env = $container->getParameter('kernel.environment');
-            if ($env === 'prod') {
-                throw new \RuntimeException(
-                    'BetterAuth: The secret key must be changed from the default value in production. ' .
-                    'Set BETTER_AUTH_SECRET environment variable or configure better_auth.secret.'
-                );
-            }
-        }
-        if ($secret !== 'change_me_in_production' && strlen($secret) < 32) {
+        if (strlen($secret) < 32) {
             throw new \RuntimeException(
-                'BetterAuth: The secret key must be at least 32 characters long. ' .
-                'Current length: ' . strlen($secret) . '. Use a strong random value.'
+                'BetterAuth: The secret key must be at least 32 characters long. '
+                . 'Current length: ' . strlen($secret) . '. '
+                . 'Generate one with: php -r "echo bin2hex(random_bytes(32));"'
             );
         }
 

@@ -25,10 +25,14 @@ class ConfigurationTest extends TestCase
 
     public function testDefaultConfiguration(): void
     {
-        $config = $this->processor->processConfiguration($this->configuration, []);
+        $config = $this->processor->processConfiguration($this->configuration, [
+            'better_auth' => [
+                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
+            ],
+        ]);
 
         $this->assertSame('api', $config['mode']);
-        $this->assertSame('change_me_in_production', $config['secret']);
+        $this->assertSame('a-valid-secret-key-that-is-at-least-32-characters-long!!', $config['secret']);
         $this->assertSame(604800, $config['session']['lifetime']);
         $this->assertSame('better_auth_session', $config['session']['cookie_name']);
         $this->assertSame(3600, $config['token']['lifetime']);
@@ -42,12 +46,12 @@ class ConfigurationTest extends TestCase
         $config = $this->processor->processConfiguration($this->configuration, [
             'better_auth' => [
                 'mode' => 'api',
-                'secret' => 'my_secret_key',
+                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
             ],
         ]);
 
         $this->assertSame('api', $config['mode']);
-        $this->assertSame('my_secret_key', $config['secret']);
+        $this->assertSame('a-valid-secret-key-that-is-at-least-32-characters-long!!', $config['secret']);
     }
 
     public function testInvalidModeThrowsException(): void
@@ -58,7 +62,29 @@ class ConfigurationTest extends TestCase
         $this->processor->processConfiguration($this->configuration, [
             'better_auth' => [
                 'mode' => 'invalid',
+                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
             ],
+        ]);
+    }
+
+    public function testShortSecretThrowsException(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessageMatches('/Secret must be at least 32 characters/');
+
+        $this->processor->processConfiguration($this->configuration, [
+            'better_auth' => [
+                'secret' => 'too-short',
+            ],
+        ]);
+    }
+
+    public function testMissingSecretThrowsException(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->processor->processConfiguration($this->configuration, [
+            'better_auth' => [],
         ]);
     }
 
@@ -66,6 +92,7 @@ class ConfigurationTest extends TestCase
     {
         $config = $this->processor->processConfiguration($this->configuration, [
             'better_auth' => [
+                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
                 'token' => [
                     'lifetime' => 7200,
                     'refresh_lifetime' => 86400,
@@ -81,6 +108,7 @@ class ConfigurationTest extends TestCase
     {
         $config = $this->processor->processConfiguration($this->configuration, [
             'better_auth' => [
+                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
                 'oauth' => [
                     'providers' => [
                         'google' => [
@@ -103,6 +131,7 @@ class ConfigurationTest extends TestCase
     {
         $config = $this->processor->processConfiguration($this->configuration, [
             'better_auth' => [
+                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
                 'multi_tenant' => [
                     'enabled' => false,
                     'default_role' => 'user',

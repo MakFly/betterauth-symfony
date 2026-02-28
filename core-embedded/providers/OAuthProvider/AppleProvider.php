@@ -21,7 +21,11 @@ final class AppleProvider extends AbstractOAuthProvider
         string $clientSecret,
         string $redirectUri,
     ) {
-        parent::__construct($clientId, $clientSecret, $redirectUri);
+        throw new \RuntimeException(
+            'AppleProvider is disabled: JWT signature verification against Apple JWKS is not yet implemented. '
+            . 'This is required for secure Sign in with Apple. '
+            . 'See https://developer.apple.com/documentation/sign_in_with_apple'
+        );
     }
 
     public function getName(): string

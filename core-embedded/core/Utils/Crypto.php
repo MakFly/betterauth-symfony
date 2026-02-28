@@ -109,16 +109,14 @@ final class Crypto
     /**
      * Derive an encryption key from a secret using HKDF.
      *
+     * Uses a zero-length salt (RFC 5869 §3.1) with domain-separation via the $info parameter.
+     *
      * @param string $secret The master secret
      * @param int $length Output key length in bytes
-     * @param string $info Context/application-specific info
-     * @param string $salt Optional salt (uses default if empty)
+     * @param string $info Context/application-specific info for domain separation
      */
-    public static function deriveKey(string $secret, int $length = 32, string $info = 'betterauth-token-key', string $salt = ''): string
+    public static function deriveKey(string $secret, int $length = 32, string $info = 'betterauth-token-key'): string
     {
-        if ($salt === '') {
-            $salt = 'betterauth-default-salt';
-        }
-        return hash_hkdf('sha256', $secret, $length, $info, $salt);
+        return hash_hkdf('sha256', $secret, $length, $info);
     }
 }

@@ -6,6 +6,8 @@ namespace BetterAuth\Symfony\Tests\Controller;
 
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Core\Entities\User;
+use BetterAuth\Core\Interfaces\UserRepositoryInterface;
+use BetterAuth\Core\PasswordHasher;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\CredentialsController;
 use BetterAuth\Symfony\Dto\Login2faRequestDto;
@@ -27,16 +29,22 @@ class CredentialsControllerTest extends TestCase
 
     private MockObject&AuthManager $authManager;
     private MockObject&TotpProvider $totpProvider;
+    private MockObject&UserRepositoryInterface $userRepository;
+    private MockObject&PasswordHasher $passwordHasher;
     private CredentialsController $controller;
 
     protected function setUp(): void
     {
         $this->authManager = $this->createMock(AuthManager::class);
         $this->totpProvider = $this->createMock(TotpProvider::class);
+        $this->userRepository = $this->createMock(UserRepositoryInterface::class);
+        $this->passwordHasher = $this->createMock(PasswordHasher::class);
 
         $this->controller = new CredentialsController(
             $this->authManager,
             $this->totpProvider,
+            $this->userRepository,
+            $this->passwordHasher,
         );
         $this->setUpControllerContainer($this->controller);
     }
@@ -119,7 +127,7 @@ class CredentialsControllerTest extends TestCase
         $this->assertSame(400, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
         $this->assertArrayHasKey('error', $data);
-        $this->assertSame('Email already exists', $data['error']);
+        $this->assertArrayHasKey('correlation_id', $data);
     }
 
     // ========================================
@@ -131,18 +139,22 @@ class CredentialsControllerTest extends TestCase
      */
     public function login_returns_200_with_tokens_on_success(): void
     {
+        $user = $this->createMock(User::class);
+        $user->method('getId')->willReturn('uuid-1');
+        $user->method('hasPassword')->willReturn(true);
+        $user->method('getPassword')->willReturn('$2y$10$hashed');
+
+        $this->userRepository->method('findByEmail')->with('test@example.com')->willReturn($user);
+        $this->passwordHasher->method('verify')->with('password123', '$2y$10$hashed')->willReturn(true);
+        $this->totpProvider->method('requires2fa')->willReturn(false);
+
         $tokenResult = [
             'access_token' => 'tok_access',
             'refresh_token' => 'tok_refresh',
             'expires_in' => 3600,
             'user' => ['id' => 'uuid-1', 'email' => 'test@example.com'],
         ];
-
-        $this->authManager->expects($this->once())
-            ->method('signIn')
-            ->willReturn($tokenResult);
-
-        $this->totpProvider->method('requires2fa')->willReturn(false);
+        $this->authManager->expects($this->once())->method('signIn')->willReturn($tokenResult);
 
         $dto = new LoginRequestDto('test@example.com', 'password123');
         $request = new Request();
@@ -159,12 +171,13 @@ class CredentialsControllerTest extends TestCase
      */
     public function login_returns_2fa_required_when_totp_enabled(): void
     {
-        $tokenResult = [
-            'access_token' => 'tok',
-            'user' => ['id' => 'uuid-1', 'email' => 'test@example.com'],
-        ];
+        $user = $this->createMock(User::class);
+        $user->method('getId')->willReturn('uuid-1');
+        $user->method('hasPassword')->willReturn(true);
+        $user->method('getPassword')->willReturn('$2y$10$hashed');
 
-        $this->authManager->method('signIn')->willReturn($tokenResult);
+        $this->userRepository->method('findByEmail')->willReturn($user);
+        $this->passwordHasher->method('verify')->willReturn(true);
         $this->totpProvider->method('requires2fa')->with('uuid-1')->willReturn(true);
 
         $dto = new LoginRequestDto('test@example.com', 'password123');
@@ -183,8 +196,7 @@ class CredentialsControllerTest extends TestCase
      */
     public function login_returns_401_on_invalid_credentials(): void
     {
-        $this->authManager->method('signIn')
-            ->willThrowException(new \Exception('Invalid credentials'));
+        $this->userRepository->method('findByEmail')->willReturn(null);
 
         $dto = new LoginRequestDto('test@example.com', 'wrongpassword');
         $request = new Request();
@@ -205,14 +217,21 @@ class CredentialsControllerTest extends TestCase
      */
     public function login2fa_returns_200_on_valid_code(): void
     {
+        $user = $this->createMock(User::class);
+        $user->method('getId')->willReturn('uuid-1');
+        $user->method('hasPassword')->willReturn(true);
+        $user->method('getPassword')->willReturn('$2y$10$hashed');
+
+        $this->userRepository->method('findByEmail')->willReturn($user);
+        $this->passwordHasher->method('verify')->willReturn(true);
+        $this->totpProvider->method('verify')->with('uuid-1', '123456')->willReturn(true);
+
         $tokenResult = [
             'access_token' => 'tok',
             'refresh_token' => 'rtok',
             'user' => ['id' => 'uuid-1', 'email' => 'test@example.com'],
         ];
-
         $this->authManager->method('signIn')->willReturn($tokenResult);
-        $this->totpProvider->method('verify')->with('uuid-1', '123456')->willReturn(true);
 
         $dto = new Login2faRequestDto('test@example.com', 'password123', '123456');
         $request = new Request();
@@ -229,14 +248,14 @@ class CredentialsControllerTest extends TestCase
      */
     public function login2fa_returns_401_on_invalid_code(): void
     {
-        $tokenResult = [
-            'access_token' => 'tok',
-            'user' => ['id' => 'uuid-1', 'email' => 'test@example.com'],
-        ];
+        $user = $this->createMock(User::class);
+        $user->method('getId')->willReturn('uuid-1');
+        $user->method('hasPassword')->willReturn(true);
+        $user->method('getPassword')->willReturn('$2y$10$hashed');
 
-        $this->authManager->method('signIn')->willReturn($tokenResult);
+        $this->userRepository->method('findByEmail')->willReturn($user);
+        $this->passwordHasher->method('verify')->willReturn(true);
         $this->totpProvider->method('verify')->with('uuid-1', '000000')->willReturn(false);
-        $this->authManager->method('revokeAllTokens')->willReturn(1);
 
         $dto = new Login2faRequestDto('test@example.com', 'password123', '000000');
         $request = new Request();
@@ -251,10 +270,9 @@ class CredentialsControllerTest extends TestCase
     /**
      * @test
      */
-    public function login2fa_returns_401_on_exception(): void
+    public function login2fa_returns_401_on_invalid_password(): void
     {
-        $this->authManager->method('signIn')
-            ->willThrowException(new \Exception('Auth failed'));
+        $this->userRepository->method('findByEmail')->willReturn(null);
 
         $dto = new Login2faRequestDto('test@example.com', 'wrongpassword', '123456');
         $request = new Request();

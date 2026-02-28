@@ -28,7 +28,7 @@ class Configuration implements ConfigurationInterface
                     ->isRequired()
                     ->info('Secret key for token encryption (min 32 chars) - set via BETTER_AUTH_SECRET env var')
                     ->validate()
-                        ->ifTrue(fn($v) => strlen((string)$v) < 32)
+                        ->ifTrue(fn($v) => !str_contains((string)$v, '%env(') && strlen((string)$v) < 32)
                         ->thenInvalid('Secret must be at least 32 characters. Generate: php -r "echo bin2hex(random_bytes(32));"')
                     ->end()
                 ->end()

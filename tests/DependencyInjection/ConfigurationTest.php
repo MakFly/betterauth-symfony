@@ -67,16 +67,18 @@ class ConfigurationTest extends TestCase
         ]);
     }
 
-    public function testShortSecretThrowsException(): void
+    public function testShortSecretAcceptedAtConfigLevel(): void
     {
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessageMatches('/Secret must be at least 32 characters/');
-
-        $this->processor->processConfiguration($this->configuration, [
+        // Secret length validation is deferred to runtime (TokenService)
+        // because Symfony's ValidateEnvPlaceholdersPass replaces %env()%
+        // with short placeholder strings before re-validating the tree.
+        $result = $this->processor->processConfiguration($this->configuration, [
             'better_auth' => [
                 'secret' => 'too-short',
             ],
         ]);
+
+        $this->assertSame('too-short', $result['secret']);
     }
 
     public function testMissingSecretThrowsException(): void

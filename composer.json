@@ -27,7 +27,7 @@
     "source": "https://github.com/betterauth/betterauth-symfony"
   },
   "require": {
-    "php": "^8.2",
+    "php": "^8.4",
     "api-platform/core": "^4.0",
     "bacon/bacon-qr-code": "^2.0|^3.0",
     "doctrine/doctrine-bundle": "^2.0|^3.0",

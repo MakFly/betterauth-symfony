@@ -1,6 +1,6 @@
 # BetterAuth for Symfony
 
-[![CI](https://github.com/MakFly/betterauth-symfony/actions/workflows/tests.yml/badge.svg)](https://github.com/MakFly/betterauth-symfony/actions)
+[![CI](https://github.com/MakFly/betterauth-symfony/actions/workflows/tests.yml/badge.svg?branch=main&event=push)](https://github.com/MakFly/betterauth-symfony/actions/workflows/tests.yml?query=branch%3Amain)
 [![Latest Stable Version](https://img.shields.io/packagist/v/betterauth/symfony-bundle?label=stable)](https://packagist.org/packages/betterauth/symfony-bundle)
 [![Total Downloads](https://img.shields.io/packagist/dt/betterauth/symfony-bundle?label=downloads)](https://packagist.org/packages/betterauth/symfony-bundle)
 [![License](https://img.shields.io/packagist/l/betterauth/symfony-bundle?label=license)](https://github.com/MakFly/betterauth-symfony/blob/main/LICENSE)

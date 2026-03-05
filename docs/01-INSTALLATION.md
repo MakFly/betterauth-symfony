@@ -4,9 +4,10 @@ Complete guide to install and configure BetterAuth Symfony bundle.
 
 ## Requirements
 
-- PHP 8.2 or higher
-- Symfony 6.4 or 7.x
+- PHP 8.4 or higher
+- Symfony 6.4, 7.x, or 8.0
 - Doctrine ORM 3.0+
+- Doctrine Migrations Bundle 4.0+
 - Composer 2.x
 
 ## Quick Installation

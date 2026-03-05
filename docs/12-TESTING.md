@@ -305,7 +305,7 @@ version: '3.8'
 
 services:
   test-db:
-    image: postgres:15
+    image: postgres:16
     environment:
       POSTGRES_DB: test_db
       POSTGRES_USER: test
@@ -316,7 +316,7 @@ services:
     depends_on:
       - test-db
     environment:
-      DATABASE_URL: postgresql://test:test@test-db:5432/test_db
+      BETTER_AUTH_TEST_DATABASE_URL: postgresql://test:test@test-db:5432/test_db?serverVersion=16&charset=utf8
       APP_ENV: test
     command: vendor/bin/phpunit
 ```
@@ -335,7 +335,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15
+        image: postgres:16
         env:
           POSTGRES_PASSWORD: postgres
         ports:
@@ -347,7 +347,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: pdo_pgsql
 
       - name: Install dependencies
@@ -355,7 +355,7 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test
+          BETTER_AUTH_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test?serverVersion=16&charset=utf8
         run: |
           php bin/console doctrine:database:create --env=test
           php bin/console doctrine:migrations:migrate --env=test --no-interaction

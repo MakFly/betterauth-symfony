@@ -1,6 +1,6 @@
 # BetterAuth Symfony - Documentation
 
-Modern, secure authentication for Symfony 6/7 applications.
+Modern, secure authentication for Symfony 6.4 / 7.x / 8.0 applications.
 
 ## Quick Links
 

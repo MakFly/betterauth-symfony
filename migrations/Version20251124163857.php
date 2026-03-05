@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Migrations;
 
 use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
@@ -19,13 +20,25 @@ final class Version20251124163857 extends AbstractMigration
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE totp_data ADD last2fa_verified_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL');
+        if (!$schema->hasTable('totp_data')) {
+            return;
+        }
+
+        $table = $schema->getTable('totp_data');
+        if (!$table->hasColumn('last2fa_verified_at')) {
+            $table->addColumn('last2fa_verified_at', Types::DATETIME_IMMUTABLE, ['notnull' => false]);
+        }
     }
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('ALTER TABLE totp_data DROP last2fa_verified_at');
+        if (!$schema->hasTable('totp_data')) {
+            return;
+        }
+
+        $table = $schema->getTable('totp_data');
+        if ($table->hasColumn('last2fa_verified_at')) {
+            $table->dropColumn('last2fa_verified_at');
+        }
     }
 }

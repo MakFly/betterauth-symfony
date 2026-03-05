@@ -19,7 +19,7 @@ use Symfony\Component\HttpKernel\Kernel;
  * Minimal Symfony kernel for functional integration tests.
  *
  * Uses App\Entity namespace to be compatible with EntityAutoConfigurationPass.
- * Uses SQLite in-memory for fast isolated tests.
+ * Uses BETTER_AUTH_TEST_DATABASE_URL when set, otherwise defaults to SQLite.
  */
 class TestKernel extends Kernel
 {
@@ -68,10 +68,7 @@ class TestKernel extends Kernel
             ]);
 
             $container->loadFromExtension('doctrine', [
-                'dbal' => [
-                    'driver' => 'pdo_sqlite',
-                    'path' => $this->getCacheDir() . '/test.db',
-                ],
+                'dbal' => $this->buildDbalConfig(),
                 'orm' => [
                     'naming_strategy' => 'doctrine.orm.naming_strategy.underscore_number_aware',
                     'auto_mapping' => false,
@@ -167,5 +164,35 @@ class TestKernel extends Kernel
     public function getLogDir(): string
     {
         return sys_get_temp_dir() . '/better_auth_test_logs';
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildDbalConfig(): array
+    {
+        $url = $this->getTestDatabaseUrl();
+        if ($url !== null) {
+            return ['url' => $url];
+        }
+
+        return [
+            'driver' => 'pdo_sqlite',
+            'path' => $this->getCacheDir() . '/test.db',
+        ];
+    }
+
+    private function getTestDatabaseUrl(): ?string
+    {
+        $value = $_ENV['BETTER_AUTH_TEST_DATABASE_URL']
+            ?? $_SERVER['BETTER_AUTH_TEST_DATABASE_URL']
+            ?? getenv('BETTER_AUTH_TEST_DATABASE_URL');
+
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        return $value === '' ? null : $value;
     }
 }

@@ -169,6 +169,22 @@ Le bundle détecte automatiquement les entités `App\Entity\*` et configure les 
 
 ### 1. Configure Database
 
+Set `DATABASE_URL` according to your database engine:
+
+```env
+# PostgreSQL
+DATABASE_URL=postgresql://app:secret@127.0.0.1:5432/app?serverVersion=16&charset=utf8
+
+# SQLite
+DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db
+
+# MySQL 8.4
+DATABASE_URL=mysql://app:secret@127.0.0.1:3306/app?serverVersion=8.4&charset=utf8mb4
+
+# MariaDB 11
+DATABASE_URL=mysql://app:secret@127.0.0.1:3306/app?serverVersion=mariadb-11.0.2&charset=utf8mb4
+```
+
 ```bash
 # Create/update database schema
 php bin/console doctrine:migrations:migrate

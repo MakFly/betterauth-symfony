@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Migrations;
 
 use Doctrine\DBAL\Schema\Schema;
+use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
@@ -14,23 +15,30 @@ final class Version20251124214320 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return '';
+        return 'Add guest sessions table';
     }
 
     public function up(Schema $schema): void
     {
-        // this up() migration is auto-generated, please modify it to your needs
-        $this->addSql('CREATE TABLE guest_sessions (id VARCHAR(36) NOT NULL, token VARCHAR(64) NOT NULL, device_info TEXT DEFAULT NULL, ip_address VARCHAR(45) DEFAULT NULL, created_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, expires_at TIMESTAMP(0) WITHOUT TIME ZONE NOT NULL, metadata JSON DEFAULT NULL, PRIMARY KEY (id))');
-        $this->addSql('CREATE UNIQUE INDEX UNIQ_E54A556C5F37A13B ON guest_sessions (token)');
-        $this->addSql('CREATE INDEX idx_guest_sessions_token ON guest_sessions (token)');
-        $this->addSql('CREATE INDEX idx_guest_sessions_expires_at ON guest_sessions (expires_at)');
-        $this->addSql('ALTER TABLE totp_data ADD last2fa_verified_at TIMESTAMP(0) WITHOUT TIME ZONE DEFAULT NULL');
+        if (!$schema->hasTable('guest_sessions')) {
+            $table = $schema->createTable('guest_sessions');
+            $table->addColumn('id', Types::STRING, ['length' => 36]);
+            $table->addColumn('token', Types::STRING, ['length' => 64]);
+            $table->addColumn('device_info', Types::TEXT, ['notnull' => false]);
+            $table->addColumn('ip_address', Types::STRING, ['length' => 45, 'notnull' => false]);
+            $table->addColumn('created_at', Types::DATETIME_IMMUTABLE);
+            $table->addColumn('expires_at', Types::DATETIME_IMMUTABLE);
+            $table->addColumn('metadata', Types::JSON, ['notnull' => false]);
+            $table->setPrimaryKey(['id']);
+            $table->addUniqueIndex(['token'], 'uniq_guest_sessions_token');
+            $table->addIndex(['expires_at'], 'idx_guest_sessions_expires_at');
+        }
     }
 
     public function down(Schema $schema): void
     {
-        // this down() migration is auto-generated, please modify it to your needs
-        $this->addSql('DROP TABLE guest_sessions');
-        $this->addSql('ALTER TABLE totp_data DROP last2fa_verified_at');
+        if ($schema->hasTable('guest_sessions')) {
+            $schema->dropTable('guest_sessions');
+        }
     }
 }

@@ -36,7 +36,7 @@ Modern, secure authentication for **Symfony 6.4 / 7.x / 8.0** applications with 
 | **Entity Generation** | Automatic | Manual |
 | **Controller Generation** | Automatic | Manual |
 | **Symfony Versions** | 6.4, 7.x, 8.0 | 5.4, 6.x, 7.x |
-| **PHP Versions** | 8.2+ | 7.4+ |
+| **PHP Versions** | 8.4+ | 7.4+ |
 
 ### Token Security: Paseto vs JWT
 
@@ -208,12 +208,37 @@ Both can coexist during migration.
 
 | Requirement | Version |
 |-------------|---------|
-| PHP | ^8.2 |
+| PHP | ^8.4 |
 | Symfony | ^6.4 \| ^7.0 \| ^8.0 |
 | Doctrine ORM | ^3.0 |
 | API Platform | ^4.0 (optional) |
 
-**Tested on:** PHP 8.2/8.3/8.4 × Symfony 6.4/7.0/7.1/7.2/7.3/8.0
+**Tested on:** PHP 8.4 × Symfony 6.4/7.0/7.1/7.2/7.3/8.0
+
+### Database Engines
+
+BetterAuth officially supports these database engines:
+
+- PostgreSQL
+- SQLite
+- MySQL 8.4 LTS
+- MariaDB 11.x
+
+`DATABASE_URL` examples:
+
+```env
+# PostgreSQL
+DATABASE_URL=postgresql://app:secret@127.0.0.1:5432/app?serverVersion=16&charset=utf8
+
+# SQLite
+DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db
+
+# MySQL 8.4
+DATABASE_URL=mysql://app:secret@127.0.0.1:3306/app?serverVersion=8.4&charset=utf8mb4
+
+# MariaDB 11
+DATABASE_URL=mysql://app:secret@127.0.0.1:3306/app?serverVersion=mariadb-11.0.2&charset=utf8mb4
+```
 
 ---
 

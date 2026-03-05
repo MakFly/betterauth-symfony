@@ -61,6 +61,93 @@ jobs:
           name: codecov-symfony
           fail_ci_if_error: false
 
+  db-compat:
+    name: DB Compatibility (${{ matrix.database }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [sqlite, postgresql, mysql, mariadb]
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: betterauth_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d betterauth_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: betterauth_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: betterauth_test
+        ports:
+          - 3307:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Clone betterauth-core (path dependency)
+        run: git clone --depth 1 https://github.com/MakFly/betterauth-core.git ../betterauth-core
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: json, openssl, pdo, pdo_sqlite, pdo_mysql, pdo_pgsql
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Wait for database service
+        if: matrix.database != 'sqlite'
+        run: |
+          if [ "${{ matrix.database }}" = "postgresql" ]; then
+            for i in {1..60}; do (echo > /dev/tcp/127.0.0.1/5432) >/dev/null 2>&1 && exit 0; sleep 1; done
+            exit 1
+          fi
+          if [ "${{ matrix.database }}" = "mysql" ]; then
+            for i in {1..60}; do (echo > /dev/tcp/127.0.0.1/3306) >/dev/null 2>&1 && exit 0; sleep 1; done
+            exit 1
+          fi
+          if [ "${{ matrix.database }}" = "mariadb" ]; then
+            for i in {1..60}; do (echo > /dev/tcp/127.0.0.1/3307) >/dev/null 2>&1 && exit 0; sleep 1; done
+            exit 1
+          fi
+
+      - name: Run functional tests
+        run: vendor/bin/phpunit --testsuite Functional
+        env:
+          BETTER_AUTH_TEST_DATABASE_URL: ${{ matrix.database == 'sqlite' && 'sqlite:///%kernel.project_dir%/var/test.db' || matrix.database == 'postgresql' && 'postgresql://postgres:postgres@127.0.0.1:5432/betterauth_test?serverVersion=16&charset=utf8' || matrix.database == 'mysql' && 'mysql://root:root@127.0.0.1:3306/betterauth_test?serverVersion=8.4&charset=utf8mb4' || 'mysql://root:root@127.0.0.1:3307/betterauth_test?serverVersion=mariadb-11.0.2&charset=utf8mb4' }}
+
   static-analysis:
     name: PHP ${{ matrix.php }} - Static Analysis
     runs-on: ubuntu-latest

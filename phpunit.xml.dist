@@ -22,6 +22,10 @@
             <directory>tests</directory>
             <exclude>tests/Functional/AbstractFunctionalTest.php</exclude>
         </testsuite>
+        <testsuite name="Functional">
+            <directory>tests/Functional</directory>
+            <exclude>tests/Functional/AbstractFunctionalTest.php</exclude>
+        </testsuite>
     </testsuites>
 
     <source>

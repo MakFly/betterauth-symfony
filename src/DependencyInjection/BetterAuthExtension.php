@@ -48,22 +48,15 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
             return;
         }
 
-        $possiblePaths = [
-            dirname(__DIR__, 2) . '/core-embedded/core',
-            $projectDir . '/vendor/betterauth/symfony-bundle/core-embedded/core',
-        ];
+        // Resolve the Entities directory from betterauth/multimodal-php package
+        $reflector = new \ReflectionClass(\BetterAuth\Core\Entities\User::class);
+        $fileName = $reflector->getFileName();
 
-        $betterAuthCorePath = null;
-        foreach ($possiblePaths as $path) {
-            if (is_dir($path)) {
-                $betterAuthCorePath = $path;
-                break;
-            }
-        }
-
-        if ($betterAuthCorePath === null) {
+        if ($fileName === false) {
             return;
         }
+
+        $entitiesDir = dirname($fileName);
 
         $container->prependExtensionConfig('doctrine', [
             'orm' => [
@@ -71,7 +64,7 @@ class BetterAuthExtension extends Extension implements PrependExtensionInterface
                     'BetterAuth' => [
                         'type' => 'attribute',
                         'is_bundle' => false,
-                        'dir' => $betterAuthCorePath . '/Entities',
+                        'dir' => $entitiesDir,
                         'prefix' => 'BetterAuth\\Core\\Entities',
                         'alias' => 'BetterAuth',
                     ],

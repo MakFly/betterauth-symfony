@@ -26,18 +26,19 @@
     "issues": "https://github.com/betterauth/betterauth-symfony/issues",
     "source": "https://github.com/betterauth/betterauth-symfony"
   },
+  "repositories": [
+    { "type": "path", "url": "../betterauth-multimodal-php" }
+  ],
   "require": {
     "php": "^8.4",
     "api-platform/core": "^4.0",
     "bacon/bacon-qr-code": "^2.0|^3.0",
+    "betterauth/multimodal-php": "^0.1 || dev-main",
     "doctrine/doctrine-bundle": "^2.0|^3.0",
     "doctrine/doctrine-migrations-bundle": "^4.0",
     "doctrine/orm": "^3.0",
     "monolog/monolog": "^3.0",
     "nelmio/cors-bundle": "^2.0",
-    "paragonie/paseto": "^3.1",
-    "psr/cache": "^3.0",
-    "ramsey/uuid": "^4.7",
     "symfony/asset": "^6.4|^7.0|^8.0",
     "symfony/config": "^6.4|^7.0|^8.0",
     "symfony/console": "^6.4|^7.0|^8.0",
@@ -73,16 +74,12 @@
   },
   "autoload": {
     "psr-4": {
-      "BetterAuth\\Symfony\\": "src/",
-      "BetterAuth\\Core\\": "core-embedded/core/",
-      "BetterAuth\\Providers\\": "core-embedded/providers/",
-      "BetterAuth\\Contracts\\": "core-embedded/contracts/"
+      "BetterAuth\\Symfony\\": "src/"
     }
   },
   "autoload-dev": {
     "psr-4": {
       "BetterAuth\\Symfony\\Tests\\": "tests/",
-      "BetterAuth\\Tests\\": "tests/Core/",
       "App\\": "tests/App/src/"
     }
   },

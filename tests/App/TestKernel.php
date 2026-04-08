@@ -83,7 +83,7 @@ class TestKernel extends Kernel
                         'BetterAuthCoreEntities' => [
                             'is_bundle' => false,
                             'type' => 'attribute',
-                            'dir' => dirname(__DIR__, 2) . '/core-embedded/core/Entities',
+                            'dir' => dirname((new \ReflectionClass(\BetterAuth\Core\Entities\User::class))->getFileName()),
                             'prefix' => 'BetterAuth\Core\Entities',
                             'alias' => 'BetterAuthCoreEntities',
                         ],

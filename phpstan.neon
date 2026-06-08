@@ -14,3 +14,16 @@ parameters:
         - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition::children\(\)#'
         # API Platform OpenAPI - responses parameter accepts array but PHPStan expects typed array
         - '#Parameter \$responses of class ApiPlatform\\OpenApi\\Model\\Operation constructor expects array.*given#'
+        # SafeErrorResponseTrait: defensive check — trait can't know if using class has $logger
+        - '#Call to function property_exists\(\) with .* and .logger. will always evaluate to true#'
+        # GenerateConfigCommand: preset arrays have precise literal types at level 7
+        - '#PHPDoc tag @var with type .* is not subtype of native type#'
+        -
+            message: '#If condition is always true#'
+            path: src/Command/GenerateConfigCommand.php
+        -
+            message: '#Offset .* on left side of \?\? always exists and is not nullable#'
+            path: src/Command/GenerateConfigCommand.php
+        -
+            message: '#Variable \$features in empty\(\) always exists and is not falsy#'
+            path: src/Command/GenerateConfigCommand.php

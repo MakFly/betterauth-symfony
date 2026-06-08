@@ -259,15 +259,19 @@ jobs:
       - name: Symfony YAML Lint
         run: |
           if [ -f bin/console ]; then
-            php bin/console lint:yaml config --parse-tags 2>/dev/null || echo "YAML lint skipped (not a full Symfony app)"
-          elif [ -d config ]; then
+            php bin/console lint:yaml config --parse-tags
+          elif [ -d config ] && [ -f vendor/autoload.php ]; then
             php -r '
+              require "vendor/autoload.php";
+              $flags = Symfony\Component\Yaml\Yaml::PARSE_CUSTOM_TAGS;
               foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator("config")) as $f) {
-                if (!$f->isFile() || !preg_match("/\.ya?ml$/", $f)) continue;
-                try { \Symfony\Component\Yaml\Yaml::parseFile($f->getPathname()); echo "OK: " . $f->getPathname() . "\n"; }
+                if (!$f->isFile() || !preg_match("/\.ya?ml$/", (string)$f)) continue;
+                try { \Symfony\Component\Yaml\Yaml::parseFile($f->getPathname(), $flags); echo "OK: " . $f->getPathname() . "\n"; }
                 catch (\Throwable $e) { echo "ERROR: " . $f->getPathname() . " — " . $e->getMessage() . "\n"; exit(1); }
               }
             '
+          else
+            echo "YAML lint skipped (no bin/console and no vendor/autoload.php)"
           fi
 
       - name: Check Symfony container

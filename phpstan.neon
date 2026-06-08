@@ -27,3 +27,7 @@ parameters:
         -
             message: '#Variable \$features in empty\(\) always exists and is not falsy#'
             path: src/Command/GenerateConfigCommand.php
+        # Public trait exported for bundle consumers — not used inside the bundle itself
+        -
+            message: '#Trait .* is used zero times and is not analysed#'
+            path: src/Model/UserProfileTrait.php

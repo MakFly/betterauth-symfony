@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -36,7 +36,7 @@ jobs:
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
 
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
           key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}-symfony-${{ matrix.symfony }}
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload coverage to Codecov
         if: matrix.php == '8.4' && matrix.symfony == '7.0.*'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.xml
           flags: unittests
@@ -112,7 +112,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -169,7 +169,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -181,12 +181,17 @@ jobs:
           extensions: json, openssl, pdo, pdo_sqlite
           tools: composer:v2
 
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
       - name: Cache Composer dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
-          path: vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-static-${{ hashFiles('**/composer.lock') }}
           restore-keys: |
+            ${{ runner.os }}-composer-static-
             ${{ runner.os }}-composer-
 
       - name: Install dependencies
@@ -206,7 +211,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -222,7 +227,7 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Run Composer audit (security vulnerabilities)
-        run: composer audit --no-dev || echo "No security vulnerabilities found"
+        run: composer audit --no-interaction --locked
 
       - name: Symfony Security Checker
         uses: symfonycorp/security-checker-action@v5
@@ -233,7 +238,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -253,13 +258,17 @@ jobs:
 
       - name: Symfony YAML Lint
         run: |
-          if [ -d config ]; then
-            find config -name "*.yaml" -o -name "*.yml" | while read file; do
-              echo "Linting $file"
-              php -r "yaml_parse_file('$file');" 2>&1 || echo "YAML file $file is valid"
-            done
+          if [ -f bin/console ]; then
+            php bin/console lint:yaml config --parse-tags 2>/dev/null || echo "YAML lint skipped (not a full Symfony app)"
+          elif [ -d config ]; then
+            php -r '
+              foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator("config")) as $f) {
+                if (!$f->isFile() || !preg_match("/\.ya?ml$/", $f)) continue;
+                try { \Symfony\Component\Yaml\Yaml::parseFile($f->getPathname()); echo "OK: " . $f->getPathname() . "\n"; }
+                catch (\Throwable $e) { echo "ERROR: " . $f->getPathname() . " — " . $e->getMessage() . "\n"; exit(1); }
+              }
+            '
           fi
-        continue-on-error: true
 
       - name: Check Symfony container
         run: |
@@ -279,7 +288,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php

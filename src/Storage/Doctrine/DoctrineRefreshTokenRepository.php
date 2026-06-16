@@ -78,7 +78,8 @@ final class DoctrineRefreshTokenRepository implements RefreshTokenRepositoryInte
                 : new DateTimeImmutable($expiresAt)
         );
         $doctrineToken->setRevoked($data['revoked'] ?? false);
-        $doctrineToken->setReplacedBy($data['replaced_by'] ?? $data['replacedBy'] ?? null);
+        $replacedByRaw = $data['replaced_by'] ?? $data['replacedBy'] ?? null;
+        $doctrineToken->setReplacedBy($replacedByRaw !== null ? hash('sha256', $replacedByRaw) : null);
 
         $this->entityManager->persist($doctrineToken);
         $this->entityManager->flush();
@@ -99,7 +100,7 @@ final class DoctrineRefreshTokenRepository implements RefreshTokenRepositoryInte
 
         $doctrineToken->setRevoked(true);
         if ($replacedBy !== null) {
-            $doctrineToken->setReplacedBy($replacedBy);
+            $doctrineToken->setReplacedBy(hash('sha256', $replacedBy));
         }
 
         $this->entityManager->flush();
@@ -118,7 +119,7 @@ final class DoctrineRefreshTokenRepository implements RefreshTokenRepositoryInte
             ->andWhere('rt.revoked = :currentRevoked')
             ->andWhere('rt.expiresAt > :now')
             ->setParameter('revoked', true)
-            ->setParameter('replacedBy', $replacedBy)
+            ->setParameter('replacedBy', $replacedBy !== null ? hash('sha256', $replacedBy) : null)
             ->setParameter('token', $hashedToken)
             ->setParameter('currentRevoked', false)
             ->setParameter('now', new DateTimeImmutable());

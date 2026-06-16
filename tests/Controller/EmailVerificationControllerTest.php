@@ -138,13 +138,32 @@ class EmailVerificationControllerTest extends TestCase
 
         $this->emailVerificationProvider->expects($this->once())
             ->method('sendVerificationEmail')
-            ->with('uuid-1', 'test@example.com', 'https://myapp.com/verify')
+            ->with('uuid-1', 'test@example.com', 'http://localhost:5173/verify')
             ->willReturn(['expiresIn' => 3600]);
 
-        $request = $this->createAuthenticatedRequest('valid-token', ['callbackUrl' => 'https://myapp.com/verify']);
+        $request = $this->createAuthenticatedRequest('valid-token', ['callbackUrl' => 'http://localhost:5173/verify']);
         $response = $this->controller->sendVerification($request);
 
         $this->assertSame(200, $response->getStatusCode());
+    }
+
+    /**
+     * @test
+     */
+    public function send_verification_rejects_cross_origin_callback_url(): void
+    {
+        // Open-redirect protection: a callbackUrl on a foreign host must be refused.
+        $user = $this->createMockUser(verified: false);
+        $this->authManager->method('getCurrentUser')->willReturn($user);
+
+        $this->emailVerificationProvider->expects($this->never())->method('sendVerificationEmail');
+
+        $request = $this->createAuthenticatedRequest('valid-token', ['callbackUrl' => 'https://evil.com/steal']);
+        $response = $this->controller->sendVerification($request);
+
+        $this->assertSame(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertSame('Invalid callbackUrl', $data['error']);
     }
 
     // ========================================

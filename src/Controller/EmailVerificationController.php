@@ -7,6 +7,7 @@ namespace BetterAuth\Symfony\Controller;
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Providers\EmailVerificationProvider\EmailVerificationProvider;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
+use BetterAuth\Symfony\Controller\Trait\CallbackUrlValidatorTrait;
 use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -19,6 +20,7 @@ use Symfony\Component\Routing\Attribute\Route;
 class EmailVerificationController extends AbstractController
 {
     use AuthResponseTrait;
+    use CallbackUrlValidatorTrait;
     use SafeErrorResponseTrait;
 
     public function __construct(
@@ -50,6 +52,10 @@ class EmailVerificationController extends AbstractController
 
             $data = $request->toArray();
             $callbackUrl = $data['callbackUrl'] ?? rtrim($this->frontendUrl, '/') . '/auth/email/verify';
+
+            if (isset($data['callbackUrl']) && !$this->isAllowedCallbackUrl($callbackUrl, $this->frontendUrl)) {
+                return $this->json(['error' => 'Invalid callbackUrl'], 400);
+            }
 
             $this->logger?->info('Sending verification email', [
                 'userId' => $user->getId(),

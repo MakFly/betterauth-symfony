@@ -33,14 +33,64 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
 
     public function findByToken(string $token): ?Session
     {
-        /** @var SessionModel|null $doctrineSession */
-        $doctrineSession = $this->entityManager->getRepository($this->sessionClass)->find($token);
+        $doctrineSession = $this->findModelByToken($token);
 
         if ($doctrineSession === null) {
             return null;
         }
 
-        return $this->toEntity($doctrineSession);
+        return $this->toEntity($doctrineSession, $token);
+    }
+
+    /**
+     * Hash a token for at-rest storage / lookup (defense against DB read compromise).
+     */
+    private function hashToken(string $token): string
+    {
+        return hash('sha256', $token);
+    }
+
+    /**
+     * Resolve a session by its plaintext token.
+     *
+     * Looks up by hash first; if a legacy plaintext row is found it is transparently
+     * migrated in place (rehashed) so existing sessions keep working without a forced
+     * logout. This makes the at-rest hashing self-migrating after deployment.
+     *
+     * @return SessionModel|null
+     */
+    private function findModelByToken(string $token): ?object
+    {
+        $repository = $this->entityManager->getRepository($this->sessionClass);
+
+        /** @var SessionModel|null $doctrineSession */
+        $doctrineSession = $repository->find($this->hashToken($token));
+        if ($doctrineSession !== null) {
+            return $doctrineSession;
+        }
+
+        // Legacy fallback: row still stored with the plaintext token.
+        /** @var SessionModel|null $legacy */
+        $legacy = $repository->find($token);
+        if ($legacy === null) {
+            return null;
+        }
+
+        // Migrate the identifier in place via raw SQL (avoids ORM identifier-mutation issues),
+        // then detach the stale managed entity and reload the migrated row.
+        $meta = $this->entityManager->getClassMetadata($this->sessionClass);
+        $table = $meta->getTableName();
+        $column = $meta->getColumnName('token');
+        $this->entityManager->getConnection()->executeStatement(
+            "UPDATE {$table} SET {$column} = ? WHERE {$column} = ?",
+            [$this->hashToken($token), $token]
+        );
+        $this->entityManager->detach($legacy);
+
+        /** @var SessionModel|null $migrated */
+        $migrated = $repository->find($this->hashToken($token));
+
+        return $migrated;
     }
 
     /**
@@ -63,8 +113,9 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
      */
     public function create(array $data): Session
     {
+        $rawToken = $data['token'];
         $doctrineSession = new ($this->sessionClass)();
-        $doctrineSession->setToken($data['token']);
+        $doctrineSession->setToken($this->hashToken($rawToken));
         $doctrineSession->setUserId((string) $this->idConverter->toDatabaseId($data['user_id']));
         $doctrineSession->setExpiresAt(
             $data['expires_at'] instanceof DateTimeImmutable
@@ -80,7 +131,7 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
         $this->entityManager->persist($doctrineSession);
         $this->entityManager->flush();
 
-        return $this->toEntity($doctrineSession);
+        return $this->toEntity($doctrineSession, $rawToken);
     }
 
     /**
@@ -88,11 +139,10 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
      */
     public function update(string $token, array $data): Session
     {
-        /** @var SessionModel|null $doctrineSession */
-        $doctrineSession = $this->entityManager->getRepository($this->sessionClass)->find($token);
+        $doctrineSession = $this->findModelByToken($token);
 
         if ($doctrineSession === null) {
-            throw new \RuntimeException("Session not found: $token");
+            throw new \RuntimeException('Session not found');
         }
 
         if (isset($data['expires_at'])) {
@@ -116,13 +166,12 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
 
         $this->entityManager->flush();
 
-        return $this->toEntity($doctrineSession);
+        return $this->toEntity($doctrineSession, $token);
     }
 
     public function delete(string $token): bool
     {
-        /** @var SessionModel|null $doctrineSession */
-        $doctrineSession = $this->entityManager->getRepository($this->sessionClass)->find($token);
+        $doctrineSession = $this->findModelByToken($token);
 
         if ($doctrineSession === null) {
             return false;
@@ -155,10 +204,11 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
     }
 
     /** @param SessionModel $doctrineSession */
-    private function toEntity(object $doctrineSession): Session
+    private function toEntity(object $doctrineSession, ?string $rawToken = null): Session
     {
         return SimpleSession::fromArray([
-            'token' => $doctrineSession->getToken(),
+            // Only the hash is stored; expose the plaintext token to callers when known.
+            'token' => $rawToken ?? $doctrineSession->getToken(),
             'user_id' => $this->idConverter->toAuthId($doctrineSession->getUserId()),
             'expires_at' => $doctrineSession->getExpiresAt()->format('Y-m-d H:i:s'),
             'ip_address' => $doctrineSession->getIpAddress(),

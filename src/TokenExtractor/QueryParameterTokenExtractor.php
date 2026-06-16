@@ -10,9 +10,11 @@ use Symfony\Component\HttpFoundation\Request;
  * Extracts token from query parameter.
  * Similar to Lexik's QueryParameterTokenExtractor.
  *
- * WARNING: Using tokens in URLs is generally not recommended for security reasons
- * (tokens may be logged in server access logs, browser history, etc.).
- * Use this extractor only when absolutely necessary (e.g., for legacy systems).
+ * SECURITY WARNING: Using tokens in URLs is strongly discouraged. The token leaks into
+ * server access logs, the browser history and the `Referer` header sent to third parties.
+ * This extractor is therefore NOT part of the default ChainTokenExtractor (which only reads
+ * the Authorization header and cookies). Wire it explicitly only for legacy interoperability,
+ * and prefer short-lived, single-use tokens when you do.
  *
  * Example:
  *   GET /api/resource?bearer=v4.local.xxxxx

@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\Exceptions\RateLimitException;
 use BetterAuth\Providers\MagicLinkProvider\MagicLinkProvider;
+use BetterAuth\Symfony\Controller\Trait\CallbackUrlValidatorTrait;
 use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -18,6 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
 #[Route('/auth/magic-link', name: 'better_auth_magic_link_')]
 class MagicLinkController extends AbstractController
 {
+    use CallbackUrlValidatorTrait;
     use SafeErrorResponseTrait;
 
     public function __construct(
@@ -39,6 +41,10 @@ class MagicLinkController extends AbstractController
             }
 
             $callbackUrl = $data['callbackUrl'] ?? rtrim($this->frontendUrl, '/') . '/auth/magic-link/verify';
+
+            if (isset($data['callbackUrl']) && !$this->isAllowedCallbackUrl($callbackUrl, $this->frontendUrl)) {
+                return $this->json(['error' => 'Invalid callbackUrl'], 400);
+            }
 
             $result = $this->magicLinkProvider->sendMagicLink(
                 $data['email'],

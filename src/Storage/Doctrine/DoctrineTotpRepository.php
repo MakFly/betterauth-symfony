@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Storage\Doctrine;
 
 use BetterAuth\Core\Entities\TotpData;
 use BetterAuth\Core\Interfaces\TotpStorageInterface;
+use BetterAuth\Core\Utils\Crypto;
 use BetterAuth\Symfony\Service\UserIdConverter;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -19,13 +20,36 @@ final class DoctrineTotpRepository implements TotpStorageInterface
     /** @var class-string<TotpData> */
     private string $totpClass;
 
+    /**
+     * @param string|null $encryptionKey Master secret used to encrypt the TOTP seed at rest.
+     *                                    When null, secrets are stored in plaintext (not recommended).
+     */
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly UserIdConverter $idConverter,
-        string $totpClass = TotpData::class
+        string $totpClass = TotpData::class,
+        private readonly ?string $encryptionKey = null,
     ) {
         /** @var class-string<TotpData> $totpClass */
         $this->totpClass = $totpClass;
+    }
+
+    private function encryptSecret(string $secret): string
+    {
+        if ($this->encryptionKey === null) {
+            return $secret;
+        }
+
+        return Crypto::encrypt($secret, Crypto::deriveKey($this->encryptionKey, 32, 'betterauth-totp-secret'));
+    }
+
+    private function decryptSecret(string $secret): string
+    {
+        if ($this->encryptionKey === null) {
+            return $secret;
+        }
+
+        return Crypto::decrypt($secret, Crypto::deriveKey($this->encryptionKey, 32, 'betterauth-totp-secret'));
     }
 
     public function store(string $userId, string $secret, array $metadata = []): bool
@@ -39,7 +63,7 @@ final class DoctrineTotpRepository implements TotpStorageInterface
             $doctrineTotp->setUserId((string) $this->idConverter->toDatabaseId($userId));
         }
 
-        $doctrineTotp->setSecret($secret);
+        $doctrineTotp->setSecret($this->encryptSecret($secret));
         $doctrineTotp->setEnabled($metadata['enabled'] ?? false);
         $doctrineTotp->setBackupCodes($metadata['backup_codes'] ?? []);
 
@@ -64,8 +88,18 @@ final class DoctrineTotpRepository implements TotpStorageInterface
             return null;
         }
 
+        $storedSecret = $doctrineTotp->getSecret();
+        $plainSecret = $this->decryptSecret($storedSecret);
+
+        // Lazy migration: a pre-existing plaintext secret is encrypted in place on its
+        // first access after deployment (one write per user, then it stays encrypted).
+        if ($this->encryptionKey !== null && !str_starts_with($storedSecret, 'enc:v1:')) {
+            $doctrineTotp->setSecret($this->encryptSecret($plainSecret));
+            $this->entityManager->flush();
+        }
+
         return [
-            'secret' => $doctrineTotp->getSecret(),
+            'secret' => $plainSecret,
             'enabled' => $doctrineTotp->isEnabled(),
             'backup_codes' => $doctrineTotp->getBackupCodes(),
             'last_2fa_verified_at' => $doctrineTotp->getLast2faVerifiedAt()?->format('Y-m-d H:i:s'),

@@ -91,9 +91,10 @@ class DoctrineSessionRepositoryTest extends TestCase
 
     public function testFindByTokenReturnsSessionWhenFound(): void
     {
-        $doctrineSession = $this->makeDoctrineSession('tok-123', 'user-1');
+        $doctrineSession = $this->makeDoctrineSession(hash('sha256', 'tok-123'), 'user-1');
 
-        $this->entityRepository->method('find')->with('tok-123')->willReturn($doctrineSession);
+        // Lookup is by hash; the plaintext token is re-injected on the returned entity.
+        $this->entityRepository->method('find')->with(hash('sha256', 'tok-123'))->willReturn($doctrineSession);
 
         $session = $this->repository->findByToken('tok-123');
 
@@ -106,6 +107,44 @@ class DoctrineSessionRepositoryTest extends TestCase
         $this->entityRepository->method('find')->willReturn(null);
 
         $this->assertNull($this->repository->findByToken('missing'));
+    }
+
+    public function testFindByTokenLazilyMigratesLegacyPlaintextRow(): void
+    {
+        $hashed = hash('sha256', 'legacy-plain');
+        $legacy = $this->makeDoctrineSession('legacy-plain', 'user-1');
+        $migrated = $this->makeDoctrineSession($hashed, 'user-1');
+
+        $hashLookups = 0;
+        $this->entityRepository->method('find')->willReturnCallback(
+            function ($id) use ($hashed, $legacy, $migrated, &$hashLookups) {
+                if ($id === 'legacy-plain') {
+                    return $legacy;
+                }
+                if ($id === $hashed) {
+                    // first hash lookup misses (still plaintext), second hits (migrated)
+                    return $hashLookups++ === 0 ? null : $migrated;
+                }
+
+                return null;
+            }
+        );
+
+        $connection = $this->createMock(\Doctrine\DBAL\Connection::class);
+        $connection->expects($this->once())->method('executeStatement');
+        $this->entityManager->method('getConnection')->willReturn($connection);
+
+        $metadata = $this->createMock(ClassMetadata::class);
+        $metadata->method('getTableName')->willReturn('sessions');
+        $metadata->method('getColumnName')->with('token')->willReturn('token');
+        $this->entityManager->method('getClassMetadata')->willReturn($metadata);
+
+        $this->entityManager->expects($this->once())->method('detach')->with($legacy);
+
+        $session = $this->repository->findByToken('legacy-plain');
+
+        $this->assertInstanceOf(Session::class, $session);
+        $this->assertSame('legacy-plain', $session->getToken());
     }
 
     // --- findByUserId ---
@@ -158,16 +197,16 @@ class DoctrineSessionRepositoryTest extends TestCase
         $this->entityRepository->method('find')->willReturn(null);
 
         $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Session not found: ghost-tok');
+        $this->expectExceptionMessage('Session not found');
 
         $this->repository->update('ghost-tok', ['metadata' => []]);
     }
 
     public function testUpdateModifiesAndReturnsSession(): void
     {
-        $doctrineSession = $this->makeDoctrineSession('tok-abc', 'user-1');
+        $doctrineSession = $this->makeDoctrineSession(hash('sha256', 'tok-abc'), 'user-1');
 
-        $this->entityRepository->method('find')->with('tok-abc')->willReturn($doctrineSession);
+        $this->entityRepository->method('find')->with(hash('sha256', 'tok-abc'))->willReturn($doctrineSession);
         $this->entityManager->expects($this->once())->method('flush');
 
         $session = $this->repository->update('tok-abc', ['metadata' => ['key' => 'value']]);
@@ -179,9 +218,9 @@ class DoctrineSessionRepositoryTest extends TestCase
 
     public function testDeleteReturnsTrueWhenFound(): void
     {
-        $doctrineSession = $this->makeDoctrineSession('tok-1');
+        $doctrineSession = $this->makeDoctrineSession(hash('sha256', 'tok-1'));
 
-        $this->entityRepository->method('find')->with('tok-1')->willReturn($doctrineSession);
+        $this->entityRepository->method('find')->with(hash('sha256', 'tok-1'))->willReturn($doctrineSession);
         $this->entityManager->expects($this->once())->method('remove')->with($doctrineSession);
         $this->entityManager->expects($this->once())->method('flush');
 

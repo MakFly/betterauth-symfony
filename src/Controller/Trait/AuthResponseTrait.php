@@ -42,7 +42,9 @@ trait AuthResponseTrait
             $session = $result['session'];
             return [
                 'access_token' => $session->getToken(),
-                'refresh_token' => $session->getToken(),
+                // Session mode has no separate refresh credential; do not duplicate the
+                // session token as a "refresh_token" (it would imply a rotatable secret).
+                'refresh_token' => null,
                 // Use expires_in from result if available; fallback to 7-day default (604800s)
                 'expires_in' => $result['expires_in'] ?? 604800,
                 'token_type' => 'Bearer',

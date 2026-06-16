@@ -13,6 +13,10 @@
         "  Next steps:",
         "    • Run <comment>php bin/console better-auth:install</comment> to generate entities and configuration",
         "    • Check the documentation at https://github.com/betterauth/betterauth-php",
+        "",
+        "  Security: session tokens are stored hashed and TOTP secrets encrypted at rest.",
+        "  Existing data is migrated automatically and transparently on first access",
+        "  after deploy — no manual migration step and no forced logout.",
         ""
     ]
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
+use BetterAuth\Core\Interfaces\RateLimiterInterface;
 use BetterAuth\Core\Interfaces\UserRepositoryInterface;
 use BetterAuth\Core\PasswordHasher;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
@@ -26,13 +27,52 @@ class CredentialsController extends AbstractController
     use AuthResponseTrait;
     use SafeErrorResponseTrait;
 
+    private const LOGIN_MAX_ATTEMPTS = 5;
+    private const LOGIN_DECAY_SECONDS = 900; // 15 minutes
+
     public function __construct(
         private readonly AuthManager $authManager,
         private readonly TotpProvider $totpProvider,
         private readonly UserRepositoryInterface $userRepository,
         private readonly PasswordHasher $passwordHasher,
         private readonly ?LoggerInterface $logger = null,
+        private readonly ?RateLimiterInterface $rateLimiter = null,
     ) {
+    }
+
+    private function rateLimitKey(Request $request, string $email, string $scope): string
+    {
+        return $scope . ':' . ($request->getClientIp() ?? 'unknown') . ':' . strtolower($email);
+    }
+
+    /**
+     * Mask an email for logging (avoid leaking PII into centralized logs).
+     */
+    private function maskEmail(string $email): string
+    {
+        $at = strpos($email, '@');
+        if ($at === false) {
+            return '***';
+        }
+
+        $local = substr($email, 0, $at);
+        $visible = substr($local, 0, 2);
+
+        return $visible . '***' . substr($email, $at);
+    }
+
+    private function tooManyAttempts(string $key): ?JsonResponse
+    {
+        if ($this->rateLimiter !== null
+            && $this->rateLimiter->tooManyAttempts($key, self::LOGIN_MAX_ATTEMPTS, self::LOGIN_DECAY_SECONDS)
+        ) {
+            return $this->json([
+                'error' => 'Too many attempts. Please try again later.',
+                'retryAfter' => $this->rateLimiter->availableIn($key),
+            ], 429);
+        }
+
+        return null;
     }
 
     #[Route('/register', name: 'register', methods: ['POST'])]
@@ -57,7 +97,7 @@ class CredentialsController extends AbstractController
             return $this->json($result, 201);
         } catch (\Exception $e) {
             $this->logger?->error('Registration failed', [
-                'email' => $dto->email,
+                'email' => $this->maskEmail($dto->email),
                 'error' => $e->getMessage(),
             ]);
             return $this->safeError($e, 400, 'Registration failed', 'register');
@@ -67,15 +107,22 @@ class CredentialsController extends AbstractController
     #[Route('/login', name: 'login', methods: ['POST'])]
     public function login(#[MapRequestPayload] LoginRequestDto $dto, Request $request): JsonResponse
     {
+        $rateKey = $this->rateLimitKey($request, $dto->email, 'login');
+        if (($limited = $this->tooManyAttempts($rateKey)) !== null) {
+            return $limited;
+        }
+
         try {
             // Step 1: Verify credentials WITHOUT creating any session or token
             $user = $this->userRepository->findByEmail($dto->email);
             if ($user === null || !$user->hasPassword()) {
+                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
                 return $this->json(['error' => 'Invalid credentials'], 401);
             }
 
             $passwordHash = $user->getPassword();
             if ($passwordHash === null || !$this->passwordHasher->verify($dto->password, $passwordHash)) {
+                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
                 return $this->json(['error' => 'Invalid credentials'], 401);
             }
 
@@ -95,10 +142,12 @@ class CredentialsController extends AbstractController
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
+            $this->rateLimiter?->clear($rateKey);
+
             return $this->json($result);
         } catch (\Exception $e) {
             $this->logger?->error('Login failed', [
-                'email' => $dto->email,
+                'email' => $this->maskEmail($dto->email),
                 'error' => $e->getMessage(),
             ]);
             return $this->json(['error' => 'Authentication failed'], 401);
@@ -108,21 +157,29 @@ class CredentialsController extends AbstractController
     #[Route('/login/2fa', name: 'login_2fa', methods: ['POST'])]
     public function login2fa(#[MapRequestPayload] Login2faRequestDto $dto, Request $request): JsonResponse
     {
+        $rateKey = $this->rateLimitKey($request, $dto->email, 'login_2fa');
+        if (($limited = $this->tooManyAttempts($rateKey)) !== null) {
+            return $limited;
+        }
+
         try {
             // Step 1: Verify credentials WITHOUT creating any session or token
             $user = $this->userRepository->findByEmail($dto->email);
             if ($user === null || !$user->hasPassword()) {
+                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
                 return $this->json(['error' => 'Invalid credentials'], 401);
             }
 
             $passwordHash = $user->getPassword();
             if ($passwordHash === null || !$this->passwordHasher->verify($dto->password, $passwordHash)) {
+                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
                 return $this->json(['error' => 'Invalid credentials'], 401);
             }
 
             // Step 2: Verify TOTP code before creating any session or tokens
             $verified = $this->totpProvider->verify((string) $user->getId(), $dto->code);
             if (!$verified) {
+                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
                 return $this->json(['error' => 'Invalid 2FA code'], 401);
             }
 
@@ -133,6 +190,8 @@ class CredentialsController extends AbstractController
                 $request->getClientIp() ?? '127.0.0.1',
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
+
+            $this->rateLimiter?->clear($rateKey);
 
             return $this->json($result);
         } catch (\Exception $e) {

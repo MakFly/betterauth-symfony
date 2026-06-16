@@ -88,17 +88,36 @@ class MagicLinkControllerTest extends TestCase
                 'test@example.com',
                 $this->anything(),
                 $this->anything(),
-                'https://myapp.com/verify-magic-link'
+                'http://localhost:5173/verify-magic-link'
             )
             ->willReturn(['expiresIn' => 900]);
 
         $request = $this->createJsonRequest([
             'email' => 'test@example.com',
-            'callbackUrl' => 'https://myapp.com/verify-magic-link',
+            'callbackUrl' => 'http://localhost:5173/verify-magic-link',
         ]);
         $response = $this->controller->sendMagicLink($request);
 
         $this->assertSame(200, $response->getStatusCode());
+    }
+
+    /**
+     * @test
+     */
+    public function send_magic_link_rejects_cross_origin_callback_url(): void
+    {
+        // Open-redirect protection: a callbackUrl on a foreign host must be refused.
+        $this->magicLinkProvider->expects($this->never())->method('sendMagicLink');
+
+        $request = $this->createJsonRequest([
+            'email' => 'test@example.com',
+            'callbackUrl' => 'https://evil.com/steal',
+        ]);
+        $response = $this->controller->sendMagicLink($request);
+
+        $this->assertSame(400, $response->getStatusCode());
+        $data = json_decode($response->getContent(), true);
+        $this->assertSame('Invalid callbackUrl', $data['error']);
     }
 
     /**

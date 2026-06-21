@@ -5,6 +5,20 @@ All notable changes to `betterauth/symfony-bundle` are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Opaque session id.** Sessions now carry an opaque `id` (decoupled from the secret
+  token) usable as a safe revocation/listing handle. `DoctrineSessionRepository` implements
+  `findById()` / `deleteById()` and persists the id verbatim (never hashed).
+  `SessionController::list()` exposes `id` and resolves the `current` flag from the bearer
+  token via `AuthManager::validateSession()` (the previous token comparison was always
+  false once tokens became hashed at rest).
+
+### Database
+- Migration `Version20260621120000`: adds a nullable, unique `id` column to `sessions`
+  and backfills an opaque id for every pre-existing row.
+
 ## [0.0.20] - 2026-06-17
 
 ### Security

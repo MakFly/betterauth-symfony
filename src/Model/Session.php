@@ -19,6 +19,13 @@ abstract class Session
     #[ORM\Column(type: Types::STRING, length: 255)]
     protected string $token;
 
+    /**
+     * Opaque session id, decoupled from the secret token.
+     * Safe to expose and to use as a revocation handle.
+     */
+    #[ORM\Column(type: Types::STRING, length: 64, unique: true, nullable: true)]
+    protected ?string $id = null;
+
     #[ORM\Column(name: 'user_id', type: Types::STRING, length: 36)]
     protected string $userId;
 
@@ -61,6 +68,18 @@ abstract class Session
     public function setToken(string $token): self
     {
         $this->token = $token;
+
+        return $this;
+    }
+
+    public function getId(): ?string
+    {
+        return $this->id;
+    }
+
+    public function setId(?string $id): self
+    {
+        $this->id = $id;
 
         return $this;
     }

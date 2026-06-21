@@ -47,10 +47,11 @@ class SessionControllerTest extends TestCase
         return $user;
     }
 
-    private function createMockSession(string $token = 'session-token-1'): MockObject&Session
+    private function createMockSession(string $token = 'session-token-1', string $id = 'session-id-1'): MockObject&Session
     {
         $session = $this->createMock(Session::class);
         $session->method('getToken')->willReturn($token);
+        $session->method('getId')->willReturn($id);
         $session->method('getMetadata')->willReturn([
             'device' => 'Desktop',
             'browser' => 'Chrome',
@@ -73,11 +74,13 @@ class SessionControllerTest extends TestCase
     public function list_returns_sessions_with_current_flag(): void
     {
         $user = $this->createMockUser();
-        $session1 = $this->createMockSession('current-token');
-        $session2 = $this->createMockSession('other-token');
+        $session1 = $this->createMockSession('current-token', 'current-id');
+        $session2 = $this->createMockSession('other-token', 'other-id');
 
         $this->authManager->method('getCurrentUser')->with('current-token')->willReturn($user);
         $this->authManager->method('getUserSessions')->with('uuid-1')->willReturn([$session1, $session2]);
+        // The current session is resolved from the bearer token via validateSession().
+        $this->authManager->method('validateSession')->with('current-token')->willReturn($session1);
 
         $request = $this->createAuthenticatedRequest('current-token');
         $response = $this->controller->list($request);
@@ -123,10 +126,11 @@ class SessionControllerTest extends TestCase
     public function list_returns_session_structure(): void
     {
         $user = $this->createMockUser();
-        $session = $this->createMockSession('valid-token');
+        $session = $this->createMockSession('valid-token', 'valid-id');
 
         $this->authManager->method('getCurrentUser')->willReturn($user);
         $this->authManager->method('getUserSessions')->willReturn([$session]);
+        $this->authManager->method('validateSession')->willReturn($session);
 
         $request = $this->createAuthenticatedRequest('valid-token');
         $response = $this->controller->list($request);

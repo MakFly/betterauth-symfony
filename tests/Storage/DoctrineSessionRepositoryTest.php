@@ -65,8 +65,12 @@ class DoctrineSessionRepositoryTest extends TestCase
                 private string $userId,
             ) {}
 
+            private ?string $id = null;
+
             public function getToken(): string { return $this->token; }
             public function setToken(string $t): void { $this->token = $t; }
+            public function getId(): ?string { return $this->id; }
+            public function setId(?string $id): void { $this->id = $id; }
             public function getUserId(): string { return $this->userId; }
             public function setUserId(string|int $id): void { $this->userId = (string) $id; }
             public function getExpiresAt(): \DateTimeImmutable { return new \DateTimeImmutable('+1 hour'); }
@@ -107,6 +111,30 @@ class DoctrineSessionRepositoryTest extends TestCase
         $this->entityRepository->method('find')->willReturn(null);
 
         $this->assertNull($this->repository->findByToken('missing'));
+    }
+
+    // --- findById ---
+
+    public function testFindByIdReturnsSessionWhenFound(): void
+    {
+        $doctrineSession = $this->makeDoctrineSession(hash('sha256', 'tok-abc'), 'user-1');
+        $doctrineSession->setId('sess-id-1');
+
+        $this->entityRepository->method('findOneBy')->with(['id' => 'sess-id-1'])->willReturn($doctrineSession);
+
+        $session = $this->repository->findById('sess-id-1');
+
+        $this->assertInstanceOf(Session::class, $session);
+        $this->assertSame('sess-id-1', $session->getId());
+        // By-id lookup cannot recover the plaintext token; the hash is exposed instead.
+        $this->assertSame(hash('sha256', 'tok-abc'), $session->getToken());
+    }
+
+    public function testFindByIdReturnsNullWhenNotFound(): void
+    {
+        $this->entityRepository->method('findOneBy')->willReturn(null);
+
+        $this->assertNull($this->repository->findById('missing-id'));
     }
 
     public function testFindByTokenLazilyMigratesLegacyPlaintextRow(): void
@@ -179,6 +207,7 @@ class DoctrineSessionRepositoryTest extends TestCase
         $this->entityManager->expects($this->once())->method('flush');
 
         $session = $this->repository->create([
+            'id' => 'opaque-id-1',
             'token' => 'tok-new',
             'user_id' => 'user-1',
             'expires_at' => '+1 hour',
@@ -188,6 +217,8 @@ class DoctrineSessionRepositoryTest extends TestCase
 
         $this->assertInstanceOf(Session::class, $session);
         $this->assertSame('tok-new', $session->getToken());
+        // The opaque id is stored verbatim (never hashed) and reported back.
+        $this->assertSame('opaque-id-1', $session->getId());
     }
 
     // --- update ---
@@ -232,6 +263,27 @@ class DoctrineSessionRepositoryTest extends TestCase
         $this->entityRepository->method('find')->willReturn(null);
 
         $this->assertFalse($this->repository->delete('nonexistent'));
+    }
+
+    // --- deleteById ---
+
+    public function testDeleteByIdReturnsTrueWhenFound(): void
+    {
+        $doctrineSession = $this->makeDoctrineSession(hash('sha256', 'tok-1'));
+        $doctrineSession->setId('sess-id-9');
+
+        $this->entityRepository->method('findOneBy')->with(['id' => 'sess-id-9'])->willReturn($doctrineSession);
+        $this->entityManager->expects($this->once())->method('remove')->with($doctrineSession);
+        $this->entityManager->expects($this->once())->method('flush');
+
+        $this->assertTrue($this->repository->deleteById('sess-id-9'));
+    }
+
+    public function testDeleteByIdReturnsFalseWhenNotFound(): void
+    {
+        $this->entityRepository->method('findOneBy')->willReturn(null);
+
+        $this->assertFalse($this->repository->deleteById('missing-id'));
     }
 
     // --- deleteByUserId ---

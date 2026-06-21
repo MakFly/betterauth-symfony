@@ -43,6 +43,36 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
     }
 
     /**
+     * Resolve a session by its opaque id.
+     *
+     * The plaintext token is unavailable here (only its hash is stored), so the
+     * returned entity exposes the hash via getToken(). This is intended for
+     * by-id usage (listing/revocation), not for re-authentication.
+     */
+    public function findById(string $id): ?Session
+    {
+        $doctrineSession = $this->findModelById($id);
+
+        if ($doctrineSession === null) {
+            return null;
+        }
+
+        return $this->toEntity($doctrineSession);
+    }
+
+    /**
+     * @return SessionModel|null
+     */
+    private function findModelById(string $id): ?object
+    {
+        /** @var SessionModel|null $doctrineSession */
+        $doctrineSession = $this->entityManager->getRepository($this->sessionClass)
+            ->findOneBy(['id' => $id]);
+
+        return $doctrineSession;
+    }
+
+    /**
      * Hash a token for at-rest storage / lookup (defense against DB read compromise).
      */
     private function hashToken(string $token): string
@@ -116,6 +146,10 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
         $rawToken = $data['token'];
         $doctrineSession = new ($this->sessionClass)();
         $doctrineSession->setToken($this->hashToken($rawToken));
+        // The opaque id is not a secret: store it verbatim, never hashed.
+        if (isset($data['id'])) {
+            $doctrineSession->setId($data['id']);
+        }
         $doctrineSession->setUserId((string) $this->idConverter->toDatabaseId($data['user_id']));
         $doctrineSession->setExpiresAt(
             $data['expires_at'] instanceof DateTimeImmutable
@@ -183,6 +217,20 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
         return true;
     }
 
+    public function deleteById(string $id): bool
+    {
+        $doctrineSession = $this->findModelById($id);
+
+        if ($doctrineSession === null) {
+            return false;
+        }
+
+        $this->entityManager->remove($doctrineSession);
+        $this->entityManager->flush();
+
+        return true;
+    }
+
     public function deleteByUserId(string $userId): int
     {
         $qb = $this->entityManager->createQueryBuilder();
@@ -207,6 +255,7 @@ final class DoctrineSessionRepository implements SessionRepositoryInterface
     private function toEntity(object $doctrineSession, ?string $rawToken = null): Session
     {
         return SimpleSession::fromArray([
+            'id' => $doctrineSession->getId(),
             // Only the hash is stored; expose the plaintext token to callers when known.
             'token' => $rawToken ?? $doctrineSession->getToken(),
             'user_id' => $this->idConverter->toAuthId($doctrineSession->getUserId()),

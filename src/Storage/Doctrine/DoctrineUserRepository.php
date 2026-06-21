@@ -97,7 +97,9 @@ final class DoctrineUserRepository implements UserRepositoryInterface
         }
 
         $doctrineUser->setEmail($data['email']);
-        $doctrineUser->setPassword($data['password'] ?? null);
+        // Core writes the hashed password under the canonical 'password_hash' key;
+        // accept the legacy 'password' key as a fallback.
+        $doctrineUser->setPassword($data['password_hash'] ?? $data['password'] ?? null);
         if (method_exists($doctrineUser, 'setUsername')) {
             $doctrineUser->setUsername($data['username'] ?? null);
         }
@@ -136,8 +138,9 @@ final class DoctrineUserRepository implements UserRepositoryInterface
         if (isset($data['email'])) {
             $doctrineUser->setEmail($data['email']);
         }
-        if (isset($data['password'])) {
-            $doctrineUser->setPassword($data['password']);
+        $newPassword = $data['password_hash'] ?? $data['password'] ?? null;
+        if ($newPassword !== null) {
+            $doctrineUser->setPassword($newPassword);
         }
         if (isset($data['username']) && method_exists($doctrineUser, 'setUsername')) {
             $doctrineUser->setUsername($data['username']);

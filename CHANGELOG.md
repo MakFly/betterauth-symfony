@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23] - 2026-06-21
+
+Re-release of 0.0.22. The 0.0.22 release automation failed on a locked tag, so its git tag
+(while retained and installable) has no published GitHub release; this patch re-issues the
+same dependency-constraint fix under a clean tag. No code changes since 0.0.22.
+
 ## [0.0.22] - 2026-06-21
 
 ### Fixed

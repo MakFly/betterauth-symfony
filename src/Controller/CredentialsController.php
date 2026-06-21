@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
+use BetterAuth\Core\Exceptions\InvalidCredentialsException;
 use BetterAuth\Core\Interfaces\RateLimiterInterface;
-use BetterAuth\Core\Interfaces\UserRepositoryInterface;
-use BetterAuth\Core\PasswordHasher;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\Trait\AuthResponseTrait;
 use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
@@ -33,8 +32,6 @@ class CredentialsController extends AbstractController
     public function __construct(
         private readonly AuthManager $authManager,
         private readonly TotpProvider $totpProvider,
-        private readonly UserRepositoryInterface $userRepository,
-        private readonly PasswordHasher $passwordHasher,
         private readonly ?LoggerInterface $logger = null,
         private readonly ?RateLimiterInterface $rateLimiter = null,
     ) {
@@ -114,14 +111,9 @@ class CredentialsController extends AbstractController
 
         try {
             // Step 1: Verify credentials WITHOUT creating any session or token
-            $user = $this->userRepository->findByEmail($dto->email);
-            if ($user === null || !$user->hasPassword()) {
-                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
-                return $this->json(['error' => 'Invalid credentials'], 401);
-            }
-
-            $passwordHash = $user->getPassword();
-            if ($passwordHash === null || !$this->passwordHasher->verify($dto->password, $passwordHash)) {
+            try {
+                $user = $this->authManager->verifyCredentials($dto->email, $dto->password);
+            } catch (InvalidCredentialsException) {
                 $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
                 return $this->json(['error' => 'Invalid credentials'], 401);
             }
@@ -134,10 +126,9 @@ class CredentialsController extends AbstractController
                 ]);
             }
 
-            // Step 3: No 2FA required — proceed with normal sign-in to create session/tokens
-            $result = $this->authManager->signIn(
-                $dto->email,
-                $dto->password,
+            // Step 3: No 2FA required — complete sign-in on the already-verified user
+            $result = $this->authManager->completeSignIn(
+                $user,
                 $request->getClientIp() ?? '127.0.0.1',
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
@@ -164,14 +155,9 @@ class CredentialsController extends AbstractController
 
         try {
             // Step 1: Verify credentials WITHOUT creating any session or token
-            $user = $this->userRepository->findByEmail($dto->email);
-            if ($user === null || !$user->hasPassword()) {
-                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
-                return $this->json(['error' => 'Invalid credentials'], 401);
-            }
-
-            $passwordHash = $user->getPassword();
-            if ($passwordHash === null || !$this->passwordHasher->verify($dto->password, $passwordHash)) {
+            try {
+                $user = $this->authManager->verifyCredentials($dto->email, $dto->password);
+            } catch (InvalidCredentialsException) {
                 $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
                 return $this->json(['error' => 'Invalid credentials'], 401);
             }
@@ -184,9 +170,8 @@ class CredentialsController extends AbstractController
             }
 
             // Step 3: Credentials and TOTP are valid — NOW create session/tokens
-            $result = $this->authManager->signIn(
-                $dto->email,
-                $dto->password,
+            $result = $this->authManager->completeSignIn(
+                $user,
                 $request->getClientIp() ?? '127.0.0.1',
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );

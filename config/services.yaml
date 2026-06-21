@@ -450,8 +450,6 @@ services:
         arguments:
             $authManager: '@BetterAuth\Core\AuthManager'
             $totpProvider: '@BetterAuth\Providers\TotpProvider\TotpProvider'
-            $userRepository: '@BetterAuth\Core\Interfaces\UserRepositoryInterface'
-            $passwordHasher: '@BetterAuth\Core\PasswordHasher'
             $logger: '@?logger'
             $rateLimiter: '@?BetterAuth\Core\Interfaces\RateLimiterInterface'
         tags: ['controller.service_arguments']

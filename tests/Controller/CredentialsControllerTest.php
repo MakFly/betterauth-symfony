@@ -6,8 +6,7 @@ namespace BetterAuth\Symfony\Tests\Controller;
 
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Core\Entities\User;
-use BetterAuth\Core\Interfaces\UserRepositoryInterface;
-use BetterAuth\Core\PasswordHasher;
+use BetterAuth\Core\Exceptions\InvalidCredentialsException;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\CredentialsController;
 use BetterAuth\Symfony\Dto\Login2faRequestDto;
@@ -29,22 +28,16 @@ class CredentialsControllerTest extends TestCase
 
     private MockObject&AuthManager $authManager;
     private MockObject&TotpProvider $totpProvider;
-    private MockObject&UserRepositoryInterface $userRepository;
-    private MockObject&PasswordHasher $passwordHasher;
     private CredentialsController $controller;
 
     protected function setUp(): void
     {
         $this->authManager = $this->createMock(AuthManager::class);
         $this->totpProvider = $this->createMock(TotpProvider::class);
-        $this->userRepository = $this->createMock(UserRepositoryInterface::class);
-        $this->passwordHasher = $this->createMock(PasswordHasher::class);
 
         $this->controller = new CredentialsController(
             $this->authManager,
             $this->totpProvider,
-            $this->userRepository,
-            $this->passwordHasher,
         );
         $this->setUpControllerContainer($this->controller);
     }
@@ -141,11 +134,8 @@ class CredentialsControllerTest extends TestCase
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn('uuid-1');
-        $user->method('hasPassword')->willReturn(true);
-        $user->method('getPassword')->willReturn('$2y$10$hashed');
 
-        $this->userRepository->method('findByEmail')->with('test@example.com')->willReturn($user);
-        $this->passwordHasher->method('verify')->with('password123', '$2y$10$hashed')->willReturn(true);
+        $this->authManager->method('verifyCredentials')->with('test@example.com', 'password123')->willReturn($user);
         $this->totpProvider->method('requires2fa')->willReturn(false);
 
         $tokenResult = [
@@ -154,7 +144,7 @@ class CredentialsControllerTest extends TestCase
             'expires_in' => 3600,
             'user' => ['id' => 'uuid-1', 'email' => 'test@example.com'],
         ];
-        $this->authManager->expects($this->once())->method('signIn')->willReturn($tokenResult);
+        $this->authManager->expects($this->once())->method('completeSignIn')->willReturn($tokenResult);
 
         $dto = new LoginRequestDto('test@example.com', 'password123');
         $request = new Request();
@@ -173,11 +163,8 @@ class CredentialsControllerTest extends TestCase
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn('uuid-1');
-        $user->method('hasPassword')->willReturn(true);
-        $user->method('getPassword')->willReturn('$2y$10$hashed');
 
-        $this->userRepository->method('findByEmail')->willReturn($user);
-        $this->passwordHasher->method('verify')->willReturn(true);
+        $this->authManager->method('verifyCredentials')->willReturn($user);
         $this->totpProvider->method('requires2fa')->with('uuid-1')->willReturn(true);
 
         $dto = new LoginRequestDto('test@example.com', 'password123');
@@ -196,7 +183,8 @@ class CredentialsControllerTest extends TestCase
      */
     public function login_returns_401_on_invalid_credentials(): void
     {
-        $this->userRepository->method('findByEmail')->willReturn(null);
+        $this->authManager->method('verifyCredentials')
+            ->willThrowException(new InvalidCredentialsException('Invalid credentials'));
 
         $dto = new LoginRequestDto('test@example.com', 'wrongpassword');
         $request = new Request();
@@ -219,11 +207,8 @@ class CredentialsControllerTest extends TestCase
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn('uuid-1');
-        $user->method('hasPassword')->willReturn(true);
-        $user->method('getPassword')->willReturn('$2y$10$hashed');
 
-        $this->userRepository->method('findByEmail')->willReturn($user);
-        $this->passwordHasher->method('verify')->willReturn(true);
+        $this->authManager->method('verifyCredentials')->willReturn($user);
         $this->totpProvider->method('verify')->with('uuid-1', '123456')->willReturn(true);
 
         $tokenResult = [
@@ -231,7 +216,7 @@ class CredentialsControllerTest extends TestCase
             'refresh_token' => 'rtok',
             'user' => ['id' => 'uuid-1', 'email' => 'test@example.com'],
         ];
-        $this->authManager->method('signIn')->willReturn($tokenResult);
+        $this->authManager->method('completeSignIn')->willReturn($tokenResult);
 
         $dto = new Login2faRequestDto('test@example.com', 'password123', '123456');
         $request = new Request();
@@ -250,11 +235,8 @@ class CredentialsControllerTest extends TestCase
     {
         $user = $this->createMock(User::class);
         $user->method('getId')->willReturn('uuid-1');
-        $user->method('hasPassword')->willReturn(true);
-        $user->method('getPassword')->willReturn('$2y$10$hashed');
 
-        $this->userRepository->method('findByEmail')->willReturn($user);
-        $this->passwordHasher->method('verify')->willReturn(true);
+        $this->authManager->method('verifyCredentials')->willReturn($user);
         $this->totpProvider->method('verify')->with('uuid-1', '000000')->willReturn(false);
 
         $dto = new Login2faRequestDto('test@example.com', 'password123', '000000');
@@ -272,7 +254,8 @@ class CredentialsControllerTest extends TestCase
      */
     public function login2fa_returns_401_on_invalid_password(): void
     {
-        $this->userRepository->method('findByEmail')->willReturn(null);
+        $this->authManager->method('verifyCredentials')
+            ->willThrowException(new InvalidCredentialsException('Invalid credentials'));
 
         $dto = new Login2faRequestDto('test@example.com', 'wrongpassword', '123456');
         $request = new Request();

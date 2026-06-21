@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.22] - 2026-06-21
+
+### Fixed
+- Dependency constraint for `betterauth/multimodal-php` now allows the tagged `0.0.x` line
+  (`~0.0.3 || dev-main`). The previous `^0.1` matched no published `0.0.x` release, so a
+  tagged install could only resolve the Core package from the `dev-main` branch.
+
 ## [0.0.21] - 2026-06-21
 
 ### Added

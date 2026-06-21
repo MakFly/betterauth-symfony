@@ -109,13 +109,22 @@ class GuestSessionController extends AbstractController
 
             $user = $this->guestSessionProvider->convertToUser($data['guest_token'], $userData);
 
-            $rawPassword = $data['password'] ?? bin2hex(random_bytes(16));
-            $tokens = $this->authManager->signIn(
-                $data['email'],
-                $rawPassword,
-                $request->getClientIp() ?? '127.0.0.1',
-                $request->headers->get('User-Agent') ?? 'Unknown',
-            );
+            if (isset($data['password'])) {
+                // Password provided: authenticate normally.
+                $tokens = $this->authManager->signIn(
+                    $data['email'],
+                    $data['password'],
+                    $request->getClientIp() ?? '127.0.0.1',
+                    $request->headers->get('User-Agent') ?? 'Unknown',
+                );
+            } elseif ($this->authManager->supportsTokens()) {
+                // Password-less conversion: the guest_token already authenticated the
+                // intent, so issue tokens directly for the freshly converted user
+                // instead of attempting a sign-in that can never succeed.
+                $tokens = $this->authManager->token()->createTokensForUser($user);
+            } else {
+                return $this->json(['error' => 'password is required to convert a guest session'], 400);
+            }
 
             $this->logger?->info('Guest session converted to user', [
                 'userId' => $user->getId(),

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.21] - 2026-06-21
+
 ### Added
 - **Opaque session id.** Sessions now carry an opaque `id` (decoupled from the secret
   token) usable as a safe revocation/listing handle. `DoctrineSessionRepository` implements
@@ -14,10 +16,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `SessionController::list()` exposes `id` and resolves the `current` flag from the bearer
   token via `AuthManager::validateSession()` (the previous token comparison was always
   false once tokens became hashed at rest).
+- `login`/`login2fa` now verify credentials via `AuthManager::verifyCredentials()` and
+  create the session/tokens via `completeSignIn()`, removing the redundant second password
+  verification while keeping the 2FA gate before any session/token is created.
 
 ### Database
 - Migration `Version20260621120000`: adds a nullable, unique `id` column to `sessions`
   and backfills an opaque id for every pre-existing row.
+
+### Fixed
+- **Security:** stopped logging the SMTP DSN (which contains the SMTP password) and the
+  email verification link/token in `SymfonyMailerEmailSender`.
+- `DoctrineUserRepository::create()/update()` now read the canonical `password_hash` key.
+  Sign-up on the Doctrine path persisted the password as `NULL`, so every subsequent login
+  failed with `InvalidCredentialsException` — now fixed.
+- Password-less guest conversion no longer fails on a random-password sign-in; it issues
+  tokens for the converted user (or returns `400` in session-only mode).
+- `SessionController::list()` guards `validateSession()` by session mode, so listing no
+  longer errors in pure API mode.
 
 ## [0.0.20] - 2026-06-17
 

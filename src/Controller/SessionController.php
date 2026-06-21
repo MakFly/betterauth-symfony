@@ -43,7 +43,10 @@ class SessionController extends AbstractController
 
             // Identify the current session by its opaque id (the token only matches the
             // current session, and at-rest hashing means listed tokens are not the plaintext).
-            $currentId = $this->authManager->validateSession($token)->getId();
+            // Guarded: validateSession() throws outside session/hybrid mode.
+            $currentId = $this->authManager->supportsSessions()
+                ? $this->authManager->validateSession($token)->getId()
+                : null;
 
             $this->logger?->debug('Sessions listed', [
                 'userId' => $user->getId(),

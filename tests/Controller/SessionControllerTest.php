@@ -79,6 +79,8 @@ class SessionControllerTest extends TestCase
 
         $this->authManager->method('getCurrentUser')->with('current-token')->willReturn($user);
         $this->authManager->method('getUserSessions')->with('uuid-1')->willReturn([$session1, $session2]);
+        // Session listing only makes sense in session/hybrid mode.
+        $this->authManager->method('supportsSessions')->willReturn(true);
         // The current session is resolved from the bearer token via validateSession().
         $this->authManager->method('validateSession')->with('current-token')->willReturn($session1);
 

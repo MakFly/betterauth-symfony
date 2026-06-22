@@ -18,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -112,7 +112,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -169,7 +169,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -211,7 +211,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -238,7 +238,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php
@@ -292,7 +292,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Clone betterauth-multimodal-php (path dependency)
         run: git clone --depth 1 https://github.com/MakFly/betterauth-multimodal-php.git ../betterauth-multimodal-php

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Migrations;
 
 use BetterAuth\Core\Utils\Crypto;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Schema\Schema;
-use Doctrine\DBAL\Types\Types;
 use Doctrine\Migrations\AbstractMigration;
 
 /**
@@ -14,6 +14,12 @@ use Doctrine\Migrations\AbstractMigration;
  *
  * The column is nullable + unique so existing rows can be backfilled in postUp()
  * without violating the constraint (MySQL treats multiple NULLs as distinct).
+ *
+ * NB: we read $schema only to stay idempotent, but emit raw SQL via addSql()
+ * instead of mutating the Schema object. Mutating $schema makes Doctrine compute
+ * a full-schema diff, which introspects EVERY table of the host application and
+ * aborts on any unrelated schema drift there (a table the host dropped without a
+ * migration, a dangling FK, …). Raw SQL touches only the sessions table.
  */
 final class Version20260621120000 extends AbstractMigration
 {
@@ -30,10 +36,10 @@ final class Version20260621120000 extends AbstractMigration
 
         $table = $schema->getTable('sessions');
         if (!$table->hasColumn('id')) {
-            $table->addColumn('id', Types::STRING, ['length' => 64, 'notnull' => false]);
+            $this->addSql('ALTER TABLE sessions ADD id VARCHAR(64) DEFAULT NULL');
         }
         if (!$table->hasIndex('uniq_sessions_id')) {
-            $table->addUniqueIndex(['id'], 'uniq_sessions_id');
+            $this->addSql('CREATE UNIQUE INDEX uniq_sessions_id ON sessions (id)');
         }
     }
 
@@ -66,10 +72,14 @@ final class Version20260621120000 extends AbstractMigration
 
         $table = $schema->getTable('sessions');
         if ($table->hasIndex('uniq_sessions_id')) {
-            $table->dropIndex('uniq_sessions_id');
+            $this->addSql(
+                $this->platform instanceof AbstractMySQLPlatform
+                    ? 'DROP INDEX uniq_sessions_id ON sessions'
+                    : 'DROP INDEX uniq_sessions_id'
+            );
         }
         if ($table->hasColumn('id')) {
-            $table->dropColumn('id');
+            $this->addSql('ALTER TABLE sessions DROP id');
         }
     }
 }

@@ -75,7 +75,9 @@ class Configuration implements ConfigurationInterface
                 ->arrayNode('multi_tenant')
                     ->addDefaultsIfNotSet()
                     ->children()
-                        ->booleanNode('enabled')->defaultTrue()->end()
+                        // Off by default (SEC-34): aligns with the shipped config template
+                        // and avoids silently enabling multi-tenancy when the key is absent.
+                        ->booleanNode('enabled')->defaultFalse()->end()
                         ->scalarNode('default_role')->defaultValue('member')->end()
                     ->end()
                 ->end()

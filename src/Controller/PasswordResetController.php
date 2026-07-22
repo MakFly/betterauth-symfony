@@ -18,6 +18,19 @@ class PasswordResetController extends AbstractController
 {
     use SafeErrorResponseTrait;
 
+    /**
+     * Mask an email for logging so PII is not written to centralized logs (SEC-29).
+     */
+    private function maskEmail(string $email): string
+    {
+        $at = strpos($email, '@');
+        if ($at === false) {
+            return '***';
+        }
+
+        return substr($email, 0, min(2, $at)) . '***' . substr($email, $at);
+    }
+
     public function __construct(
         private readonly PasswordResetProvider $passwordResetProvider,
         private readonly ?LoggerInterface $logger = null,
@@ -40,7 +53,7 @@ class PasswordResetController extends AbstractController
             $this->passwordResetProvider->sendResetEmail($data['email'], $callbackUrl);
 
             $this->logger?->info('Password reset requested', [
-                'email' => $data['email'],
+                'email' => $this->maskEmail((string) $data['email']),
             ]);
 
             // Always return success to prevent email enumeration

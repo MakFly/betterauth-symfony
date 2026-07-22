@@ -31,6 +31,13 @@ trait CallbackUrlValidatorTrait
             return false;
         }
 
+        // Scheme must match the trusted frontend origin: a callback downgraded to
+        // http:// on an https:// frontend would leak the one-time token over
+        // cleartext / via HTTP→HTTPS redirects (SEC-21).
+        if (strcasecmp($scheme, strtolower($fe['scheme'] ?? '')) !== 0) {
+            return false;
+        }
+
         // Host (and port) must match the trusted frontend origin.
         return strcasecmp($cb['host'], $fe['host']) === 0
             && ($cb['port'] ?? null) === ($fe['port'] ?? null);

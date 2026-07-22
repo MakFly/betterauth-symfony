@@ -12,10 +12,19 @@ use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
 /**
- * CSRF protection for session-based authentication.
+ * CSRF protection for cookie-authenticated requests (SEC-09).
  *
- * Only active when mode is 'session' or 'hybrid'.
- * Does NOT apply to API mode (Bearer tokens are not vulnerable to CSRF).
+ * CSRF only threatens ambient credentials the browser attaches automatically —
+ * i.e. the auth cookie. This subscriber therefore requires a valid double-submit
+ * `X-CSRF-TOKEN` header on every state-changing request that carries the auth
+ * cookie, on ANY path and in ANY mode, and skips:
+ *  - requests using an `Authorization: Bearer` token (API clients, immune to CSRF);
+ *  - requests with no auth cookie (e.g. login/register set the cookie, they can't
+ *    be ridden yet).
+ *
+ * Note: the auth cookie is opt-in — it is not part of the default token-extractor
+ * chain (see services.yaml). Enforcement here is defense-in-depth for apps that
+ * enable cookie-based auth.
  */
 final class CsrfProtectionSubscriber implements EventSubscriberInterface
 {
@@ -25,8 +34,7 @@ final class CsrfProtectionSubscriber implements EventSubscriberInterface
 
     public function __construct(
         private readonly CsrfTokenManagerInterface $csrfTokenManager,
-        private readonly string $authMode,
-        private readonly string $authRoutePrefix = '/auth',
+        private readonly string $cookieName = 'access_token',
     ) {
     }
 
@@ -43,11 +51,6 @@ final class CsrfProtectionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        // Only protect session/hybrid modes; API mode relies on Bearer tokens (not vulnerable to CSRF)
-        if ($this->authMode === 'api') {
-            return;
-        }
-
         $request = $event->getRequest();
 
         // Only check state-changing methods
@@ -55,18 +58,19 @@ final class CsrfProtectionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        // Only protect auth routes
-        if (!str_starts_with($request->getPathInfo(), $this->authRoutePrefix)) {
-            return;
-        }
-
-        // Skip if request has a Bearer token (API client, not a browser session)
+        // Skip if request has a Bearer token (API client, not vulnerable to CSRF)
         $authHeader = $request->headers->get('Authorization', '');
         if (str_starts_with($authHeader, 'Bearer ')) {
             return;
         }
 
-        // Validate CSRF token from header
+        // Only cookie-authenticated requests are CSRF-exposed: without the auth
+        // cookie there is no ambient credential to ride (login/register/etc.).
+        if (!$request->cookies->has($this->cookieName)) {
+            return;
+        }
+
+        // Validate CSRF token from header (double-submit)
         $csrfToken = $request->headers->get(self::CSRF_HEADER);
         if (
             $csrfToken === null

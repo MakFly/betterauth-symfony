@@ -6,6 +6,7 @@ namespace BetterAuth\Symfony\Installer;
 
 use Composer\Script\Event;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Process\Process;
 
 /**
  * Symfony Flex installer for BetterAuth.
@@ -200,13 +201,14 @@ class FlexInstaller
             return;
         }
 
-        // Generate migration
+        // Generate migration. Use Process with an argument array (never a shell
+        // string) so a project path containing shell metacharacters cannot inject
+        // commands (SEC-22).
         $io->write('  Generating migration...');
-        $output = [];
-        $returnVar = 0;
-        exec("php $consolePath doctrine:migrations:diff --no-interaction 2>&1", $output, $returnVar);
+        $diff = new Process(['php', $consolePath, 'doctrine:migrations:diff', '--no-interaction']);
+        $diff->run();
 
-        if ($returnVar === 0) {
+        if ($diff->isSuccessful()) {
             $io->write('  <fg=green>✓</> Migration generated');
 
             // Ask to execute
@@ -218,22 +220,19 @@ class FlexInstaller
 
             if ($executeMigration) {
                 $io->write('  Running migration...');
-                exec("php $consolePath doctrine:migrations:migrate --no-interaction 2>&1", $output, $returnVar);
+                $migrate = new Process(['php', $consolePath, 'doctrine:migrations:migrate', '--no-interaction']);
+                $migrate->run();
 
-                if ($returnVar === 0) {
+                if ($migrate->isSuccessful()) {
                     $io->write('  <fg=green>✓</> Migration executed successfully');
                 } else {
                     $io->writeError('  <error>Migration failed. Please run manually.</error>');
-                    foreach ($output as $line) {
-                        $io->write('    ' . $line);
-                    }
+                    $io->write('    ' . $migrate->getOutput() . $migrate->getErrorOutput());
                 }
             }
         } else {
             $io->writeError('  <error>Failed to generate migration.</error>');
-            foreach ($output as $line) {
-                $io->write('    ' . $line);
-            }
+            $io->write('    ' . $diff->getOutput() . $diff->getErrorOutput());
         }
     }
 

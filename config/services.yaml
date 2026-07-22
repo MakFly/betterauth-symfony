@@ -121,12 +121,15 @@ services:
         public: true
 
     # ChainTokenExtractor - Combines multiple extractors
-    # By default, tries Authorization header first, then cookies
+    # Default: Authorization header only. The CookieTokenExtractor is intentionally
+    # NOT in the default chain (SEC-09): auto-sent cookies are CSRF-exposed. Opt in
+    # by adding '@BetterAuth\Symfony\TokenExtractor\CookieTokenExtractor' here, and
+    # keep the CsrfProtectionSubscriber enabled (it enforces X-CSRF-TOKEN on
+    # cookie-authenticated mutating requests).
     BetterAuth\Symfony\TokenExtractor\ChainTokenExtractor:
         arguments:
             $extractors:
                 - '@BetterAuth\Symfony\TokenExtractor\AuthorizationHeaderTokenExtractor'
-                - '@BetterAuth\Symfony\TokenExtractor\CookieTokenExtractor'
         public: true
 
     BetterAuth\Symfony\TokenExtractor\TokenExtractorInterface:
@@ -404,6 +407,8 @@ services:
             $totpStorage: '@BetterAuth\Core\Interfaces\TotpStorageInterface'
             $issuer: 'BetterAuth'
             $logger: '@?logger'
+            # Throttle 2FA verification against brute-force (SEC-18).
+            $rateLimiter: '@BetterAuth\Core\Interfaces\RateLimiterInterface'
         public: true
         tags:
             - { name: 'monolog.logger', channel: 'better_auth' }
@@ -422,13 +427,13 @@ services:
         tags:
             - { name: controller.argument_value_resolver, priority: 150 }
 
-    # CsrfProtectionSubscriber - CSRF protection for session/hybrid modes
-    # Only active when mode is 'session' or 'hybrid'; no-op in 'api' mode
+    # CsrfProtectionSubscriber - CSRF protection for cookie-authenticated requests (SEC-09)
+    # Enforces a double-submit X-CSRF-TOKEN header on any state-changing request that
+    # carries the auth cookie; Bearer (API) and cookie-less requests are exempt.
     BetterAuth\Symfony\EventSubscriber\CsrfProtectionSubscriber:
         arguments:
             $csrfTokenManager: '@Symfony\Component\Security\Csrf\CsrfTokenManagerInterface'
-            $authMode: '%better_auth.mode%'
-            $authRoutePrefix: '/auth'
+            $cookieName: 'access_token'
         tags:
             - { name: kernel.event_subscriber }
 
@@ -501,4 +506,5 @@ services:
         arguments:
             $guestSessionProvider: '@BetterAuth\Providers\GuestSessionProvider\GuestSessionProvider'
             $authManager: '@BetterAuth\Core\AuthManager'
+            $rateLimiter: '@?BetterAuth\Core\Interfaces\RateLimiterInterface'
         tags: ['controller.service_arguments']

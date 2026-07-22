@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BetterAuth\Symfony\Controller;
 
 use BetterAuth\Core\AuthManager;
+use BetterAuth\Core\Interfaces\RateLimiterInterface;
 use BetterAuth\Providers\GuestSessionProvider\GuestSessionProvider;
 use BetterAuth\Symfony\Controller\Trait\SafeErrorResponseTrait;
 use Psr\Log\LoggerInterface;
@@ -18,16 +19,33 @@ class GuestSessionController extends AbstractController
 {
     use SafeErrorResponseTrait;
 
+    // Guest-session creation is unauthenticated; cap it per IP to prevent
+    // resource exhaustion / table pollution (SEC-24).
+    private const CREATE_MAX_ATTEMPTS = 20;
+    private const CREATE_DECAY_SECONDS = 60;
+
     public function __construct(
         private readonly GuestSessionProvider $guestSessionProvider,
         private readonly AuthManager $authManager,
         private readonly ?LoggerInterface $logger = null,
+        private readonly ?RateLimiterInterface $rateLimiter = null,
     ) {
     }
 
     #[Route('/create', name: 'create', methods: ['POST'])]
     public function createGuestSession(Request $request): JsonResponse
     {
+        $rateKey = 'guest_create:' . ($request->getClientIp() ?? 'unknown');
+        if ($this->rateLimiter !== null
+            && $this->rateLimiter->tooManyAttempts($rateKey, self::CREATE_MAX_ATTEMPTS, self::CREATE_DECAY_SECONDS)
+        ) {
+            return $this->json([
+                'error' => 'Too many guest sessions created. Please try again later.',
+                'retryAfter' => $this->rateLimiter->availableIn($rateKey),
+            ], 429);
+        }
+        $this->rateLimiter?->hit($rateKey, self::CREATE_DECAY_SECONDS);
+
         try {
             $data = $request->toArray();
 

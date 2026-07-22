@@ -37,7 +37,8 @@ class ConfigurationTest extends TestCase
         $this->assertSame('better_auth_session', $config['session']['cookie_name']);
         $this->assertSame(3600, $config['token']['lifetime']);
         $this->assertSame(2592000, $config['token']['refresh_lifetime']);
-        $this->assertTrue($config['multi_tenant']['enabled']);
+        // SEC-34: multi-tenant is off by default (aligned with the config template).
+        $this->assertFalse($config['multi_tenant']['enabled']);
         $this->assertSame('member', $config['multi_tenant']['default_role']);
     }
 

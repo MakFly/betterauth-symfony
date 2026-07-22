@@ -29,6 +29,11 @@ class CredentialsController extends AbstractController
     private const LOGIN_MAX_ATTEMPTS = 5;
     private const LOGIN_DECAY_SECONDS = 900; // 15 minutes
 
+    // Account-wide limit, aggregated across all IPs, to bound distributed
+    // brute-force / credential-stuffing against a single account (SEC-12).
+    private const ACCOUNT_MAX_ATTEMPTS = 10;
+    private const ACCOUNT_DECAY_SECONDS = 900;
+
     public function __construct(
         private readonly AuthManager $authManager,
         private readonly TotpProvider $totpProvider,
@@ -40,6 +45,53 @@ class CredentialsController extends AbstractController
     private function rateLimitKey(Request $request, string $email, string $scope): string
     {
         return $scope . ':' . ($request->getClientIp() ?? 'unknown') . ':' . strtolower($email);
+    }
+
+    /**
+     * Account-wide rate-limit key (IP-independent), so an attacker cannot bypass
+     * the per-(IP,email) budget by rotating IPs / X-Forwarded-For (SEC-12).
+     */
+    private function accountRateLimitKey(string $email, string $scope): string
+    {
+        return $scope . ':account:' . strtolower($email);
+    }
+
+    /**
+     * Enforce both the per-(IP,email) and the account-wide limits.
+     */
+    private function enforceLoginRateLimits(Request $request, string $email, string $scope): ?JsonResponse
+    {
+        if ($this->rateLimiter === null) {
+            return null;
+        }
+
+        $accountKey = $this->accountRateLimitKey($email, $scope);
+        if ($this->rateLimiter->tooManyAttempts($accountKey, self::ACCOUNT_MAX_ATTEMPTS, self::ACCOUNT_DECAY_SECONDS)) {
+            return $this->json([
+                'error' => 'Too many attempts. Please try again later.',
+                'retryAfter' => $this->rateLimiter->availableIn($accountKey),
+            ], 429);
+        }
+
+        return $this->tooManyAttempts($this->rateLimitKey($request, $email, $scope));
+    }
+
+    /**
+     * Register a failed attempt against both the per-(IP,email) and account keys.
+     */
+    private function hitLoginRateLimits(Request $request, string $email, string $scope): void
+    {
+        $this->rateLimiter?->hit($this->rateLimitKey($request, $email, $scope), self::LOGIN_DECAY_SECONDS);
+        $this->rateLimiter?->hit($this->accountRateLimitKey($email, $scope), self::ACCOUNT_DECAY_SECONDS);
+    }
+
+    /**
+     * Clear both limits after a successful authentication.
+     */
+    private function clearLoginRateLimits(Request $request, string $email, string $scope): void
+    {
+        $this->rateLimiter?->clear($this->rateLimitKey($request, $email, $scope));
+        $this->rateLimiter?->clear($this->accountRateLimitKey($email, $scope));
     }
 
     /**
@@ -104,8 +156,7 @@ class CredentialsController extends AbstractController
     #[Route('/login', name: 'login', methods: ['POST'])]
     public function login(#[MapRequestPayload] LoginRequestDto $dto, Request $request): JsonResponse
     {
-        $rateKey = $this->rateLimitKey($request, $dto->email, 'login');
-        if (($limited = $this->tooManyAttempts($rateKey)) !== null) {
+        if (($limited = $this->enforceLoginRateLimits($request, $dto->email, 'login')) !== null) {
             return $limited;
         }
 
@@ -114,7 +165,7 @@ class CredentialsController extends AbstractController
             try {
                 $user = $this->authManager->verifyCredentials($dto->email, $dto->password);
             } catch (InvalidCredentialsException) {
-                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
+                $this->hitLoginRateLimits($request, $dto->email, 'login');
                 return $this->json(['error' => 'Invalid credentials'], 401);
             }
 
@@ -133,7 +184,7 @@ class CredentialsController extends AbstractController
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
-            $this->rateLimiter?->clear($rateKey);
+            $this->clearLoginRateLimits($request, $dto->email, 'login');
 
             return $this->json($result);
         } catch (\Exception $e) {
@@ -148,8 +199,7 @@ class CredentialsController extends AbstractController
     #[Route('/login/2fa', name: 'login_2fa', methods: ['POST'])]
     public function login2fa(#[MapRequestPayload] Login2faRequestDto $dto, Request $request): JsonResponse
     {
-        $rateKey = $this->rateLimitKey($request, $dto->email, 'login_2fa');
-        if (($limited = $this->tooManyAttempts($rateKey)) !== null) {
+        if (($limited = $this->enforceLoginRateLimits($request, $dto->email, 'login_2fa')) !== null) {
             return $limited;
         }
 
@@ -158,14 +208,14 @@ class CredentialsController extends AbstractController
             try {
                 $user = $this->authManager->verifyCredentials($dto->email, $dto->password);
             } catch (InvalidCredentialsException) {
-                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
+                $this->hitLoginRateLimits($request, $dto->email, 'login_2fa');
                 return $this->json(['error' => 'Invalid credentials'], 401);
             }
 
             // Step 2: Verify TOTP code before creating any session or tokens
             $verified = $this->totpProvider->verify((string) $user->getId(), $dto->code);
             if (!$verified) {
-                $this->rateLimiter?->hit($rateKey, self::LOGIN_DECAY_SECONDS);
+                $this->hitLoginRateLimits($request, $dto->email, 'login_2fa');
                 return $this->json(['error' => 'Invalid 2FA code'], 401);
             }
 
@@ -176,7 +226,7 @@ class CredentialsController extends AbstractController
                 $request->headers->get('User-Agent') ?? 'Unknown'
             );
 
-            $this->rateLimiter?->clear($rateKey);
+            $this->clearLoginRateLimits($request, $dto->email, 'login_2fa');
 
             return $this->json($result);
         } catch (\Exception $e) {

@@ -176,10 +176,13 @@ YAML;
             $io->writeln('  <fg=green>✓</> BETTER_AUTH_SECRET already exists in .env');
         } else {
             $secret = bin2hex(random_bytes(32));
+            // The real secret goes to .env.local (git-ignored, chmod 0600); .env keeps
+            // only an empty placeholder so the secret is never committed (SEC-32).
+            $this->writeSecretToEnvLocal($io, $projectDir, $secret);
             $envContent .= "\n# BetterAuth Configuration\n";
-            $envContent .= "BETTER_AUTH_SECRET=$secret\n";
+            $envContent .= "BETTER_AUTH_SECRET=\n";
             $envContent .= "APP_URL=http://localhost:8000\n";
-            $io->writeln('  <fg=green>✓</> Added BETTER_AUTH_SECRET to .env');
+            $io->writeln('  <fg=green>✓</> Added BETTER_AUTH_SECRET placeholder to .env (value in .env.local)');
             $io->writeln('  <fg=green>✓</> Added APP_URL to .env');
             $modified = true;
         }
@@ -219,6 +222,25 @@ YAML;
         if ($modified) {
             $this->filesystem->dumpFile($envFile, $envContent);
         }
+    }
+
+    /**
+     * Write the signing secret to .env.local (git-ignored) with 0600 permissions,
+     * so it is never committed and not world-readable (SEC-32).
+     */
+    private function writeSecretToEnvLocal(SymfonyStyle $io, string $projectDir, string $secret): void
+    {
+        $envLocal = $projectDir . '/.env.local';
+        $content = $this->filesystem->exists($envLocal) ? (string) file_get_contents($envLocal) : '';
+
+        if (str_contains($content, 'BETTER_AUTH_SECRET=')) {
+            return;
+        }
+
+        $content .= "\nBETTER_AUTH_SECRET=$secret\n";
+        $this->filesystem->dumpFile($envLocal, $content);
+        @chmod($envLocal, 0600);
+        $io->writeln('  <fg=green>✓</> Wrote BETTER_AUTH_SECRET to .env.local (chmod 0600)');
     }
 
     /**

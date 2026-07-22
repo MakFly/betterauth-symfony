@@ -27,12 +27,20 @@ final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
         $this->tokenClass = $tokenClass;
     }
 
+    /**
+     * Hash a token for at-rest storage / lookup (defense against DB read compromise).
+     */
+    private function hashToken(string $token): string
+    {
+        return hash('sha256', $token);
+    }
+
     public function store(string $token, string $email, int $expiresIn): MagicLinkToken
     {
         $expiresAt = (new DateTimeImmutable())->modify("+{$expiresIn} seconds");
 
         $doctrineToken = new ($this->tokenClass)();
-        $doctrineToken->setToken($token);
+        $doctrineToken->setToken($this->hashToken($token));
         $doctrineToken->setEmail($email);
         $doctrineToken->setExpiresAt($expiresAt);
         $doctrineToken->setCreatedAt(new DateTimeImmutable());
@@ -53,7 +61,7 @@ final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
     public function findByToken(string $token): ?MagicLinkToken
     {
         /** @var MagicLinkToken|null $doctrineToken */
-        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
+        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($this->hashToken($token));
 
         if ($doctrineToken === null) {
             return null;
@@ -71,7 +79,7 @@ final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
     public function markAsUsed(string $token): bool
     {
         /** @var MagicLinkToken|null $doctrineToken */
-        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
+        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($this->hashToken($token));
 
         if ($doctrineToken === null) {
             return false;
@@ -86,7 +94,7 @@ final class DoctrineMagicLinkRepository implements MagicLinkStorageInterface
     public function delete(string $token): bool
     {
         /** @var MagicLinkToken|null $doctrineToken */
-        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
+        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($this->hashToken($token));
 
         if ($doctrineToken === null) {
             return false;

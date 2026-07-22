@@ -147,6 +147,10 @@ class GenerateSecretCommand extends Command
                 return Command::FAILURE;
             }
 
+            // Restrict permissions: a file holding the signing secret must not be
+            // world-readable (SEC-32).
+            @chmod($envPath, 0600);
+
             $io->success(sprintf('Created %s with BETTER_AUTH_SECRET', $envFile));
 
             return Command::SUCCESS;

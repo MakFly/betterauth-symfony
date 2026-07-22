@@ -7,6 +7,7 @@ namespace BetterAuth\Symfony\Tests\Controller;
 use BetterAuth\Core\AuthManager;
 use BetterAuth\Core\Entities\User;
 use BetterAuth\Core\Exceptions\InvalidCredentialsException;
+use BetterAuth\Core\Utils\RateLimiter;
 use BetterAuth\Providers\TotpProvider\TotpProvider;
 use BetterAuth\Symfony\Controller\CredentialsController;
 use BetterAuth\Symfony\Dto\Login2faRequestDto;
@@ -176,6 +177,41 @@ class CredentialsControllerTest extends TestCase
         $data = json_decode($response->getContent(), true);
         $this->assertTrue($data['requires2fa']);
         $this->assertSame('Two-factor authentication required', $data['message']);
+    }
+
+    /**
+     * @test
+     * SEC-12: repeated failures for one account from DIFFERENT IPs must eventually
+     * be blocked by the account-wide limit, even though the per-(IP,email) budget
+     * is never exhausted by any single IP.
+     */
+    public function login_account_wide_limit_blocks_distributed_brute_force(): void
+    {
+        $authManager = $this->createMock(AuthManager::class);
+        $authManager->method('verifyCredentials')
+            ->willThrowException(new InvalidCredentialsException('Invalid credentials'));
+
+        $controller = new CredentialsController(
+            $authManager,
+            $this->createMock(TotpProvider::class),
+            null,
+            new RateLimiter(allowInMemoryFallback: true),
+        );
+        $this->setUpControllerContainer($controller);
+
+        $dto = new LoginRequestDto('victim@example.com', 'wrong');
+
+        // 10 failed attempts, each from a distinct IP → per-(IP,email) never trips.
+        for ($i = 0; $i < 10; $i++) {
+            $request = Request::create('/auth/login', 'POST', server: ['REMOTE_ADDR' => "10.0.0.$i"]);
+            $response = $controller->login($dto, $request);
+            $this->assertSame(401, $response->getStatusCode(), "attempt $i should be 401");
+        }
+
+        // 11th attempt from yet another fresh IP is blocked by the account-wide limit.
+        $request = Request::create('/auth/login', 'POST', server: ['REMOTE_ADDR' => '10.0.0.99']);
+        $response = $controller->login($dto, $request);
+        $this->assertSame(429, $response->getStatusCode());
     }
 
     /**

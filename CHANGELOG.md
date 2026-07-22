@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+Hardening pass from the 2026-07-22 security audit. All changes are test-backed.
+
+- **CSRF on cookie auth** — the `CookieTokenExtractor` is no longer in the default
+  token-extractor chain (cookie auth is now opt-in), and `CsrfProtectionSubscriber`
+  enforces a double-submit `X-CSRF-TOKEN` header on every state-changing request that
+  carries the auth cookie (any path/mode); Bearer and cookie-less requests are exempt.
+  **Breaking** for apps relying on implicit cookie auth — re-add the extractor and keep
+  the CSRF subscriber enabled.
+- **Tokens hashed at rest** — Doctrine magic-link, password-reset and
+  email-verification repositories hash tokens with SHA-256 (matching refresh tokens).
+- **Login rate limiting** — an account-wide limit (per email, IP-independent) is added
+  alongside the per-(IP,email) limit to bound distributed brute-force / credential
+  stuffing.
+- **Open-redirect / token exfiltration** — the callback-URL validator now also matches
+  the scheme (no https→http downgrade).
+- **Installer** — `FlexInstaller` uses `Process` (argument array) instead of `exec()`;
+  the signing secret is written to `.env.local` (chmod 0600), not the committed `.env`.
+- **Misc** — DB indexes on token tables (`user_id`/`expires_at`), guest-session
+  creation rate-limited per IP, `TotpProvider` wired with a rate limiter, PII masked in
+  password-reset logs, `multi_tenant.enabled` defaults to `false` (aligned with the
+  config template).
+
 ## [0.0.23] - 2026-06-21
 
 Re-release of 0.0.22. The 0.0.22 release automation failed on a locked tag, so its git tag

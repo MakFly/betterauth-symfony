@@ -27,12 +27,20 @@ final class DoctrinePasswordResetRepository implements PasswordResetStorageInter
         $this->tokenClass = $tokenClass;
     }
 
+    /**
+     * Hash a token for at-rest storage / lookup (defense against DB read compromise).
+     */
+    private function hashToken(string $token): string
+    {
+        return hash('sha256', $token);
+    }
+
     public function store(string $token, string $email, int $expiresIn): PasswordResetToken
     {
         $expiresAt = (new DateTimeImmutable())->modify("+{$expiresIn} seconds");
 
         $doctrineToken = new ($this->tokenClass)();
-        $doctrineToken->setToken($token);
+        $doctrineToken->setToken($this->hashToken($token));
         $doctrineToken->setEmail($email);
         $doctrineToken->setExpiresAt($expiresAt);
         $doctrineToken->setCreatedAt(new DateTimeImmutable());
@@ -53,7 +61,7 @@ final class DoctrinePasswordResetRepository implements PasswordResetStorageInter
     public function findByToken(string $token): ?PasswordResetToken
     {
         /** @var PasswordResetToken|null $doctrineToken */
-        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
+        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($this->hashToken($token));
 
         if ($doctrineToken === null) {
             return null;
@@ -71,7 +79,7 @@ final class DoctrinePasswordResetRepository implements PasswordResetStorageInter
     public function markAsUsed(string $token): bool
     {
         /** @var PasswordResetToken|null $doctrineToken */
-        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
+        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($this->hashToken($token));
 
         if ($doctrineToken === null) {
             return false;
@@ -86,7 +94,7 @@ final class DoctrinePasswordResetRepository implements PasswordResetStorageInter
     public function delete(string $token): bool
     {
         /** @var PasswordResetToken|null $doctrineToken */
-        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($token);
+        $doctrineToken = $this->entityManager->getRepository($this->tokenClass)->find($this->hashToken($token));
 
         if ($doctrineToken === null) {
             return false;

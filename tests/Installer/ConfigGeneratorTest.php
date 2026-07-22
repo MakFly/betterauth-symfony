@@ -178,6 +178,13 @@ class ConfigGeneratorTest extends TestCase
         $this->assertStringContainsString('BETTER_AUTH_SECRET=', $content);
         $this->assertStringContainsString('APP_URL=', $content);
         $this->assertStringContainsString('APP_NAME=', $content);
+
+        // SEC-32: the real secret must land in .env.local, not the committed .env.
+        $this->assertFileExists($this->tmpDir . '/.env.local');
+        $envLocal = file_get_contents($this->tmpDir . '/.env.local');
+        $this->assertMatchesRegularExpression('/BETTER_AUTH_SECRET=[0-9a-f]{64}/', $envLocal);
+        // The committed .env carries only an empty placeholder (no 64-hex value).
+        $this->assertDoesNotMatchRegularExpression('/BETTER_AUTH_SECRET=[0-9a-f]{64}/', $content);
     }
 
     public function testUpdateEnvFileSkipsSecretWhenAlreadyPresent(): void

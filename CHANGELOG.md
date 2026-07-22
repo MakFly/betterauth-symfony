@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-07-22
+
+### Changed
+- **Requires `betterauth/multimodal-php` `^0.1`** (was `~0.0.3`), which carries the
+  matching core security hardening.
+
 ### Security
 
 Hardening pass from the 2026-07-22 security audit. All changes are test-backed.

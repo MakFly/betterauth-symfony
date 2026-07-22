@@ -33,7 +33,7 @@
     "php": "^8.4",
     "api-platform/core": "^4.0",
     "bacon/bacon-qr-code": "^2.0|^3.0",
-    "betterauth/multimodal-php": "~0.0.3 || dev-main",
+    "betterauth/multimodal-php": "^0.1 || dev-main",
     "doctrine/doctrine-bundle": "^2.0|^3.0",
     "doctrine/doctrine-migrations-bundle": "^4.0",
     "doctrine/orm": "^3.0",
@@ -109,7 +109,7 @@
       "require": "^6.4|^7.0|^8.0"
     },
     "branch-alias": {
-      "dev-main": "0.0.x-dev"
+      "dev-main": "0.1.x-dev"
     }
   },
   "suggest": {

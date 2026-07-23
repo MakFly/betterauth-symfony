@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-07-23
+
+### Fixed
+- **Migration `Version20260722120000` (SEC-30 token indexes) no longer mutates the
+  `Schema` object.** Calling `$table->addIndex()` made Doctrine compute a full-schema
+  diff, which introspects every table of the host application and aborts on any
+  unrelated schema drift (`TableDoesNotExist` on a host table). It now emits raw
+  `CREATE INDEX` via `addSql()` while still reading `$schema` for idempotency — same
+  fix already applied to `Version20260621120000`.
+
 ## [0.1.0] - 2026-07-22
 
 ### Changed

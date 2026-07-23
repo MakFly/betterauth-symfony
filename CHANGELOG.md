@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-07-23
+
+### Fixed
+- **Migration `Version20260722120000` (SEC-30 token indexes) no longer touches the
+  `$schema` argument at all.** v0.1.1 stopped mutating it but still *read* it
+  (`$schema->hasTable()`); that read alone realizes Doctrine's `LazySchemaDiffProvider`
+  and triggers the same full-schema `Comparator::compareSchemas()`, which still aborts
+  with a spurious `TableDoesNotExist` on an unrelated host table when the host schema
+  has drift. The migration now inspects the live connection's schema manager (scoped to
+  the token tables) for idempotency and emits raw `CREATE INDEX` — the lazy diff is
+  never realized.
+
 ## [0.1.1] - 2026-07-23
 
 ### Fixed
@@ -15,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   diff, which introspects every table of the host application and aborts on any
   unrelated schema drift (`TableDoesNotExist` on a host table). It now emits raw
   `CREATE INDEX` via `addSql()` while still reading `$schema` for idempotency — same
-  fix already applied to `Version20260621120000`.
+  fix already applied to `Version20260621120000`. (Superseded by 0.1.2: reading
+  `$schema` is itself enough to trigger the abort.)
 
 ## [0.1.0] - 2026-07-22
 

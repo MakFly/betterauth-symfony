@@ -10,7 +10,7 @@ Update version/changelog according to project policy, verify Composer metadata, 
 
 ## Contract and flow
 
-Review diff → run unit/static/documentation gates → build package artifact → tag/release through the project’s protected process. Release notes must call out breaking config or port changes.
+Review diff → run unit/static/documentation gates → build package artifact → dispatch the protected `Release` workflow with an unused stable `vMAJOR.MINOR.PATCH` tag. The workflow reruns the Symfony matrix, creates a draft, then publishes the immutable release and tag together. Release notes must call out breaking config or port changes.
 
 ## Example
 

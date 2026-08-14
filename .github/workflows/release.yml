@@ -1,12 +1,19 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Immutable stable SemVer tag to publish, for example v1.1.1
+        required: true
+        type: string
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: immutable-release
+  cancel-in-progress: false
 
 jobs:
   quality:
@@ -16,9 +23,14 @@ jobs:
       contents: read
 
   release:
-    name: Create Release
+    name: Create immutable release
     runs-on: ubuntu-latest
     needs: quality
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: ${{ inputs.version }}
 
     steps:
       - name: Checkout code
@@ -26,15 +38,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate changelog
-        id: changelog
+      - name: Validate release version
+        shell: bash
         run: |
-          # Get previous tag
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Releases must be dispatched from main, got: $GITHUB_REF" >&2
+            exit 1
+          fi
 
-          if [ -n "$PREVIOUS_TAG" ]; then
+          if [[ ! "$RELEASE_VERSION" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Invalid stable release version: $RELEASE_VERSION" >&2
+            exit 1
+          fi
+
+          if git rev-parse "$RELEASE_VERSION" >/dev/null 2>&1; then
+            echo "Tag already exists: $RELEASE_VERSION" >&2
+            exit 1
+          fi
+
+      - name: Generate changelog
+        shell: bash
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [[ -n "$PREVIOUS_TAG" ]]; then
             echo "## Changes since $PREVIOUS_TAG" > RELEASE_NOTES.md
-            git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> RELEASE_NOTES.md
+            git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG"..HEAD >> RELEASE_NOTES.md
           else
             echo "## Initial Release" > RELEASE_NOTES.md
             echo "First release of BetterAuth Symfony Bundle" >> RELEASE_NOTES.md
@@ -43,16 +72,23 @@ jobs:
           echo "" >> RELEASE_NOTES.md
           echo "### Installation" >> RELEASE_NOTES.md
           echo '```bash' >> RELEASE_NOTES.md
-          echo "composer require betterauth/symfony-bundle:${{ github.ref_name }}" >> RELEASE_NOTES.md
+          echo "composer require betterauth/symfony-bundle:$RELEASE_VERSION" >> RELEASE_NOTES.md
           echo '```' >> RELEASE_NOTES.md
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          body_path: RELEASE_NOTES.md
-          draft: false
-          prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'rc') }}
-          generate_release_notes: true
+      - name: Create and publish immutable release
+        shell: bash
+        run: |
+          gh release create "$RELEASE_VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "BetterAuth Symfony ${RELEASE_VERSION#v}" \
+            --notes-file RELEASE_NOTES.md \
+            --generate-notes \
+            --draft
+
+          gh release edit "$RELEASE_VERSION" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft=false
 
   publish-packagist:
     name: Update Packagist
@@ -62,6 +98,5 @@ jobs:
     steps:
       - name: Notify Packagist
         run: |
-          # Packagist will auto-update via webhook, but you can also trigger manually
-          echo "Release ${{ github.ref_name }} published. Packagist will be updated automatically via webhook."
+          echo "Release ${{ inputs.version }} published. Packagist will be updated automatically via webhook."
           echo "If you haven't set up the webhook, visit https://packagist.org/packages/betterauth/symfony-bundle"

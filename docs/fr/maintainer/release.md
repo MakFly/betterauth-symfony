@@ -10,7 +10,7 @@ Mettre à jour version/changelog selon la politique, vérifier métadonnées Com
 
 ## Contrat et flux
 
-Revue → contrôles → artefact → tag/release protégé ; signaler les changements de configuration/ports.
+Revue → contrôles → artefact → déclenchement du workflow protégé `Release` avec un tag stable `vMAJOR.MINOR.PATCH` inutilisé. Le workflow rejoue la matrice Symfony, crée un brouillon, puis publie ensemble la release immuable et son tag ; signaler les changements de configuration/ports.
 
 ## Exemple
 

@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OAuth approvals happen before state persistence and require S256 PKCE. The
   release workflow reuses the complete Symfony quality matrix before release
   creation.
+- CI now verifies the current PHP 8.5 and Symfony 8.1 pair in addition to the
+  PHP 8.4 compatibility rows for Symfony 6.4, 7.4, and 8.0.
 
 ### Historical releases
 

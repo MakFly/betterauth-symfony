@@ -1,33 +1,6 @@
 parameters:
-    level: 7
+    level: max
     paths:
         - src
-    excludePaths:
-        - vendor
         - tests
-        - src/Installer  # Composer scripts - not runtime code
-    reportUnmatchedIgnoredErrors: false
-    ignoreErrors:
-        # Readonly property assignment in constructor (false positive)
-        - '#Readonly property .* is already assigned#'
-        # Symfony Config Builder false positives
-        - '#Call to an undefined method Symfony\\Component\\Config\\Definition\\Builder\\NodeDefinition::children\(\)#'
-        # API Platform OpenAPI - responses parameter accepts array but PHPStan expects typed array
-        - '#Parameter \$responses of class ApiPlatform\\OpenApi\\Model\\Operation constructor expects array.*given#'
-        # SafeErrorResponseTrait: defensive check — trait can't know if using class has $logger
-        - '#Call to function property_exists\(\) with .* and .logger. will always evaluate to true#'
-        # GenerateConfigCommand: preset arrays have precise literal types at level 7
-        - '#PHPDoc tag @var with type .* is not subtype of native type#'
-        -
-            message: '#If condition is always true#'
-            path: src/Command/GenerateConfigCommand.php
-        -
-            message: '#Offset .* on left side of \?\? always exists and is not nullable#'
-            path: src/Command/GenerateConfigCommand.php
-        -
-            message: '#Variable \$features in empty\(\) always exists and is not falsy#'
-            path: src/Command/GenerateConfigCommand.php
-        # Public trait exported for bundle consumers — not used inside the bundle itself
-        -
-            message: '#Trait .* is used zero times and is not analysed#'
-            path: src/Model/UserProfileTrait.php
+    reportUnmatchedIgnoredErrors: true

@@ -1,5 +1,0 @@
-better_auth_controllers:
-    resource:
-        path: '../../../src/Controller/'
-        namespace: 'BetterAuth\Symfony\Controller'
-    type: attribute

@@ -30,8 +30,8 @@ services and explicit storage contracts.
   encrypted TOTP seeds; atomic one-time-token contracts.
 - **Bounded parsing:** configurable token size, JSON size, claim count, and
   claim-depth limits.
-- **Tested compatibility:** the release workflow runs against Symfony 6.4,
-  7.4, and 8.0 before publishing.
+- **Tested compatibility:** the release workflow covers Symfony 6.4, 7.4,
+  8.0, and the latest PHP 8.5 / Symfony 8.1 pair before publishing.
 
 ## Architecture
 
@@ -271,8 +271,9 @@ composer audit --no-interaction --locked
 ```
 
 The GitHub Actions matrix constrains the direct Symfony dependencies and runs
-the test suite, PHPStan, and Composer audit against Symfony 6.4, 7.4, and 8.0.
-The same reusable matrix blocks every tagged release.
+the test suite, PHPStan, and Composer audit against PHP 8.4 with Symfony 6.4,
+7.4, and 8.0, plus PHP 8.5 with Symfony 8.1. The same reusable matrix blocks
+every tagged release.
 
 ## Frequently asked questions
 

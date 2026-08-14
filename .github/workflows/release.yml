@@ -22,14 +22,13 @@ jobs:
     permissions:
       contents: read
 
-  release:
-    name: Create immutable release
+  release-ready:
+    name: Verify release request
     runs-on: ubuntu-latest
     needs: quality
     permissions:
-      contents: write
+      contents: read
     env:
-      GH_TOKEN: ${{ github.token }}
       RELEASE_VERSION: ${{ inputs.version }}
 
     steps:
@@ -51,46 +50,9 @@ jobs:
             exit 1
           fi
 
-          if ! TAG_SHA=$(git rev-parse "$RELEASE_VERSION^{}" 2>/dev/null); then
-            echo "Release tag does not exist: $RELEASE_VERSION" >&2
-            exit 1
-          fi
-
-          if [[ "$TAG_SHA" != "$GITHUB_SHA" ]]; then
-            echo "Release tag $RELEASE_VERSION points to $TAG_SHA, expected $GITHUB_SHA" >&2
-            exit 1
-          fi
-
-      - name: Generate changelog
-        shell: bash
+      - name: Record validated release target
         run: |
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 "$RELEASE_VERSION^" 2>/dev/null || echo "")
-
-          if [[ -n "$PREVIOUS_TAG" ]]; then
-            echo "## Changes since $PREVIOUS_TAG" > RELEASE_NOTES.md
-            git log --pretty=format:"- %s (%h)" "$PREVIOUS_TAG".."$RELEASE_VERSION" >> RELEASE_NOTES.md
-          else
-            echo "## Initial Release" > RELEASE_NOTES.md
-            echo "First release of BetterAuth Symfony Bundle" >> RELEASE_NOTES.md
-          fi
-
-          echo "" >> RELEASE_NOTES.md
-          echo "### Installation" >> RELEASE_NOTES.md
-          echo '```bash' >> RELEASE_NOTES.md
-          echo "composer require betterauth/symfony-bundle:$RELEASE_VERSION" >> RELEASE_NOTES.md
-          echo '```' >> RELEASE_NOTES.md
-
-      - name: Create and publish immutable release
-        shell: bash
-        run: |
-          gh release create "$RELEASE_VERSION" \
-            --repo "$GITHUB_REPOSITORY" \
-            --title "BetterAuth Symfony ${RELEASE_VERSION#v}" \
-            --notes-file RELEASE_NOTES.md \
-            --generate-notes \
-            --verify-tag \
-            --draft
-
-          gh release edit "$RELEASE_VERSION" \
-            --repo "$GITHUB_REPOSITORY" \
-            --draft=false
+          echo "## Release readiness verified" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Version: $RELEASE_VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commit: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "The protected administrator release process may now create the release and tag together." >> "$GITHUB_STEP_SUMMARY"

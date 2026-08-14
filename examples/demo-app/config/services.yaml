@@ -1,0 +1,13 @@
+parameters:
+    demo.better_auth_secret: 'demo-only-secret-that-is-at-least-32-bytes-long'
+
+services:
+    _defaults: { autowire: true, autoconfigure: true }
+    Demo\: { resource: '../src/' }
+    Demo\Security\ApiRateLimiter:
+        arguments:
+            $ipLimiter: '@limiter.api_auth_ip'
+            $identityLimiter: '@limiter.api_auth_identity'
+    Demo\Security\DemoTotpEnrollmentService:
+        arguments:
+            $secret: '%demo.better_auth_secret%'

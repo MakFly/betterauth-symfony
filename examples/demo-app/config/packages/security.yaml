@@ -1,0 +1,9 @@
+security:
+    providers:
+        demo_users: { id: Demo\Security\DemoUserProvider }
+    firewalls:
+        main:
+            lazy: true
+            stateless: true
+            provider: demo_users
+            better_auth: ~

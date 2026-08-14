@@ -21,7 +21,6 @@ final class ConfigurationTest extends TestCase
         self::assertIsArray($config['refresh_token']);
         self::assertIsArray($config['features']);
         self::assertTrue($config['refresh_token']['enabled']);
-        self::assertFalse($config['features']['oauth']);
         self::assertFalse($config['features']['totp']);
         self::assertFalse($config['features']['monitoring']);
     }

@@ -43,8 +43,6 @@ final class Configuration implements ConfigurationInterface
                     ->end()->end()
                 ->end()->end()
                 ->arrayNode('features')->addDefaultsIfNotSet()->children()
-                    ->booleanNode('oauth')->defaultFalse()->end()
-                    ->booleanNode('oidc')->defaultFalse()->end()
                     ->booleanNode('totp')->defaultFalse()->end()
                     ->booleanNode('magic_link')->defaultFalse()->end()
                     ->booleanNode('email_reset')->defaultFalse()->end()
@@ -54,9 +52,6 @@ final class Configuration implements ConfigurationInterface
                     ->booleanNode('multi_tenant')->defaultFalse()->end()
                 ->end()->end()
                 ->arrayNode('feature_ports')->addDefaultsIfNotSet()->children()
-                    ->scalarNode('oauth')->defaultNull()->end()
-                    ->scalarNode('oidc')->defaultNull()->end()
-                    ->scalarNode('authorization_transactions')->defaultNull()->end()
                     ->scalarNode('totp')->defaultNull()->end()
                     ->scalarNode('magic_link')->defaultNull()->end()
                     ->scalarNode('email_reset')->defaultNull()->end()
@@ -65,7 +60,6 @@ final class Configuration implements ConfigurationInterface
                     ->scalarNode('monitoring')->defaultNull()->end()
                     ->scalarNode('multi_tenant')->defaultNull()->end()
                 ->end()->end()
-                ->scalarNode('oidc_issuer')->defaultNull()->end()
             ->end();
 
         return $tree;

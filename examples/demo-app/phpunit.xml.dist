@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<phpunit bootstrap="vendor/autoload.php">
+    <php>
+        <server name="KERNEL_CLASS" value="Demo\Kernel"/>
+        <server name="APP_ENV" value="test"/>
+    </php>
+    <testsuites>
+        <testsuite name="demo"><directory>tests</directory></testsuite>
+    </testsuites>
+</phpunit>

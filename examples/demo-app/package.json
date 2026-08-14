@@ -1,0 +1,6 @@
+{
+  "name": "betterauth-demo-assets",
+  "private": true,
+  "scripts": {"build": "bunx @tailwindcss/cli -i ./assets/app.css -o ./public/assets/app.css --minify"},
+  "devDependencies": {"@tailwindcss/cli": "^4.1.0", "tailwindcss": "^4.1.0"}
+}

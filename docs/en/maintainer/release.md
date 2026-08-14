@@ -10,7 +10,7 @@ Update version/changelog according to project policy, verify Composer metadata, 
 
 ## Contract and flow
 
-Review diff → run unit/static/documentation gates → build package artifact → disable the Packagist push webhook → create the reviewed stable `vMAJOR.MINOR.PATCH` tag through the repository’s protected administrator process → restore release immutability → dispatch the `Release` workflow from the same `main` commit. The workflow rejects a missing or mismatched tag, reruns the Symfony matrix, creates a draft, and publishes the immutable release. Only after that workflow succeeds, perform a controlled Packagist synchronization and leave the push webhook disabled again. Release notes must call out breaking config or port changes.
+Review diff → run unit/static/documentation gates → build package artifact → dispatch the `Release` workflow from the reviewed `main` commit with a stable `vMAJOR.MINOR.PATCH` version. The workflow publishes nothing: it reruns the Symfony matrix and records the exact validated SHA. After it succeeds, disable the Packagist push webhook, use the protected administrator process to create the GitHub release and tag together on that SHA, then restore release immutability. Finally perform a controlled Packagist synchronization and leave the push webhook disabled again. Release notes must call out breaking config or port changes.
 
 ## Example
 

@@ -10,7 +10,7 @@ Mettre à jour version/changelog selon la politique, vérifier métadonnées Com
 
 ## Contrat et flux
 
-Revue → contrôles → artefact → désactivation du webhook push Packagist → création du tag stable `vMAJOR.MINOR.PATCH` revu via le processus administrateur protégé du dépôt → réactivation de l’immutabilité des releases → déclenchement du workflow `Release` depuis le même commit `main`. Le workflow refuse un tag absent ou divergent, rejoue la matrice Symfony, crée un brouillon et publie la release immuable. Effectuer ensuite une synchronisation Packagist contrôlée uniquement après le succès du workflow, puis laisser le webhook push désactivé ; signaler les changements de configuration/ports.
+Revue → contrôles → artefact → déclenchement du workflow `Release` depuis le commit `main` revu avec une version stable `vMAJOR.MINOR.PATCH`. Le workflow ne publie rien : il rejoue la matrice Symfony et consigne le SHA exact validé. Après son succès, désactiver le webhook push Packagist, utiliser le processus administrateur protégé pour créer ensemble la release GitHub et son tag sur ce SHA, puis réactiver l’immutabilité des releases. Effectuer enfin une synchronisation Packagist contrôlée et laisser le webhook push désactivé ; signaler les changements de configuration/ports.
 
 ## Exemple
 

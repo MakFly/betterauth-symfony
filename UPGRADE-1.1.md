@@ -4,7 +4,7 @@
 
 Version 1.1 deliberately removes every OAuth and OpenID Connect service,
 configuration key, port, outcome, and authorization transaction type from this
-package. This is a SemVer-breaking change made before the v1.1.0 release.
+package. This is a SemVer-breaking change made before the v1.1.1 release.
 
 Remove these settings and service references from your application:
 

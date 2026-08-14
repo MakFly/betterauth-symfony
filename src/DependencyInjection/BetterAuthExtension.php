@@ -6,8 +6,6 @@ namespace BetterAuth\Symfony\DependencyInjection;
 
 use BetterAuth\Symfony\Core\TokenService;
 use BetterAuth\Symfony\Feature\DeviceService;
-use BetterAuth\Symfony\Feature\OAuthService;
-use BetterAuth\Symfony\Feature\OidcService;
 use BetterAuth\Symfony\Feature\OneTimeTokenService;
 use BetterAuth\Symfony\Feature\SecurityMonitoringService;
 use BetterAuth\Symfony\Feature\TenantMembershipService;
@@ -91,7 +89,7 @@ final class BetterAuthExtension extends Extension
             $container->setAlias(RefreshTokenStoreInterface::class, $store);
         }
 
-        $this->registerOptionalFeatures($container, $features, $featurePorts, $config['oidc_issuer'] ?? null, $config['secret'] ?? null);
+        $this->registerOptionalFeatures($container, $features, $featurePorts, $config['secret'] ?? null);
     }
 
     /** @return array<string, mixed> */
@@ -142,15 +140,8 @@ final class BetterAuthExtension extends Extension
      * @param array<string, mixed> $features
      * @param array<string, mixed> $ports
      */
-    private function registerOptionalFeatures(ContainerBuilder $container, array $features, array $ports, mixed $oidcIssuer, mixed $secret): void
+    private function registerOptionalFeatures(ContainerBuilder $container, array $features, array $ports, mixed $secret): void
     {
-        if ($this->featureEnabled($features, 'oauth')) {
-            $this->registerFeature($container, 'oauth', OAuthService::class, [new Reference($this->port($ports, 'oauth')), new Reference($this->port($ports, 'authorization_transactions'))]);
-        }
-        if ($this->featureEnabled($features, 'oidc')) {
-            $issuer = $this->stringValue($oidcIssuer, 'oidc_issuer');
-            $this->registerFeature($container, 'oidc', OidcService::class, [new Reference($this->port($ports, 'oidc')), new Reference($this->port($ports, 'authorization_transactions')), $issuer]);
-        }
         if ($this->featureEnabled($features, 'totp')) {
             $this->registerFeature($container, 'totp', TotpService::class, [new Reference($this->port($ports, 'totp')), $this->stringValue($secret, 'secret')]);
         }

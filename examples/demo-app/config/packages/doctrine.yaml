@@ -1,0 +1,6 @@
+doctrine:
+    dbal: { url: 'sqlite:///%kernel.project_dir%/var/demo.sqlite' }
+    orm:
+        controller_resolver: false
+        mappings:
+            Demo: { type: attribute, dir: '%kernel.project_dir%/src/Entity', prefix: 'Demo\Entity' }

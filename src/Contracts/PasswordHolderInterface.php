@@ -15,7 +15,7 @@ interface PasswordHolderInterface
     /**
      * Returns the hashed password for this user.
      *
-     * Returns null for passwordless users (e.g. magic link, OAuth-only users).
+     * Returns null for passwordless users (for example, magic-link users).
      */
     public function getPassword(): ?string;
 }

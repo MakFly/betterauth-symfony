@@ -1,0 +1,16 @@
+framework:
+    secret: 'demo-only-secret-that-is-never-used-in-production-32'
+    router: { utf8: true }
+    session: false
+    csrf_protection: false
+    mailer:
+        dsn: 'smtp://127.0.0.1:1025'
+    rate_limiter:
+        api_auth_ip:
+            policy: fixed_window
+            limit: 20
+            interval: '1 minute'
+        api_auth_identity:
+            policy: fixed_window
+            limit: 10
+            interval: '1 minute'

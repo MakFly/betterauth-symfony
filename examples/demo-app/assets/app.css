@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+@theme { --color-graphite: oklch(21% 0.01 270); --color-violet: oklch(55% 0.19 295); }
+@layer base { :root { color-scheme: light dark; } body { min-width: 0; background: oklch(97% .005 270); color: oklch(21% .01 270); font-family: ui-sans-serif, system-ui, sans-serif; } @media (prefers-color-scheme: dark) { body { background: oklch(18% .01 270); color: oklch(94% .005 270); } } *:focus-visible { outline: 3px solid oklch(55% .19 295); outline-offset: 3px; } @media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } } }

@@ -1,0 +1,35 @@
+{
+  "name": "betterauth/demo-app",
+  "description": "Local BetterAuth Symfony 1.1 demonstration application",
+  "type": "project",
+  "license": "MIT",
+  "require": {
+    "php": "^8.5",
+    "betterauth/symfony-bundle": "^1.1",
+    "doctrine/doctrine-bundle": "^3.0",
+    "doctrine/doctrine-migrations-bundle": "^3.4",
+    "doctrine/orm": "^3.5",
+    "symfony/framework-bundle": "^8.1",
+    "symfony/mailer": "^8.1",
+    "symfony/rate-limiter": "^8.1",
+    "symfony/security-bundle": "^8.1",
+    "symfony/twig-bundle": "^8.1",
+    "symfony/yaml": "^8.1"
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^2.1",
+    "phpunit/phpunit": "^10.5",
+    "symfony/browser-kit": "^8.1",
+    "symfony/phpunit-bridge": "^8.1"
+  },
+  "repositories": [{"type": "path", "url": "../../", "options": {"symlink": true, "versions": {"betterauth/symfony-bundle": "1.1.x-dev"}}}],
+  "autoload": {"psr-4": {"Demo\\": "src/"}},
+  "autoload-dev": {"psr-4": {"Demo\\Tests\\": "tests/"}},
+  "scripts": {
+    "test": "phpunit",
+    "phpstan": "phpstan analyse --memory-limit=256M"
+  },
+  "config": {"allow-plugins": {"phpstan/extension-installer": true}},
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}

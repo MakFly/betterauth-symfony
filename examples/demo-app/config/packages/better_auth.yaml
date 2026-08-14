@@ -1,0 +1,22 @@
+better_auth:
+    secret: '%demo.better_auth_secret%'
+    refresh_token:
+        enabled: true
+        ttl: 3600
+        store: Demo\Storage\DoctrineRefreshTokenStore
+    features:
+        totp: true
+        magic_link: true
+        email_reset: true
+        guest: true
+        device: true
+        monitoring: true
+        multi_tenant: true
+    feature_ports:
+        totp: Demo\Storage\DoctrineTotpStore
+        magic_link: Demo\Storage\DoctrineOneTimeTokenStore
+        email_reset: Demo\Storage\DoctrineOneTimeTokenStore
+        guest: Demo\Storage\DoctrineOneTimeTokenStore
+        device: Demo\Storage\DoctrineDeviceStore
+        monitoring: Demo\Storage\DoctrineSecurityMonitoringStore
+        multi_tenant: Demo\Storage\DoctrineTenantMembershipStore

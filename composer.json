@@ -3,7 +3,7 @@
   "description": "Symfony-native PASETO authentication bundle with application-owned users and persistence",
   "type": "symfony-bundle",
   "license": "MIT",
-  "keywords": ["symfony", "authentication", "paseto", "oauth", "oidc", "totp", "betterauth"],
+  "keywords": ["symfony", "authentication", "paseto", "totp", "refresh-token", "betterauth"],
   "homepage": "https://github.com/betterauth/betterauth-symfony",
   "support": {
     "issues": "https://github.com/betterauth/betterauth-symfony/issues",

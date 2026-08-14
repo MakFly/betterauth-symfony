@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-08-14
+
+### Removed
+- **Breaking:** OAuth and OpenID Connect client services, ports, outcomes,
+  authorization transaction objects, feature flags, feature ports, and issuer
+  configuration are removed from BetterAuth Symfony. Applications own those
+  integrations independently when needed.
+
+### Added
+- Bilingual public documentation and a local-only Symfony/Doctrine demo.
+
 ### Changed
 - Version 1.0 is a Symfony-only PASETO access-token bundle. OAuth and OIDC are
   relying-party/client orchestration services with application-owned atomic

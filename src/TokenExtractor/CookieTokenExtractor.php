@@ -6,28 +6,16 @@ namespace BetterAuth\Symfony\TokenExtractor;
 
 use Symfony\Component\HttpFoundation\Request;
 
-/**
- * Extracts token from a cookie.
- * Similar to Lexik's CookieTokenExtractor.
- *
- * Useful for session-like token storage in web applications.
- *
- * Example:
- *   Cookie: access_token=v4.local.xxxxx
- */
-final class CookieTokenExtractor implements TokenExtractorInterface
+final readonly class CookieTokenExtractor implements TokenExtractorInterface
 {
-    public function __construct(
-        private readonly string $name = 'access_token',
-    ) {
+    public function __construct(private string $name = 'access_token', private int $maxLength = 8192)
+    {
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function extract(Request $request): ?string
     {
-        return $request->cookies->get($this->name);
+        $token = $request->cookies->get($this->name);
+
+        return is_string($token) && $token !== '' && strlen($token) <= $this->maxLength ? $token : null;
     }
 }
-

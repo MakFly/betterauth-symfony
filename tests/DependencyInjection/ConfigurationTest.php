@@ -6,143 +6,23 @@ namespace BetterAuth\Symfony\Tests\DependencyInjection;
 
 use BetterAuth\Symfony\DependencyInjection\Configuration;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\Definition\Processor;
 
-/**
- * Test BetterAuth configuration validation and defaults
- */
-class ConfigurationTest extends TestCase
+final class ConfigurationTest extends TestCase
 {
-    private Configuration $configuration;
-    private Processor $processor;
-
-    protected function setUp(): void
+    public function testItDefaultsEveryOptionalFeatureToDisabled(): void
     {
-        $this->configuration = new Configuration();
-        $this->processor = new Processor();
-    }
+        $config = (new Processor())->processConfiguration(new Configuration(), [[
+            'secret' => str_repeat('a', 32),
+            'refresh_token' => ['store' => 'App\\Security\\RefreshTokenStore'],
+        ]]);
 
-    public function testDefaultConfiguration(): void
-    {
-        $config = $this->processor->processConfiguration($this->configuration, [
-            'better_auth' => [
-                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
-            ],
-        ]);
-
-        $this->assertSame('api', $config['mode']);
-        $this->assertSame('a-valid-secret-key-that-is-at-least-32-characters-long!!', $config['secret']);
-        $this->assertSame(604800, $config['session']['lifetime']);
-        $this->assertSame('better_auth_session', $config['session']['cookie_name']);
-        $this->assertSame(3600, $config['token']['lifetime']);
-        $this->assertSame(2592000, $config['token']['refresh_lifetime']);
-        // SEC-34: multi-tenant is off by default (aligned with the config template).
-        $this->assertFalse($config['multi_tenant']['enabled']);
-        $this->assertSame('member', $config['multi_tenant']['default_role']);
-    }
-
-    public function testApiModeConfiguration(): void
-    {
-        $config = $this->processor->processConfiguration($this->configuration, [
-            'better_auth' => [
-                'mode' => 'api',
-                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
-            ],
-        ]);
-
-        $this->assertSame('api', $config['mode']);
-        $this->assertSame('a-valid-secret-key-that-is-at-least-32-characters-long!!', $config['secret']);
-    }
-
-    public function testInvalidModeThrowsException(): void
-    {
-        $this->expectException(InvalidConfigurationException::class);
-        $this->expectExceptionMessageMatches('/Invalid mode.*Must be "session", "api", or "hybrid"/');
-
-        $this->processor->processConfiguration($this->configuration, [
-            'better_auth' => [
-                'mode' => 'invalid',
-                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
-            ],
-        ]);
-    }
-
-    public function testShortSecretAcceptedAtConfigLevel(): void
-    {
-        // Secret length validation is deferred to runtime (TokenService)
-        // because Symfony's ValidateEnvPlaceholdersPass replaces %env()%
-        // with short placeholder strings before re-validating the tree.
-        $result = $this->processor->processConfiguration($this->configuration, [
-            'better_auth' => [
-                'secret' => 'too-short',
-            ],
-        ]);
-
-        $this->assertSame('too-short', $result['secret']);
-    }
-
-    public function testMissingSecretThrowsException(): void
-    {
-        $this->expectException(InvalidConfigurationException::class);
-
-        $this->processor->processConfiguration($this->configuration, [
-            'better_auth' => [],
-        ]);
-    }
-
-    public function testCustomTokenLifetime(): void
-    {
-        $config = $this->processor->processConfiguration($this->configuration, [
-            'better_auth' => [
-                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
-                'token' => [
-                    'lifetime' => 7200,
-                    'refresh_lifetime' => 86400,
-                ],
-            ],
-        ]);
-
-        $this->assertSame(7200, $config['token']['lifetime']);
-        $this->assertSame(86400, $config['token']['refresh_lifetime']);
-    }
-
-    public function testOAuthProvidersConfiguration(): void
-    {
-        $config = $this->processor->processConfiguration($this->configuration, [
-            'better_auth' => [
-                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
-                'oauth' => [
-                    'providers' => [
-                        'google' => [
-                            'enabled' => true,
-                            'client_id' => 'google_client_id',
-                            'client_secret' => 'google_secret',
-                            'redirect_uri' => 'http://localhost/auth/google/callback',
-                        ],
-                    ],
-                ],
-            ],
-        ]);
-
-        $this->assertTrue($config['oauth']['providers']['google']['enabled']);
-        $this->assertSame('google_client_id', $config['oauth']['providers']['google']['client_id']);
-        $this->assertSame('google_secret', $config['oauth']['providers']['google']['client_secret']);
-    }
-
-    public function testMultiTenantConfiguration(): void
-    {
-        $config = $this->processor->processConfiguration($this->configuration, [
-            'better_auth' => [
-                'secret' => 'a-valid-secret-key-that-is-at-least-32-characters-long!!',
-                'multi_tenant' => [
-                    'enabled' => false,
-                    'default_role' => 'user',
-                ],
-            ],
-        ]);
-
-        $this->assertFalse($config['multi_tenant']['enabled']);
-        $this->assertSame('user', $config['multi_tenant']['default_role']);
+        self::assertSame('sub', $config['user_id_claim']);
+        self::assertIsArray($config['refresh_token']);
+        self::assertIsArray($config['features']);
+        self::assertTrue($config['refresh_token']['enabled']);
+        self::assertFalse($config['features']['oauth']);
+        self::assertFalse($config['features']['totp']);
+        self::assertFalse($config['features']['monitoring']);
     }
 }

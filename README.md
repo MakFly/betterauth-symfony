@@ -1,101 +1,75 @@
-# BetterAuth for Symfony
+# BetterAuth Symfony Bundle 1.0
 
-[![CI](https://github.com/MakFly/betterauth-symfony/actions/workflows/tests.yml/badge.svg?branch=main&event=push)](https://github.com/MakFly/betterauth-symfony/actions/workflows/tests.yml?query=branch%3Amain)
-[![Latest Stable Version](https://img.shields.io/packagist/v/betterauth/symfony-bundle?label=stable)](https://packagist.org/packages/betterauth/symfony-bundle)
-[![Total Downloads](https://img.shields.io/packagist/dt/betterauth/symfony-bundle?label=downloads)](https://packagist.org/packages/betterauth/symfony-bundle)
-[![PHP Version](https://img.shields.io/packagist/php-v/betterauth/symfony-bundle?label=php)](https://packagist.org/packages/betterauth/symfony-bundle)
-[![License](https://img.shields.io/packagist/l/betterauth/symfony-bundle?label=license)](LICENSE)
+`betterauth/symfony-bundle` is a Symfony-native PASETO v4.local access-token
+bundle. It never creates application entities, mappings, migrations, routes,
+controllers, user providers, or firewalls. Your application owns all of those
+boundaries.
 
-Modern authentication bundle for Symfony with API/session/hybrid modes, token rotation, OAuth, 2FA, and optional multi-tenant features.
-
-## TL;DR
+## Install
 
 ```bash
 composer require betterauth/symfony-bundle
-php bin/console better-auth:install
-php bin/console better-auth:setup-features --preset=full --with-controllers --migrate
 ```
 
-Then check generated routes:
+Configure your secret and an application refresh-token store. The store receives
+hashes only and implements `RefreshTokenStoreInterface`.
 
-```bash
-php bin/console debug:router | grep auth
+```yaml
+# config/packages/better_auth.yaml
+better_auth:
+    secret: '%env(BETTER_AUTH_SECRET)%'
+    user_id_claim: sub
+    access_token: { ttl: 3600 }
+    refresh_token:
+        enabled: true
+        ttl: 2592000
+        store: App\Security\RefreshTokenStore
+    token_extractors:
+        authorization_header: { enabled: true, max_length: 8192 }
+        cookie: { enabled: false, name: access_token }
 ```
 
-## Compatibility
+Use the application's existing Symfony provider in the firewall. The factory
+injects that provider into the authenticator; it does not inspect or assume an
+entity class.
 
-- PHP: `^8.4`
-- Symfony: `^6.4 | ^7.0 | ^8.0`
-- API Platform: `^4.0`
-- Doctrine ORM: `^3.0`
-- Doctrine Migrations Bundle: `^4.0`
-- Databases tested in CI:
-1. PostgreSQL
-2. SQLite
-3. MySQL
-4. MariaDB
-
-## Database URLs
-
-Use one of these `DATABASE_URL` values:
-
-```bash
-# PostgreSQL
-DATABASE_URL=postgresql://app:secret@127.0.0.1:5432/app?serverVersion=16&charset=utf8
-
-# SQLite
-DATABASE_URL=sqlite:///%kernel.project_dir%/var/data.db
-
-# MySQL
-DATABASE_URL=mysql://app:secret@127.0.0.1:3306/app?serverVersion=8.4&charset=utf8mb4
-
-# MariaDB
-DATABASE_URL=mysql://app:secret@127.0.0.1:3306/app?serverVersion=mariadb-11.0.2&charset=utf8mb4
+```yaml
+# config/packages/security.yaml
+security:
+    providers:
+        app_users:
+            id: App\Security\UserProvider
+    firewalls:
+        api:
+            stateless: true
+            provider: app_users
+            better_auth: ~
 ```
 
-## Main Console Commands
+Issue tokens from your own login endpoint with `RefreshTokenManager`, inspect
+its typed rotation outcome (`rotated`, `replayed`, or `invalid`), and use
+`TokenService::createAccessToken()` / `parseAccessToken()` where access tokens
+are required. The configured `user_id_claim` is both emitted and read by the
+authenticator. See [the configuration reference](docs/CONFIGURATION.md).
 
-- `better-auth:install`
-- `better-auth:setup-features`
-- `better-auth:add-controller`
-- `better-auth:user-fields`
-- `better-auth:configure`
-- `better-auth:switch-mode`
-- `better-auth:generate-config`
-- `better-auth:generate-secret`
-- `better-auth:setup:dependencies`
-- `better-auth:setup:logging`
-- `better-auth:config:update`
-- `better-auth:publish-templates`
-- `better-auth:cleanup:sessions`
-- `better-auth:cleanup:tokens`
+## Optional capabilities
 
-## Documentation
+OAuth/OIDC, TOTP, magic links, email reset, guest sessions, device tracking,
+monitoring, and multi-tenant membership are opt-in contracts only. They are
+disabled by default and this bundle supplies no HTTP route for them. Register
+your application implementation and route explicitly. OAuth and OIDC are safe
+relying-party flows: the application supplies an atomic state transaction store;
+the bundle uses state plus PKCE (and nonce for OIDC), while the OIDC port
+validates the external ID token. A BetterAuth PASETO access token is never an
+OIDC ID token. OAuth provider/redirect pairs are approved before any state is
+stored and use S256 PKCE. TOTP persistence receives only ciphertext derived from the
+bundle secret.
 
-Start here:
+## Security properties
 
-- [Documentation Index](docs/00-INDEX.md)
-- [Installation](docs/01-INSTALLATION.md)
-- [Configuration](docs/02-CONFIGURATION.md)
+- Access tokens are authenticated PASETO v4.local tokens.
+- Refresh-token persistence receives SHA-256 hashes, never raw tokens.
+- Rotation is delegated to one atomic application-store operation.
+- Reuse of a spent token revokes the affected user's refresh-token family.
 
-Most-used guides:
-
-- [API Mode](docs/03-API-MODE.md)
-- [Session Mode](docs/04-SESSION-MODE.md)
-- [Hybrid Mode](docs/05-HYBRID-MODE.md)
-- [OAuth Providers](docs/06-OAUTH-PROVIDERS.md)
-- [Two-Factor Auth (TOTP)](docs/07-TWO-FACTOR-AUTH.md)
-- [Security Guide](docs/11-SECURITY.md)
-- [Testing](docs/12-TESTING.md)
-- [Migration Guide](docs/14-MIGRATION.md)
-- [Entity Customization](docs/16-ENTITY-CUSTOMIZATION.md)
-- [Controllers](docs/18-CONTROLLERS.md)
-- [Advanced Customization](docs/19-CUSTOMIZATION.md)
-
-## Security Note
-
-This bundle uses Paseto V4 and supports hardening through configuration, rate limiting strategy, and security monitoring options. For production hardening checklist, see [docs/11-SECURITY.md](docs/11-SECURITY.md).
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+See [UPGRADE-1.0.md](UPGRADE-1.0.md) when migrating from pre-1.0 releases.

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Version 1.0 is a Symfony-only PASETO access-token bundle. OAuth and OIDC are
+  relying-party/client orchestration services with application-owned atomic
+  state, PKCE and (for OIDC) nonce transactions. OIDC validation is delegated
+  to a typed application port; BetterAuth PASETO values are never ID tokens.
+- TOTP seeds are domain-separated AES-256-GCM ciphertext before application
+  persistence. One-time-token stores must atomically consume an unexpired,
+  unconsumed purpose-and-hash record.
+- OAuth approvals happen before state persistence and require S256 PKCE. The
+  release workflow reuses the complete Symfony quality matrix before release
+  creation.
+
+### Historical releases
+
+The entries below document the retired pre-1.0 standalone package only. They
+may mention its former multimodal dependency, Doctrine adapters, controllers,
+or migrations; those are not current 1.0 behavior or requirements.
+
 ## [0.1.2] - 2026-07-23
 
 ### Fixed
